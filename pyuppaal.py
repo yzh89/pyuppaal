@@ -119,12 +119,14 @@ class Template:
     %s
     <declaration>%s</declaration>
     %s
+    %s
     <init ref="%s" />
     %s
   </template>""" % (self.name, 
     self._parameter_to_xml(),
     cgi.escape(self.declaration),
-    "\n".join([l.to_xml() for l in self.locations]),
+    "\n".join([l.to_xml() for l in self.locations if isinstance(l, Location)]),
+    "\n".join([l.to_xml() for l in self.locations if isinstance(l, Branchpoint)]),
     self.initlocation.id,
     "\n".join([l.to_xml() for l in self.transitions]))
 
@@ -152,6 +154,18 @@ class Location:
       %s
     </location>""" % (self.id, self.xpos, self.ypos, namexml, invariantxml,
         self.committed and '<committed />' or '')
+
+class Branchpoint:
+    def __init__(self, id = "", xpos=0, ypos=0):
+        self.id = id
+        self.xpos = xpos
+        self.ypos = ypos
+        self.invariant = ""
+
+    def to_xml(self):
+        return """
+    <branchpoint id="%s" x="%s" y="%s" />""" % (self.id, self.xpos, self.ypos)
+
 
 last_transition_id = 0
 class Transition:
@@ -242,6 +256,11 @@ def from_xml(xmlsock):
                     location.invariant = str(labelxml.childNodes[0].data)
                 #TODO other labels
             locations[location.id] = location
+        for branchpointxml in templatexml.getElementsByTagName("branchpoint"):
+            branchpoint = Branchpoint(id=branchpointxml.attributes['id'].value,
+                xpos=int(branchpointxml.attributes['x'].value),
+                ypos=int(branchpointxml.attributes['y'].value))
+            locations[branchpoint.id] = branchpoint
         transitions = []
         for transitionxml in templatexml.getElementsByTagName("transition"):
             transition = Transition(
