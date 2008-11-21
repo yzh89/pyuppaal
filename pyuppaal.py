@@ -265,8 +265,11 @@ def from_xml(xmlsock):
                 transition.nails += [Nail(int(nailxml.attributes['x'].value), int(nailxml.attributes['y'].value))]
             transitions += [transition]
 
-        declarationxml = templatexml.getElementsByTagName("declaration")[0]
-        declaration = declarationxml.hasChildNodes() and declarationxml.childNodes[0].data or ''
+        if len(templatexml.getElementsByTagName("declaration")) > 0:
+            declarationxml = templatexml.getElementsByTagName("declaration")[0]
+            declaration = declarationxml.hasChildNodes() and declarationxml.childNodes[0].data or ''
+        else:
+            declaration = ''
         if len(templatexml.getElementsByTagName("parameter")) > 0:
             parameterxml = templatexml.getElementsByTagName("parameter")[0]
             parameter = parameterxml.hasChildNodes() and parameterxml.childNodes[0].data or ''
