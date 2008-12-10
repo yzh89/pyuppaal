@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# vim: set fileencoding=utf-8 :
 
 """
     Copyright (C) 2008 Mads Christian Olesen <mchro@cs.aau.dk>
@@ -69,6 +70,7 @@ class Template:
 
         G = pygraphviz.AGraph(strict=False)
         for l in self.locations:
+            #TODO: initial node should be the first (dot will place it at the top then)
             G.add_node(l.id)
             node = G.get_node(l.id)
             node.attr['label'] = l.invariant.replace('\n', '\\n')
