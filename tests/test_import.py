@@ -1,6 +1,9 @@
 #!/usr/bin/python
-import pyuppaal
 import sys
+import os.path
+projdir = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
+sys.path = [projdir] + sys.path
+import pyuppaal
 import unittest
 import os
 
