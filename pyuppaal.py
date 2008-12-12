@@ -147,7 +147,7 @@ class Location:
         namexml = ""
         invariantxml = ""
         if self.invariant != "":
-            invariantxml = '<label kind="invariant" x="'+str(self.xpos)+'" y="'+str(self.ypos)+'">'+cgi.escape(self.invariant)+'</label>'
+            invariantxml = '<label kind="invariant" x="'+str(self.invariant_xpos)+'" y="'+str(self.invariant_ypos)+'">'+cgi.escape(self.invariant)+'</label>'
         if self.name != "":
             namexml = '<name x="'+str(self.xpos)+'" y="'+str(self.ypos)+'">'+self.name+'</name>'
         return """
@@ -205,6 +205,19 @@ class Transition:
         for i in range(num):
             self.nails += [Nail()]
 
+    def move_relative(self, x, y):
+        if self.guard:
+            self.guard_xpos = int(self.guard_xpos)+x
+            self.guard_ypos = int(self.guard_ypos)+y
+
+        if self.assignment:
+            self.assignment_xpos = int(self.assignment_xpos)+x
+            self.assignment_ypos = int(self.assignment_ypos)+y
+
+        if self.synchronisation:
+            self.synchronisation_xpos = int(self.synchronisation_xpos)+x
+            self.synchronisation_ypos = int(self.synchronisation_ypos)+y
+
     def guard_to_xml(self):
         if self.guard:
             return '<label kind="guard" x="%s" y="%s">%s</label>' % \
@@ -257,6 +270,9 @@ def from_xml(xmlsock):
             for labelxml in locationxml.getElementsByTagName("label"):
                 if labelxml.attributes['kind'].value == 'invariant':
                     location.invariant = str(labelxml.childNodes[0].data)
+                    location.invariant_xpos = int(labelxml.attributes['x'].value)
+                    location.invariant_ypos = int(labelxml.attributes['y'].value)
+
                 #TODO other labels
             locations[location.id] = location
         for branchpointxml in templatexml.getElementsByTagName("branchpoint"):
@@ -273,16 +289,16 @@ def from_xml(xmlsock):
             for labelxml in transitionxml.getElementsByTagName("label"):
                 if labelxml.attributes['kind'].value == 'guard':
                     transition.guard = str(labelxml.childNodes[0].data)
-                    transition.guard_xpos = labelxml.attributes['x'].value
-                    transition.guard_ypos = labelxml.attributes['y'].value
+                    transition.guard_xpos = int(labelxml.attributes['x'].value)
+                    transition.guard_ypos = int(labelxml.attributes['y'].value)
                 if labelxml.attributes['kind'].value == 'assignment':
                     transition.assignment = str(labelxml.childNodes[0].data)
-                    transition.assignment_xpos = labelxml.attributes['x'].value
-                    transition.assignment_ypos = labelxml.attributes['y'].value
+                    transition.assignment_xpos = int(labelxml.attributes['x'].value)
+                    transition.assignment_ypos = int(labelxml.attributes['y'].value)
                 if labelxml.attributes['kind'].value == 'synchronisation':
                     transition.synchronisation = str(labelxml.childNodes[0].data)
-                    transition.synchronisation_xpos = labelxml.attributes['x'].value
-                    transition.synchronisation_ypos = labelxml.attributes['y'].value
+                    transition.synchronisation_xpos = int(labelxml.attributes['x'].value)
+                    transition.synchronisation_ypos = int(labelxml.attributes['y'].value)
             for nailxml in transitionxml.getElementsByTagName("nail"):
                 transition.nails += [Nail(int(nailxml.attributes['x'].value), int(nailxml.attributes['y'].value))]
             transitions += [transition]
