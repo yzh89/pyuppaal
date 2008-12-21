@@ -254,6 +254,13 @@ def from_xml(xmlsock):
     xmldoc = minidom.parse(xmlsock).documentElement
     xmlsock.close()
 
+    def get_node_text(node, tagname):
+        tagnodes = node.getElementsByTagName(tagname)
+        if len(tagnodes) > 0:
+            subnode = tagnodes[0]
+            return subnode.hasChildNodes() and subnode.childNodes[0].data or None
+        return None
+
     #ntaxml = xmldoc.getElementsByTagName("nta")[0]
     ntaxml = xmldoc
     system_declaration = ntaxml.getElementsByTagName('declaration')[0].childNodes[0].data
@@ -308,16 +315,9 @@ def from_xml(xmlsock):
                 transition.nails += [Nail(int(nailxml.attributes['x'].value), int(nailxml.attributes['y'].value))]
             transitions += [transition]
 
-        if len(templatexml.getElementsByTagName("declaration")) > 0:
-            declarationxml = templatexml.getElementsByTagName("declaration")[0]
-            declaration = declarationxml.hasChildNodes() and declarationxml.childNodes[0].data or ''
-        else:
-            declaration = ''
-        if len(templatexml.getElementsByTagName("parameter")) > 0:
-            parameterxml = templatexml.getElementsByTagName("parameter")[0]
-            parameter = parameterxml.hasChildNodes() and parameterxml.childNodes[0].data or ''
-        else:
-            parameter = None
+        declaration = get_node_text(templatexml, "declaration")
+        parameter = get_node_text(templatexml, "parameter")
+
         if len(templatexml.getElementsByTagName("init")) > 0:
             initlocation=locations[templatexml.getElementsByTagName("init")[0].attributes['ref'].value]
         else:
