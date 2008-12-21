@@ -313,10 +313,14 @@ def from_xml(xmlsock):
             parameter = parameterxml.hasChildNodes() and parameterxml.childNodes[0].data or ''
         else:
             parameter = None
+        if len(templatexml.getElementsByTagName("init")) > 0:
+            initlocation=locations[templatexml.getElementsByTagName("init")[0].attributes['ref'].value]
+        else:
+            initlocation = None
         template = Template(templatexml.getElementsByTagName("name")[0].childNodes[0].data,
             declaration,
             locations.values(),
-            initlocation=locations[templatexml.getElementsByTagName("init")[0].attributes['ref'].value],
+            initlocation=initlocation,
             transitions=transitions,
             parameter=parameter)
         templates += [template]    

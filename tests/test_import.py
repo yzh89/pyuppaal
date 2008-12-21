@@ -16,6 +16,7 @@ class TestMinimalImport(unittest.TestCase):
         self.assertEqual(len(nta.templates[0].transitions), 0)
         self.assertEqual(nta.templates[0].locations[0].xpos, 16)
         self.assertEqual(nta.templates[0].locations[0].ypos, -40)
+        self.assertTrue(nta.templates[0].locations[0] == nta.templates[0].initlocation)
 
     def test_import_small(self):
         file = open(os.path.join(os.path.dirname(sys.argv[0]), 'small.xml'))
@@ -53,6 +54,11 @@ class TestMinimalImport(unittest.TestCase):
         nta = pyuppaal.from_xml(file)
         self.assertEqual(len(nta.templates), 1)
         self.assertEqual(nta.templates[0].parameter, 'int id')
+
+    def test_import_minimal_noinitlocation(self):
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'noinit_minimal.xml'))
+        nta = pyuppaal.from_xml(file)
+        self.assertEqual(nta.templates[0].initlocation, None)
 
 if __name__ == '__main__':
     unittest.main()
