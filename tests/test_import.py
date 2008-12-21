@@ -60,5 +60,15 @@ class TestMinimalImport(unittest.TestCase):
         nta = pyuppaal.from_xml(file)
         self.assertEqual(nta.templates[0].initlocation, None)
 
+    def test_import_minimal_name(self):
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'minimal_name.xml'))
+        nta = pyuppaal.from_xml(file)
+        self.assertEqual(nta.templates[0].initlocation.name, "abemad")
+
+    def test_import_strangeguard(self):
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'strangeguard.xml'))
+        nta = pyuppaal.from_xml(file)
+        self.assertEqual(nta.templates[0].transitions[0].guard, "")
+
 if __name__ == '__main__':
     unittest.main()

@@ -23,6 +23,7 @@ import pygraphviz
 import cgi
 from xml.dom import minidom
 
+UPPAAL_LINEHEIGHT = 15
 class NTA:
     def __init__(self, declaration="", system="", templates=[]):
         self.declaration = declaration
@@ -64,7 +65,6 @@ class Template:
     def dot2uppaalcoord(self, coord):
         return int(-int(coord)*1.5)
 
-    UPPAAL_LINEHEIGHT = 15
     def layout(self, auto_nails=False):
         self.assign_ids()
 
@@ -107,9 +107,9 @@ class Template:
 
             (t.guard_xpos, t.guard_ypos) = map(self.dot2uppaalcoord, edge.attr['lp'].split(','))
             (t.assignment_xpos, t.assignment_ypos) = map(self.dot2uppaalcoord, edge.attr['lp'].split(','))
-            t.assignment_ypos += self.UPPAAL_LINEHEIGHT
+            t.assignment_ypos += UPPAAL_LINEHEIGHT
             (t.synchronisation_xpos, t.synchronisation_ypos) = map(self.dot2uppaalcoord, edge.attr['lp'].split(','))
-            t.synchronisation_ypos += 2 * self.UPPAAL_LINEHEIGHT
+            t.synchronisation_ypos += 2 * UPPAAL_LINEHEIGHT
 
     def _parameter_to_xml(self):
         if self.parameter:
@@ -262,9 +262,13 @@ def from_xml(xmlsock):
     for templatexml in ntaxml.getElementsByTagName("template"):
         locations = {}
         for locationxml in templatexml.getElementsByTagName("location"):
+            name = ''
+            if len(locationxml.getElementsByTagName("name")) > 0 and \
+                len(locationxml.getElementsByTagName("name")[0].childNodes) > 0:
+                name = locationxml.getElementsByTagName("name")[0].childNodes[0].data
             location = Location(id=locationxml.attributes['id'].value,
                 xpos=int(locationxml.attributes['x'].value),
-                ypos=int(locationxml.attributes['y'].value))
+                ypos=int(locationxml.attributes['y'].value), name=name)
             if locationxml.getElementsByTagName("committed"):
                 location.committed = True
             for labelxml in locationxml.getElementsByTagName("label"):
@@ -287,7 +291,8 @@ def from_xml(xmlsock):
                 locations[transitionxml.getElementsByTagName('target')[0].attributes['ref'].value],
                 )
             for labelxml in transitionxml.getElementsByTagName("label"):
-                if labelxml.attributes['kind'].value == 'guard':
+                if labelxml.attributes['kind'].value == 'guard' and \
+                    len(labelxml.childNodes) > 0:
                     transition.guard = str(labelxml.childNodes[0].data)
                     transition.guard_xpos = int(labelxml.attributes['x'].value)
                     transition.guard_ypos = int(labelxml.attributes['y'].value)
