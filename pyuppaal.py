@@ -260,6 +260,11 @@ def from_xml(xmlsock):
             subnode = tagnodes[0]
             return subnode.hasChildNodes() and subnode.childNodes[0].data or None
         return None
+    def get_attr_val(node, attrname, default=None):
+        if attrname in node.attributes.keys():
+            return node.attributes[attrname].value
+        else:
+            return default
 
     #ntaxml = xmldoc.getElementsByTagName("nta")[0]
     ntaxml = xmldoc
@@ -274,15 +279,15 @@ def from_xml(xmlsock):
                 len(locationxml.getElementsByTagName("name")[0].childNodes) > 0:
                 name = locationxml.getElementsByTagName("name")[0].childNodes[0].data
             location = Location(id=locationxml.attributes['id'].value,
-                xpos=int(locationxml.attributes['x'].value),
-                ypos=int(locationxml.attributes['y'].value), name=name)
+                xpos=int(get_attr_val(locationxml, 'x', 0)),
+                ypos=int(get_attr_val(locationxml, 'y', 0)), name=name)
             if locationxml.getElementsByTagName("committed"):
                 location.committed = True
             for labelxml in locationxml.getElementsByTagName("label"):
                 if labelxml.attributes['kind'].value == 'invariant':
                     location.invariant = str(labelxml.childNodes[0].data)
-                    location.invariant_xpos = int(labelxml.attributes['x'].value)
-                    location.invariant_ypos = int(labelxml.attributes['y'].value)
+                    location.invariant_xpos = int(get_attr_val(labelxml, 'x', 0))
+                    location.invariant_ypos = int(get_attr_val(labelxml, 'y', 0))
 
                 #TODO other labels
             locations[location.id] = location
@@ -301,16 +306,16 @@ def from_xml(xmlsock):
                 if labelxml.attributes['kind'].value == 'guard' and \
                     len(labelxml.childNodes) > 0:
                     transition.guard = str(labelxml.childNodes[0].data)
-                    transition.guard_xpos = int(labelxml.attributes['x'].value)
-                    transition.guard_ypos = int(labelxml.attributes['y'].value)
+                    transition.guard_xpos = int(get_attr_val(labelxml, 'x', 0))
+                    transition.guard_ypos = int(get_attr_val(labelxml, 'y', 0))
                 if labelxml.attributes['kind'].value == 'assignment':
                     transition.assignment = str(labelxml.childNodes[0].data)
-                    transition.assignment_xpos = int(labelxml.attributes['x'].value)
-                    transition.assignment_ypos = int(labelxml.attributes['y'].value)
+                    transition.assignment_xpos = int(get_attr_val(labelxml, 'x', 0))
+                    transition.assignment_ypos = int(get_attr_val(labelxml, 'y', 0))
                 if labelxml.attributes['kind'].value == 'synchronisation':
                     transition.synchronisation = str(labelxml.childNodes[0].data)
-                    transition.synchronisation_xpos = int(labelxml.attributes['x'].value)
-                    transition.synchronisation_ypos = int(labelxml.attributes['y'].value)
+                    transition.synchronisation_xpos = int(get_attr_val(labelxml, 'x', 0))
+                    transition.synchronisation_ypos = int(get_attr_val(labelxml, 'y', 0))
             for nailxml in transitionxml.getElementsByTagName("nail"):
                 transition.nails += [Nail(int(nailxml.attributes['x'].value), int(nailxml.attributes['y'].value))]
             transitions += [transition]

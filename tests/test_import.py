@@ -70,5 +70,11 @@ class TestMinimalImport(unittest.TestCase):
         nta = pyuppaal.from_xml(file)
         self.assertEqual(nta.templates[0].transitions[0].guard, "")
 
+    def test_import_noxypos(self):
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'location_no_xypos.xml'))
+        nta = pyuppaal.from_xml(file)
+        self.assertEqual(nta.templates[0].locations[0].xpos, 0)
+        self.assertEqual(nta.templates[0].locations[0].ypos, 0)
+
 if __name__ == '__main__':
     unittest.main()
