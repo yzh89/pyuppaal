@@ -91,6 +91,7 @@ class Template:
 
         for l in self.locations:
             (l.xpos, l.ypos) = map(self.dot2uppaalcoord, G.get_node(l.id).attr['pos'].split(','))
+            (l.invariant_xpos, l.invariant_ypos) = (l.xpos, l.ypos + UPPAAL_LINEHEIGHT)
         for t in self.transitions:
             #for nail in t.nails:
             #    nailnode = G.get_node(nail.id)
