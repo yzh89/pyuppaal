@@ -19,8 +19,7 @@ def on_motion(item, target, event):
         ellipse = item.get_model()
         location = ellipse.get_data("location")
         move_ellipse_model(canvas.get_data(location.id), event.x, event.y)
-        location.xpos = event.x
-        location.ypos = event.y
+        location.move_relative(event.x, event.y)
         return True
 
 def on_button_press(item, target, event):
@@ -37,14 +36,8 @@ def on_button_release(item, target, event):
     return True
     
 def add_location_clicked (button):
-    global root
-    ellipse = goocanvas.EllipseModel (parent = root,
-                                       center_x = 0,
-                                       center_y = 0,
-                                       radius_x = 25,
-                                       radius_y = 25,
-                                       fill_color = "blue")
-    ellipse.translate (250, 250)
+    location = Location()
+    add_from_location(location)
 
 def add_path_clicked (button):
     global root
