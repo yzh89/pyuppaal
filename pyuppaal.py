@@ -138,8 +138,12 @@ class Location:
     def __init__(self, invariant="", committed=False, name="", id = "",
         xpos=0, ypos=0):
         self.invariant = invariant
+        self.invariant_xpos = xpos
+        self.invariant_ypos = ypos + 10
         self.committed = committed
         self.name = name
+        self.name_xpos = xpos
+        self.name_ypos = ypos + 20
         self.id = id
         self.xpos = xpos
         self.ypos = ypos
@@ -150,7 +154,7 @@ class Location:
         if self.invariant != "":
             invariantxml = '<label kind="invariant" x="'+str(self.invariant_xpos)+'" y="'+str(self.invariant_ypos)+'">'+cgi.escape(self.invariant)+'</label>'
         if self.name != "":
-            namexml = '<name x="'+str(self.xpos)+'" y="'+str(self.ypos)+'">'+self.name+'</name>'
+            namexml = '<name x="'+str(self.name_xpos)+'" y="'+str(self.name_ypos)+'">'+self.name+'</name>'
         return """
     <location id="%s" x="%s" y="%s">
       %s
@@ -158,6 +162,18 @@ class Location:
       %s
     </location>""" % (self.id, self.xpos, self.ypos, namexml, invariantxml,
         self.committed and '<committed />' or '')
+
+    def move_relative(self, x, y):
+        if self.invariant:
+            self.invariant_xpos = self.invariant_xpos+x
+            self.invariant_ypos = self.invariant_ypos+x
+
+        if self.name:
+            self.name_xpos = self.name_xpos+x
+            self.name_ypos = self.name_ypos+x
+
+        self.xpos = self.xpos+x
+        self.ypos = self.ypos+y
 
 class Branchpoint:
     def __init__(self, id = "", xpos=0, ypos=0):
@@ -208,16 +224,16 @@ class Transition:
 
     def move_relative(self, x, y):
         if self.guard:
-            self.guard_xpos = int(self.guard_xpos)+x
-            self.guard_ypos = int(self.guard_ypos)+y
+            self.guard_xpos = self.guard_xpos+x
+            self.guard_ypos = self.guard_ypos+y
 
         if self.assignment:
-            self.assignment_xpos = int(self.assignment_xpos)+x
-            self.assignment_ypos = int(self.assignment_ypos)+y
+            self.assignment_xpos = self.assignment_xpos+x
+            self.assignment_ypos = self.assignment_ypos+y
 
         if self.synchronisation:
-            self.synchronisation_xpos = int(self.synchronisation_xpos)+x
-            self.synchronisation_ypos = int(self.synchronisation_ypos)+y
+            self.synchronisation_xpos = self.synchronisation_xpos+x
+            self.synchronisation_ypos = self.synchronisation_ypos+y
 
     def guard_to_xml(self):
         if self.guard:
