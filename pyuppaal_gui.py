@@ -14,6 +14,7 @@ def on_motion(item, target, event):
     else:
         ellipse = item.get_model()
         location = ellipse.get_data("location")
+        location.move_relative(event.x, event.y)
         group = ellipse.get_data("group")
         group.translate(event.x, event.y)
         
