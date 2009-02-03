@@ -42,8 +42,18 @@ def add_location_clicked (button):
 def add_path_clicked (button):
     global root
 
+def add_text(str, xpos, ypos, group):
+    global root, canvas   
+    text = goocanvas.TextModel (parent = group,
+                                       x = xpos,
+                                       y = ypos,
+                                       text = str)
+    group.add_child(text, -1)
+        
 def add_from_location(location):
-    global root, canvas    
+    global root, canvas
+   
+    group = goocanvas.GroupModel (parent = root)
     ellipse = goocanvas.EllipseModel (parent = root,
                                        center_x = 0,
                                        center_y = 0,
@@ -58,6 +68,16 @@ def add_from_location(location):
     item.connect("button_press_event", on_button_press)
     item.connect("button_release_event", on_button_release)
     item.connect("motion_notify_event", on_motion)
+
+    if location.invariant:
+        add_text(location.invariant, (location.invariant_xpos*-1), (location.invariant_ypos*-1), group)
+    
+    if location.name:
+        add_text(location.name, (location.name_xpos*-1), (location.name_ypos*-1), group)
+
+    group.add_child(ellipse, -1)
+    canvas.set_data(location.id+"group", group)
+    
 
 def add_from_transition(t):
     path = goocanvas.PathModel(parent = root, data="M " + 
@@ -109,8 +129,8 @@ def create_pyuppaal_page (nta):
     return vbox
 
 def setup_nta():
+    loc2 = Location("z < Max", True, "Location 2", "id", -100, -200)
     loc1 = Location()
-    loc2 = Location()
     loc3 = Location()
     loc4 = Location()
 
