@@ -7,8 +7,8 @@ root = goocanvas.GroupModel ()
 canvas = goocanvas.Canvas ()
 
 def move_ellipse_model(item, x, y):
-    item.props.center_x = x
-    item.props.center_y = y
+    item.props.center_x += x
+    item.props.center_y += y
 
 def on_motion(item, target, event):
     canvas = item.get_canvas ()
@@ -18,8 +18,19 @@ def on_motion(item, target, event):
     else:
         ellipse = item.get_model()
         location = ellipse.get_data("location")
-        move_ellipse_model(canvas.get_data(location.id), event.x, event.y)
-        location.move_relative(event.x, event.y)
+        group = ellipse.get_data("group")
+        prev_x = ellipse.get_data("prev_x")
+        prev_y = ellipse.get_data("prev_y")
+        if prev_x:
+            print prev_x, event.x
+            group.translate(event.x-prev_x, event.y-prev_y)
+        else:
+            group.translate(event.x, event.y)
+            
+#        move_ellipse_model(canvas.get_data(location.id), event.x, event.y)
+        ellipse.set_data("prev_x", event.x)
+        ellipse.set_data("prev_y", event.y)
+        
         return True
 
 def on_button_press(item, target, event):
@@ -63,7 +74,7 @@ def add_from_location(location):
     ellipse.translate (location.xpos*-1, location.ypos*-1)
     ellipse.set_data("location", location)
 
-    canvas.set_data(location.id, ellipse)
+#    canvas.set_data(location.id, ellipse)
     item = canvas.get_item(ellipse)
     item.connect("button_press_event", on_button_press)
     item.connect("button_release_event", on_button_release)
@@ -76,7 +87,8 @@ def add_from_location(location):
         add_text(location.name, (location.name_xpos*-1), (location.name_ypos*-1), group)
 
     group.add_child(ellipse, -1)
-    canvas.set_data(location.id+"group", group)
+    ellipse.set_data("group", group)
+    canvas.set_data(location.id, group)
     
 
 def add_from_transition(t):
