@@ -6,6 +6,58 @@ import gtk
 root = goocanvas.GroupModel ()
 canvas = goocanvas.Canvas ()
 
+#TransitionUI
+def on_transition_source_motion(item, target, event):
+    if not event.state & gtk.gdk.BUTTON1_MASK:
+        return False
+    else:
+        ellipse_source = item.get_model()
+        path = ellipse_source.get_data("path")
+        ellipse_source.translate(event.x, event.y)
+        start_x = path.get_data("start_x")+event.x
+        start_y = path.get_data("start_y")+event.y
+        end_x = path.get_data("end_x")
+        end_y = path.get_data("end_y")
+        path.set_data("start_x", start_x)
+        path.set_data("start_y", start_y)
+        path.set_property("data", "M " + str(start_x)+" "+str(start_y)+" L "+str(end_x)+" "+str(end_y))
+        return True
+
+def on_transition_source_button_press(item, target, event):
+    return on_button_press(item, target, event)
+
+def on_transition_source_button_release(item, target, event):
+    return on_button_release(item, target, event)
+
+
+def on_transition_target_motion(item, target, event):
+    if not event.state & gtk.gdk.BUTTON1_MASK:
+        return False
+    else:
+        ellipse_target = item.get_model()
+        path = ellipse_target.get_data("path")
+        ellipse_target.translate(event.x, event.y)
+        start_x = path.get_data("start_x")
+        start_y = path.get_data("start_y")
+        end_x = path.get_data("end_x")+event.x
+        end_y = path.get_data("end_y")+event.y
+        path.set_data("end_x", end_x)
+        path.set_data("end_y", end_y)
+        path.set_property("data", "M " + str(start_x)+" "+str(start_y)+" L "+str(end_x)+" "+str(end_y))
+        return True
+
+def on_transition_target_button_press(item, target, event):
+    return on_button_press(item, target, event)
+
+def on_transition_target_button_release(item, target, event):
+    return on_button_release(item, target, event)
+
+
+#LocationUI
+def get_nail_coordinates(l, x, y):
+    
+    return (nail_x, nail_y)
+
 def on_motion(item, target, event):
     canvas = item.get_canvas ()
     change = False
@@ -58,7 +110,7 @@ def add_from_location(location):
                                        center_y = 0,
                                        radius_x = 25,
                                        radius_y = 25,
-                                       fill_color = "blue")
+                                       fill_color = "#204a87")
     ellipse.translate (location.xpos, location.ypos)
     ellipse.set_data("location", location)
 
@@ -79,9 +131,55 @@ def add_from_location(location):
     
 
 def add_from_transition(t):
-    path = goocanvas.PathModel(parent = root, data="M " + 
+    global root, canvas
+    group = goocanvas.GroupModel (parent = root)
+    ellipse_source = goocanvas.EllipseModel (parent = group,
+                                       center_x = 0,
+                                       center_y = 0,
+                                       radius_x = 5,
+                                       radius_y = 5)
+    path = goocanvas.PathModel(parent = group, data="M " + 
                     str(t.source.xpos)+" "+str(t.source.ypos)+
                     " L "+str(t.target.xpos)+" "+str(t.target.ypos))
+    ellipse_target = goocanvas.EllipseModel (parent = group,
+                                       center_x = 0,
+                                       center_y = 0,
+                                       radius_x = 5,
+                                       radius_y = 5)
+ 
+    path.set_data("start_x", t.source.xpos)
+    path.set_data("start_y", t.source.ypos)
+    path.set_data("end_x", t.target.xpos)
+    path.set_data("end_y", t.target.ypos)
+    ellipse_source.translate (t.source.xpos, t.source.ypos+5)
+    ellipse_target.translate (t.target.xpos, t.target.ypos-5)
+
+    item = canvas.get_item(ellipse_source)
+    item.connect("button_press_event", on_transition_source_button_press)
+    item.connect("button_release_event", on_transition_source_button_release)
+    item.connect("motion_notify_event", on_transition_source_motion)
+
+    if t.guard:
+        add_text(t.guard, t.guard_xpos, t.guard_ypos, group)
+    
+    if t.assignment:
+        add_text(t.assignment, t.assignment_xpos, t.assignment_ypos, group)
+
+    if t.synchronisation:
+        add_text(t.synchronisation, t.synchronisation_xpos, t.synchronisation_ypos, group)
+
+    item = canvas.get_item(ellipse_target)
+    item.connect("button_press_event", on_transition_target_button_press)
+    item.connect("button_release_event", on_transition_target_button_release)
+    item.connect("motion_notify_event", on_transition_target_motion)
+    
+    ellipse_source.set_data("group", group)
+    ellipse_source.set_data("path", path)
+    ellipse_target.set_data("group", group)
+    ellipse_target.set_data("path", path)
+    canvas.set_data(t.id, group)
+    path.lower(1)
+
 
 def setup_canvas (canvas, nta):
     global root
