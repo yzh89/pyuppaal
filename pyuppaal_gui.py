@@ -15,6 +15,7 @@ def on_motion(item, target, event):
         ellipse = item.get_model()
         location = ellipse.get_data("location")
         location.move_relative(event.x, event.y)
+        group = ellipse.get_parent()
         group = ellipse.get_data("group")
         group.translate(event.x, event.y)
         
@@ -58,7 +59,7 @@ def add_from_location(location):
                                        radius_x = 25,
                                        radius_y = 25,
                                        fill_color = "blue")
-    ellipse.translate (location.xpos*-1, location.ypos*-1)
+    ellipse.translate (location.xpos, location.ypos)
     ellipse.set_data("location", location)
 
 #    canvas.set_data(location.id, ellipse)
@@ -68,10 +69,10 @@ def add_from_location(location):
     item.connect("motion_notify_event", on_motion)
 
     if location.invariant:
-        add_text(location.invariant, (location.invariant_xpos*-1), (location.invariant_ypos*-1), group)
+        add_text(location.invariant, (location.invariant_xpos), (location.invariant_ypos), group)
     
     if location.name:
-        add_text(location.name, (location.name_xpos*-1), (location.name_ypos*-1), group)
+        add_text(location.name, (location.name_xpos), (location.name_ypos), group)
 
     ellipse.set_data("group", group)
     canvas.set_data(location.id, group)
@@ -79,8 +80,8 @@ def add_from_location(location):
 
 def add_from_transition(t):
     path = goocanvas.PathModel(parent = root, data="M " + 
-                    str(t.source.xpos*-1)+" "+str(t.source.ypos*-1)+
-                    " L "+str(t.target.xpos*-1)+" "+str(t.target.ypos*-1))
+                    str(t.source.xpos)+" "+str(t.source.ypos)+
+                    " L "+str(t.target.xpos)+" "+str(t.target.ypos))
 
 def setup_canvas (canvas, nta):
     global root
@@ -118,7 +119,7 @@ def create_pyuppaal_page (nta):
     vbox.add (scrolled_win)
 
     canvas.set_size_request (600, 450)
-    canvas.set_bounds (0, 0, 1000, 1000)
+    canvas.set_bounds (-500, -500, 500, 500)
 
     scrolled_win.add (canvas)
 
