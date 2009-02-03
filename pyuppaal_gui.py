@@ -118,7 +118,7 @@ def create_pyuppaal_page (nta):
 
     vbox.add (scrolled_win)
 
-    canvas.set_size_request (600, 450)
+    canvas.set_size_request (700, 600)
     canvas.set_bounds (-500, -500, 500, 500)
 
     scrolled_win.add (canvas)
