@@ -25,6 +25,7 @@ class TransitionUI:
         y_source_p = get_locationNail_y_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25)
         x_target_p = get_locationNail_x_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25)
         y_target_p = get_locationNail_y_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25)
+
         path = goocanvas.PathModel(parent = group, data="M " + 
                     str(x_source_p)+" "+str(y_source_p)+
                     " L "+str(x_target_p)+" "+str(y_target_p))
@@ -33,7 +34,8 @@ class TransitionUI:
                                        center_y = 0,
                                        radius_x = 5,
                                        radius_y = 5,
-                                       visibility = goocanvas.ITEM_INVISIBLE)
+                                       visibility = goocanvas.ITEM_INVISIBLE,
+                                       pointer_events = goocanvas.EVENTS_ALL)
 
         path.set_data("start_x", x_source_p)
         path.set_data("start_y", y_source_p)
@@ -48,11 +50,11 @@ class TransitionUI:
         ellipse_target.translate (x_target, y_target)
 
         item = canvas.get_item(ellipse_source)
-        item.connect("button_press_event", on_transition_source_button_press)
-        item.connect("button_release_event", on_transition_source_button_release)
+        item.connect("button_press_event", on_transition_button_press)
+        item.connect("button_release_event", on_transition_button_release)
         item.connect("motion_notify_event", on_transition_source_motion)
-        item.connect("enter_notify_event", on_transition_source_enter)
-        item.connect("leave_notify_event", on_transition_source_leave)
+        item.connect("enter_notify_event", on_transition_enter)
+        item.connect("leave_notify_event", on_transition_leave)
 
         if self.transition.guard:
             add_text(self.transition.guard, self.transition.guard_xpos, self.transition.guard_ypos, group)
@@ -64,9 +66,11 @@ class TransitionUI:
             add_text(self.transition.synchronisation, self.transition.synchronisation_xpos, self.transition.synchronisation_ypos, group)
 
         item = canvas.get_item(ellipse_target)
-        item.connect("button_press_event", on_transition_target_button_press)
-        item.connect("button_release_event", on_transition_target_button_release)
+        item.connect("button_press_event", on_transition_button_press)
+        item.connect("button_release_event", on_transition_button_release)
         item.connect("motion_notify_event", on_transition_target_motion)
+        item.connect("enter_notify_event", on_transition_enter)
+        item.connect("leave_notify_event", on_transition_leave)
     
         ellipse_source.set_data("group", group)
         ellipse_source.set_data("path", path)
@@ -75,14 +79,20 @@ class TransitionUI:
         canvas.set_data(self.transition.id, group)
         # TODO lower path.lower(1)
 
-# not really class functions
-def on_transition_source_enter(item, target, event):
+# not class functions
+def on_transition_enter(item, target, event):
     tmp = item.get_model()
     tmp.set_property("visibility", goocanvas.ITEM_VISIBLE)
 
-def on_transition_source_leave(item, target, event):
+def on_transition_leave(item, target, event):
     tmp = item.get_model()
     tmp.set_property("visibility", goocanvas.ITEM_INVISIBLE)
+
+def on_transition_button_press(item, target, event):
+        return on_button_press(item, target, event)
+
+def on_transition_button_release(item, target, event):
+        return on_button_release(item, target, event)
 
 def on_transition_source_motion(item, target, event):
         if not event.state & gtk.gdk.BUTTON1_MASK:
@@ -100,13 +110,6 @@ def on_transition_source_motion(item, target, event):
             path.set_property("data", "M " + str(start_x)+" "+str(start_y)+" L "+str(end_x)+" "+str(end_y))
             return True
 
-def on_transition_source_button_press(item, target, event):
-        return on_button_press(item, target, event)
-
-def on_transition_source_button_release(item, target, event):
-        return on_button_release(item, target, event)
-
-
 def on_transition_target_motion(item, target, event):
         if not event.state & gtk.gdk.BUTTON1_MASK:
             return False
@@ -122,12 +125,6 @@ def on_transition_target_motion(item, target, event):
             path.set_data("end_y", end_y)
             path.set_property("data", "M " + str(start_x)+" "+str(start_y)+" L "+str(end_x)+" "+str(end_y))
             return True
-
-def on_transition_target_button_press(item, target, event):
-        return on_button_press(item, target, event)
-
-def on_transition_target_button_release(item, target, event):
-        return on_button_release(item, target, event)
 
 class LocationUI:
     def __init__(self, location, canvas):
@@ -189,8 +186,7 @@ def get_locationNail_y_coordinate(l, x1, y1, r):
         else:
             return y0 - r * math.sin(math.atan(a/b))
  
-# Not really class functions
-       
+# Not class functions
 def on_motion(item, target, event):
         canvas = item.get_canvas ()
         change = False
