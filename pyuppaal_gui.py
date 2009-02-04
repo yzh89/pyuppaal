@@ -21,6 +21,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. """
 
 
+import pyuppaal
 from pyuppaal import *
 import goocanvas
 import gtk
@@ -244,10 +245,6 @@ def add_text(str, xpos, ypos, group):
                                    y = ypos,
                                   text = str)
    group.add_child(text, -1)
-    
-
-
-
 
 def setup_canvas (canvas, nta):
     root = goocanvas.GroupModel ()
@@ -260,16 +257,6 @@ def setup_canvas (canvas, nta):
     for t in nta.templates:
         for transition in t.transitions:
             TransitionUI(transition, canvas)
-
-def create_pyuppaal_page (nta):
-
-    canvas = goocanvas.Canvas ()
-    canvas.set_size_request (700, 600)
-    canvas.set_bounds (-500, -500, 500, 500)
-
-    setup_canvas (canvas, nta)
-
-    return canvas
 
 def setup_nta():
     loc2 = Location("z < Max", True, "Location 2", "id", -100, -200)
@@ -294,10 +281,14 @@ def setup_nta():
     return nta1
 
 class MainWindow:
-    
+
     def __init__(self):
         nta = setup_nta ()
-        self.canvas = create_pyuppaal_page(nta)
+
+        self.canvas = goocanvas.Canvas ()
+        self.canvas.set_size_request (700, 600)
+        self.canvas.set_bounds (-500, -500, 500, 500)
+        setup_canvas (self.canvas, nta)
 
         #Set the Glade file
         #TODO, find real path
@@ -329,8 +320,31 @@ class MainWindow:
         print("on_save called")
     
     def on_open(self, widget):
-        #TODO
-        print("on_open called")
+        file_open = gtk.FileChooserDialog(title="Open UPPAAL XML file", 
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                buttons=(gtk.STOCK_CANCEL,
+                        gtk.RESPONSE_CANCEL,
+                        gtk.STOCK_OPEN,
+                        gtk.RESPONSE_OK))
+        filter = gtk.FileFilter()
+        filter.set_name("UPPAAL XML files")
+        filter.add_pattern("*.xml")
+        file_open.add_filter(filter)
+        filter = gtk.FileFilter()
+        filter.set_name("All files")
+        filter.add_pattern("*")
+        file_open.add_filter(filter)
+
+        if file_open.run() == gtk.RESPONSE_OK:
+            filename = file_open.get_filename()
+            file_open.destroy()
+        else:
+            file_open.destroy()
+            return
+            
+        filesock = open(filename, "r")
+        nta = pyuppaal.from_xml(filesock)
+        setup_canvas(self.canvas, nta)
 
     def on_zoom_in(self, widget):
         curscale = self.canvas.get_scale()
