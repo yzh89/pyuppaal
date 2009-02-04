@@ -2,7 +2,7 @@
 from pyuppaal import *
 import goocanvas
 import gtk
-
+import math
 
 class TemplateUI:
     def __init__(self, template, canvas):
@@ -19,21 +19,30 @@ class TransitionUI:
                                        center_y = 0,
                                        radius_x = 5,
                                        radius_y = 5)
+        x_source_p = get_locationNail_x_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25)
+        y_source_p = get_locationNail_y_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25)
+        x_target_p = get_locationNail_x_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25)
+        y_target_p = get_locationNail_y_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25)
         path = goocanvas.PathModel(parent = group, data="M " + 
-                    str(self.transition.source.xpos)+" "+str(self.transition.source.ypos)+
-                    " L "+str(self.transition.target.xpos)+" "+str(self.transition.target.ypos))
+                    str(x_source_p)+" "+str(y_source_p)+
+                    " L "+str(x_target_p)+" "+str(y_target_p))
         ellipse_target = goocanvas.EllipseModel (parent = group,
                                        center_x = 0,
                                        center_y = 0,
                                        radius_x = 5,
                                        radius_y = 5)
- 
-        path.set_data("start_x", self.transition.source.xpos)
-        path.set_data("start_y", self.transition.source.ypos)
-        path.set_data("end_x", self.transition.target.xpos)
-        path.set_data("end_y", self.transition.target.ypos)
-        ellipse_source.translate (self.transition.source.xpos, self.transition.source.ypos+5)
-        ellipse_target.translate (self.transition.target.xpos, self.transition.target.ypos-5)
+
+        path.set_data("start_x", x_source_p)
+        path.set_data("start_y", y_source_p)
+        path.set_data("end_x", x_target_p)
+        path.set_data("end_y", y_target_p)
+		
+        x_source = get_locationNail_x_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25+2.5)
+        y_source = get_locationNail_y_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25+2.5)
+        x_target = get_locationNail_x_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25+2.5)
+        y_target = get_locationNail_y_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25+2.5)
+        ellipse_source.translate (x_source, y_source)
+        ellipse_target.translate (x_target, y_target)
 
         item = canvas.get_item(ellipse_source)
         item.connect("button_press_event", on_transition_source_button_press)
@@ -138,11 +147,36 @@ class LocationUI:
         ellipse.set_data("group", group)
         canvas.set_data(location.id, group)
 
+def get_locationNail_x_coordinate(l, x1, y1, r):
+        x0 = l.xpos
+        y0 = l.ypos
+        a = abs(y1-y0)
+        b = abs(x1-x0)
+        if b == 0:
+            return x0
 
-    def get_nail_coordinates(self, l, x, y):
-        #TODO do calculations 
-        return (nail_x, nail_y)
+        if x1 > x0:
+            return x0 + r * math.cos(math.atan(a/b))
+        else:
+            return x0 - r * math.cos(math.atan(a/b))
+            
 
+def get_locationNail_y_coordinate(l, x1, y1, r):
+        x0 = l.xpos
+        y0 = l.ypos
+        a = abs(y1-y0)
+        b = abs(x1-x0)
+        if b == 0:
+            if y1 > y0:
+                return y0 + r
+            else:
+                return y0 - r
+
+        if y1 > y0:
+            return y0 + r * math.sin(math.atan(a/b))
+        else:
+            return y0 - r * math.sin(math.atan(a/b))
+ 
 # Not really class functions
        
 def on_motion(item, target, event):
