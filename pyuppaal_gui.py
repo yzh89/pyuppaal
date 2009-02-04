@@ -2,6 +2,8 @@
 from pyuppaal import *
 import goocanvas
 import gtk
+import os
+import gtk.glade
 import math
 
 class TemplateUI:
@@ -221,13 +223,9 @@ def add_text(str, xpos, ypos, group):
                                   text = str)
    group.add_child(text, -1)
     
-def add_location_clicked (button, canvas):
-    location = Location()
-    LocationUI(location)
 
-def add_path_clicked (button, canvas):
-    transition = Transition()
-    TransitionUI(transition)
+
+
 
 def setup_canvas (canvas, nta):
     root = goocanvas.GroupModel ()
@@ -244,33 +242,12 @@ def setup_canvas (canvas, nta):
 def create_pyuppaal_page (nta):
 
     canvas = goocanvas.Canvas ()
-    vbox = gtk.VBox (False, 4)
-    vbox.set_border_width (4)
-
-    hbox = gtk.HBox (False, 4)
-    vbox.pack_start (hbox, False, False, 0)
-
-    w = gtk.Button ("Add Location")
-    hbox.pack_start (w, False, False, 0)
-    w.connect ("clicked", add_location_clicked, )
-
-    w = gtk.Button ("Add Path")
-    hbox.pack_start (w, False, False, 0)
-    w.connect ("clicked", add_path_clicked, )
-
-    scrolled_win = gtk.ScrolledWindow ()
-    scrolled_win.set_shadow_type (gtk.SHADOW_IN)
-
-    vbox.add (scrolled_win)
-
     canvas.set_size_request (700, 600)
     canvas.set_bounds (-500, -500, 500, 500)
 
-    scrolled_win.add (canvas)
-
     setup_canvas (canvas, nta)
 
-    return vbox
+    return canvas
 
 def setup_nta():
     loc2 = Location("z < Max", True, "Location 2", "id", -100, -200)
@@ -294,20 +271,58 @@ def setup_nta():
     nta1 = NTA("clock c1;","Process = Template1(); system Process;",[temp1])
     return nta1
 
-def create_window():
-    nta = setup_nta ()
-    v = create_pyuppaal_page(nta)
-
-    w = gtk.Window ()
-    w.connect ("destroy", gtk.main_quit)
-    w.add (v)
-    w.show_all ()
+class MainWindow:
     
-    return w
+    def __init__(self):
+        nta = setup_nta ()
+        self.canvas = create_pyuppaal_page(nta)
+
+        #Set the Glade file
+        #TODO, find real path
+        self.gladefile = os.path.join("data", "pyuppaal.glade")
+        self.wTree = gtk.glade.XML(self.gladefile)
+
+        self.mainWin = self.wTree.get_widget("mainWindow")
+        self.mainWin.connect ("destroy", gtk.main_quit)
+
+        self.wTree.get_widget("scrwWorkspace").add(self.canvas)
+
+        self.wTree.signal_autoconnect(self)
+
+        self.mainWin.show_all ()
+        
+    def on_add_location(self, widget):
+        location = Location()
+        LocationUI(location, self.canvas)
+
+    def on_add_transition(self, widget):
+        transition = Transition()
+        TransitionUI(transition, self.canvas)
+
+    def on_quit(self, widget):
+        gtk.main_quit()
+
+    def on_save(self, widget):
+        #TODO
+        print("on_save called")
+    
+    def on_open(self, widget):
+        #TODO
+        print("on_open called")
+
+    def on_zoom_in(self, widget):
+        curscale = self.canvas.get_scale()
+        self.canvas.set_scale(curscale*2)
+
+    def on_zoom_out(self, widget):
+        curscale = self.canvas.get_scale()
+        self.canvas.set_scale(curscale*(1.0/2))
+
+    def on_zoom_normal(self, widget):
+        self.canvas.set_scale(1.0)
 
 def main ():
-    window = create_window ()
-#    window = create_window ()
+    window = MainWindow()
     
     gtk.main ()
 
