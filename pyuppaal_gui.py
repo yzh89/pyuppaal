@@ -283,12 +283,15 @@ def setup_nta():
 class MainWindow:
 
     def __init__(self):
-        nta = setup_nta ()
+        self.nta = setup_nta ()
 
         self.canvas = goocanvas.Canvas ()
         self.canvas.set_size_request (700, 600)
         self.canvas.set_bounds (-500, -500, 500, 500)
-        setup_canvas (self.canvas, nta)
+        setup_canvas (self.canvas, self.nta)
+        self.canvas.add_events(gtk.gdk.SCROLL_MASK)
+        #self.canvas.connect("button-release-event", self.on_canvas_button_release)
+        self.canvas.connect("scroll-event", self.on_canvas_scroll_event)
 
         #Set the Glade file
         #TODO, find real path
@@ -304,6 +307,24 @@ class MainWindow:
 
         self.mainWin.show_all ()
         
+    def on_canvas_scroll_event(self, widget, event):
+        #CTRL-scrolling zooms
+        if event.get_state() & gtk.gdk.CONTROL_MASK:
+            if event.direction == gtk.gdk.SCROLL_DOWN:
+                self.on_zoom_out()
+                return True
+            elif event.direction == gtk.gdk.SCROLL_UP:
+                self.on_zoom_in()
+                return True
+            #unknown direction, let someone else handle it
+        #SHIFT-scrolling scrolls left-right
+        if event.get_state() & gtk.gdk.SHIFT_MASK:
+            if event.direction == gtk.gdk.SCROLL_DOWN:
+                event.direction = gtk.gdk.SCROLL_RIGHT
+            if event.direction == gtk.gdk.SCROLL_UP:
+                event.direction = gtk.gdk.SCROLL_LEFT
+            
+
     def on_add_location(self, widget):
         location = Location()
         LocationUI(location, self.canvas)
@@ -318,6 +339,36 @@ class MainWindow:
     def on_save(self, widget):
         #TODO
         print("on_save called")
+
+    def on_save_as(self, widget):
+        file_save = gtk.FileChooserDialog(title="Save UPPAAL XML file", 
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                buttons=(gtk.STOCK_CANCEL,
+                        gtk.RESPONSE_CANCEL,
+                        gtk.STOCK_SAVE,
+                        gtk.RESPONSE_OK))
+        filter = gtk.FileFilter()
+        filter.set_name("UPPAAL XML files")
+        filter.add_pattern("*.xml")
+        file_save.add_filter(filter)
+        filter = gtk.FileFilter()
+        filter.set_name("All files")
+        filter.add_pattern("*")
+        file_save.add_filter(filter)
+
+        if file_save.run() == gtk.RESPONSE_OK:
+            filename = file_save.get_filename()
+            file_save.destroy()
+        else:
+            file_save.destroy()
+            return
+
+        if not filename.endswith(".xml") and not os.path.exists(filename):
+            filename = filename + ".xml"
+            
+        filesock = open(filename, "w")
+        filesock.write(self.nta.to_xml())
+        filesock.close()
     
     def on_open(self, widget):
         file_open = gtk.FileChooserDialog(title="Open UPPAAL XML file", 
@@ -343,18 +394,19 @@ class MainWindow:
             return
             
         filesock = open(filename, "r")
-        nta = pyuppaal.from_xml(filesock)
-        setup_canvas(self.canvas, nta)
+        self.nta = pyuppaal.from_xml(filesock)
+        setup_canvas(self.canvas, self.nta)
+        filesock.close()
 
-    def on_zoom_in(self, widget):
+    def on_zoom_in(self, widget=None):
         curscale = self.canvas.get_scale()
-        self.canvas.set_scale(curscale*2)
+        self.canvas.set_scale(curscale+0.4)
 
-    def on_zoom_out(self, widget):
+    def on_zoom_out(self, widget=None):
         curscale = self.canvas.get_scale()
-        self.canvas.set_scale(curscale*(1.0/2))
+        self.canvas.set_scale(curscale-0.4)
 
-    def on_zoom_normal(self, widget):
+    def on_zoom_normal(self, widget=None):
         self.canvas.set_scale(1.0)
 
 def main ():
