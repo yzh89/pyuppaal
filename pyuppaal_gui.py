@@ -18,7 +18,9 @@ class TransitionUI:
                                        center_x = 0,
                                        center_y = 0,
                                        radius_x = 5,
-                                       radius_y = 5)
+                                       radius_y = 5,
+                                       visibility = goocanvas.ITEM_INVISIBLE,
+                                       pointer_events = goocanvas.EVENTS_ALL)
         x_source_p = get_locationNail_x_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25)
         y_source_p = get_locationNail_y_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25)
         x_target_p = get_locationNail_x_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25)
@@ -30,13 +32,14 @@ class TransitionUI:
                                        center_x = 0,
                                        center_y = 0,
                                        radius_x = 5,
-                                       radius_y = 5)
+                                       radius_y = 5,
+                                       visibility = goocanvas.ITEM_INVISIBLE)
 
         path.set_data("start_x", x_source_p)
         path.set_data("start_y", y_source_p)
         path.set_data("end_x", x_target_p)
         path.set_data("end_y", y_target_p)
-		
+	    
         x_source = get_locationNail_x_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25+2.5)
         y_source = get_locationNail_y_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25+2.5)
         x_target = get_locationNail_x_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25+2.5)
@@ -48,6 +51,8 @@ class TransitionUI:
         item.connect("button_press_event", on_transition_source_button_press)
         item.connect("button_release_event", on_transition_source_button_release)
         item.connect("motion_notify_event", on_transition_source_motion)
+        item.connect("enter_notify_event", on_transition_source_enter)
+        item.connect("leave_notify_event", on_transition_source_leave)
 
         if self.transition.guard:
             add_text(self.transition.guard, self.transition.guard_xpos, self.transition.guard_ypos, group)
@@ -71,6 +76,14 @@ class TransitionUI:
         # TODO lower path.lower(1)
 
 # not really class functions
+def on_transition_source_enter(item, target, event):
+    tmp = item.get_model()
+    tmp.set_property("visibility", goocanvas.ITEM_VISIBLE)
+
+def on_transition_source_leave(item, target, event):
+    tmp = item.get_model()
+    tmp.set_property("visibility", goocanvas.ITEM_INVISIBLE)
+
 def on_transition_source_motion(item, target, event):
         if not event.state & gtk.gdk.BUTTON1_MASK:
             return False
