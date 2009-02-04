@@ -145,7 +145,6 @@ class LocationUI:
         ellipse.translate (location.xpos, location.ypos)
         ellipse.set_data("location", location)
 
-#    canvas.set_data(location.id, ellipse)
         item = canvas.get_item(ellipse)
         item.connect("button_press_event", on_button_press)
         item.connect("button_release_event", on_button_release)
@@ -241,7 +240,6 @@ def setup_canvas (canvas, nta):
     for t in nta.templates:
         for l in t.locations:
             LocationUI(l, canvas)
-		#TODO tegn rect
 
     for t in nta.templates:
         for transition in t.transitions:
