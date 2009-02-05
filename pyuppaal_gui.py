@@ -28,6 +28,9 @@ import gtk
 import os
 import gtk.glade
 import math
+import cairo
+
+canvas = None
 
 class TemplateUI:
     def __init__(self, template, canvas):
@@ -290,6 +293,8 @@ class MainWindow:
         self.canvas.set_bounds (-500, -500, 500, 500)
         setup_canvas (self.canvas, self.nta)
         self.canvas.add_events(gtk.gdk.SCROLL_MASK)
+        global canvas
+        canvas = self.canvas
         #self.canvas.connect("button-release-event", self.on_canvas_button_release)
         self.canvas.connect("scroll-event", self.on_canvas_scroll_event)
 
@@ -408,6 +413,18 @@ class MainWindow:
 
     def on_zoom_normal(self, widget=None):
         self.canvas.set_scale(1.0)
+
+    def on_export_activate(self, widget=None):
+        global canvas
+        surface = cairo.PDFSurface ("export.pdf", 9 * 72, 10 * 72)
+        cr = cairo.Context (surface)
+
+        ''' Place it in the middle of our 9x10 page. '''
+        cr.translate (300, 350)
+
+        canvas.render (cr, None, 1.0)
+        cr.show_page ()
+
 
 def main ():
     window = MainWindow()
