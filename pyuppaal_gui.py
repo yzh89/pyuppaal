@@ -49,14 +49,7 @@ class TransitionUI:
                                        radius_y = 5,
                                        visibility = goocanvas.ITEM_INVISIBLE,
                                        pointer_events = goocanvas.EVENTS_ALL)
-        x_source_p = get_locationNail_x_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25)
-        y_source_p = get_locationNail_y_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25)
-        x_target_p = get_locationNail_x_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25)
-        y_target_p = get_locationNail_y_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25)
-
-        path = goocanvas.PathModel(parent = group, data="M " + 
-                    str(x_source_p)+" "+str(y_source_p)+
-                    " L "+str(x_target_p)+" "+str(y_target_p))
+        path = create_path_data(self.transition.source, self.transition.target, group)
         ellipse_target = goocanvas.EllipseModel (parent = group,
                                        center_x = 0,
                                        center_y = 0,
@@ -65,15 +58,10 @@ class TransitionUI:
                                        visibility = goocanvas.ITEM_INVISIBLE,
                                        pointer_events = goocanvas.EVENTS_ALL)
 
-        path.set_data("start_x", x_source_p)
-        path.set_data("start_y", y_source_p)
-        path.set_data("end_x", x_target_p)
-        path.set_data("end_y", y_target_p)
-	    
-        x_source = get_locationNail_x_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25+2.5)
-        y_source = get_locationNail_y_coordinate(self.transition.source, self.transition.target.xpos, self.transition.target.ypos, 25+2.5)
-        x_target = get_locationNail_x_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25+2.5)
-        y_target = get_locationNail_y_coordinate(self.transition.target, self.transition.source.xpos, self.transition.source.ypos, 25+2.5)
+        x_source = get_locationNail_x_coordinate(transition.source.xpos, transition.source.ypos, transition.target.xpos, transition.target.ypos, 25+2.5)
+        y_source = get_locationNail_y_coordinate(transition.source.xpos, transition.source.ypos, transition.target.xpos, transition.target.ypos, 25+2.5)
+        x_target = get_locationNail_x_coordinate(transition.target.xpos, transition.target.ypos, transition.source.xpos, transition.source.ypos, 25+2.5)
+        y_target = get_locationNail_y_coordinate(transition.target.xpos, transition.target.ypos, transition.source.xpos, transition.source.ypos, 25+2.5)
         ellipse_source.translate (x_source, y_source)
         ellipse_target.translate (x_target, y_target)
 
@@ -135,7 +123,7 @@ def on_transition_source_motion(item, target, event):
             end_y = path.get_data("end_y")
             path.set_data("start_x", start_x)
             path.set_data("start_y", start_y)
-            path.set_property("data", "M " + str(start_x)+" "+str(start_y)+" L "+str(end_x)+" "+str(end_y))
+            path.set_property("data", get_path_data(start_x, start_y, end_x, end_y))
             return True
 
 def on_transition_target_motion(item, target, event):
@@ -151,8 +139,105 @@ def on_transition_target_motion(item, target, event):
             end_y = path.get_data("end_y")+event.y
             path.set_data("end_x", end_x)
             path.set_data("end_y", end_y)
-            path.set_property("data", "M " + str(start_x)+" "+str(start_y)+" L "+str(end_x)+" "+str(end_y))
+            path.set_property("data", get_path_data(start_x, start_y, end_x, end_y))
             return True
+
+def get_radians(x0, y0, x1, y1):
+        a = abs(y1-y0)
+        b = abs(x1-x0)
+        if b == 0:
+            if y1 > y0:
+                return math.pi/2
+            else:
+                return math.pi+math.pi/2
+        
+        if (x0 > x1 and y0 > y1) or (x0 < x1 and y0 < y1):
+            return math.atan(b/float(a))+identify_pi_amount(x0, y0, x1, y1)
+        else:
+            return math.atan(float(a)/b)+identify_pi_amount(x0, y0, x1, y1)
+
+def identify_pi_amount(x0, y0, x1, y1):
+    if y0 > y1:
+        if x0 > x1:
+            return math.pi/2
+        else:
+            return 0 
+    else:
+        if x0 > x1:
+            return math.pi
+        else:
+            return math.pi+math.pi/2
+    
+
+def get_path_data(l_source_xpos, l_source_ypos, l_target_xpos, l_target_ypos):
+    #TODO clean up the following code
+    x_source = l_source_xpos
+    y_source = l_source_ypos 
+    x_target_p = get_locationNail_x_coordinate(l_target_xpos, l_target_ypos, l_source_xpos, l_source_ypos, 5)
+    y_target_p = get_locationNail_y_coordinate(l_target_xpos, l_target_ypos, l_source_xpos, l_source_ypos, 5)
+    x_target = l_target_xpos 
+    y_target = l_target_ypos
+    radians = get_radians(x_source, y_source, x_target, y_target)
+    plus = math.pi/4+radians
+    sub = identify_pi_amount(l_source_xpos, l_source_ypos,l_target_xpos, l_target_ypos)
+    h = math.sqrt(5*5+5*5)
+    x_mul2 = 1
+    y_mul2 = 1
+    x_mul3 = 1
+    y_mul3 = 1
+
+    if sub == 0:
+        x_mul = -1
+        y_mul = -1
+    elif sub == math.pi/2:
+        x_mul = 1 
+        y_mul = -1
+        x_mul3 = -1
+        y_mul3 = 1
+        x_mul2 = 1
+        y_mul2 = -1
+    elif sub == math.pi:
+        x_mul = 1 
+        y_mul = 1
+    elif sub == math.pi/2+math.pi:
+        x_mul = 1 
+        y_mul = 1
+        x_mul2 = -1
+        y_mul2 = -1
+
+    x_arrow1 = x_mul3*x_mul*h*math.cos(sub-(math.pi/4+radians))
+    y_arrow1 = y_mul3*y_mul*h*math.sin(sub-(math.pi/4+radians))
+    x_arrow2 = x_mul2*x_mul*h*math.cos(sub-(-math.pi/4+radians))
+    y_arrow2 = y_mul3*y_mul2*y_mul*h*math.sin(sub-(-math.pi/4+radians))
+
+    path_data = "M%s,%s " \
+           "L%s,%s " \
+           "M%s,%s " \
+           "L%s,%s " \
+           "L%s,%s " \
+           "L%s,%s " \
+           "z " % (     x_source, y_source,  
+                        x_target_p, y_target_p,
+                        x_target_p, y_target_p,
+                        x_target+x_arrow1, y_target+y_arrow1, 
+                        x_target, y_target,
+                        x_target+x_arrow2, y_target+y_arrow2)
+    return path_data
+ 
+def create_path_data(l_source, l_target, group):
+    x_source = get_locationNail_x_coordinate(l_source.xpos, l_source.ypos, l_target.xpos, l_target.ypos, 25)
+    y_source = get_locationNail_y_coordinate(l_source.xpos, l_source.ypos, l_target.xpos, l_target.ypos, 25)
+    x_target = get_locationNail_x_coordinate(l_target.xpos, l_target.ypos, l_source.xpos, l_source.ypos, 25)
+    y_target = get_locationNail_y_coordinate(l_target.xpos, l_target.ypos, l_source.xpos, l_source.ypos, 25)
+    path_data = get_path_data(x_source, y_source, x_target, y_target)
+    path = goocanvas.PathModel(parent = group, data=path_data)
+    path.set_data("start_x", x_source)
+    path.set_data("start_y", y_source)
+    path.set_data("end_x", x_target)
+    path.set_data("end_y", y_target)
+    return path
+	    
+ 
 
 class LocationUI:
     def __init__(self, location, canvas):
@@ -184,23 +269,19 @@ class LocationUI:
         ellipse.set_data("group", group)
         canvas.set_data(location.id, group)
 
-def get_locationNail_x_coordinate(l, x1, y1, r):
-        x0 = l.xpos
-        y0 = l.ypos
+def get_locationNail_x_coordinate(x0, y0, x1, y1, r):
         a = abs(y1-y0)
         b = abs(x1-x0)
         if b == 0:
             return x0
 
         if x1 > x0:
-            return x0 + r * math.cos(math.atan(a/b))
+            return x0 + r * math.cos(math.atan(float(a)/b))
         else:
-            return x0 - r * math.cos(math.atan(a/b))
+            return x0 - r * math.cos(math.atan(float(a)/b))
             
 
-def get_locationNail_y_coordinate(l, x1, y1, r):
-        x0 = l.xpos
-        y0 = l.ypos
+def get_locationNail_y_coordinate(x0, y0, x1, y1, r):
         a = abs(y1-y0)
         b = abs(x1-x0)
         if b == 0:
@@ -210,9 +291,9 @@ def get_locationNail_y_coordinate(l, x1, y1, r):
                 return y0 - r
 
         if y1 > y0:
-            return y0 + r * math.sin(math.atan(a/b))
+            return y0 + r * math.sin(math.atan(float(a)/b))
         else:
-            return y0 - r * math.sin(math.atan(a/b))
+            return y0 - r * math.sin(math.atan(float(a)/b))
  
 # Not class functions
 def on_motion(item, target, event):
