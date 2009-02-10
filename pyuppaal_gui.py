@@ -103,7 +103,7 @@ class TransitionUI:
         canvas.set_data(self.transition.id, self.group)
 
     def move_ellipse(self, ellipse, x, y, move_loc=False):
-        self.ellipse_source.translate(x, y)
+        ellipse.translate(x, y)
         if self.ellipse_source == ellipse:
             start_x = self.path.get_data("start_x")+x
             start_y = self.path.get_data("start_y")+y
@@ -121,12 +121,15 @@ class TransitionUI:
         
         if self.guard:
             self.guard.translate(x,y) 
-    
+            #TODO modify model 
+
         if self.assignment:
             self.assignment.translate(x,y) 
+            #TODO modify model 
 
         if self.synchronisation:
             self.synchronisation.translate(x,y) 
+            #TODO modify model 
 
         if move_loc == False:
             locationUI_prev = ellipse.get_data("locationUI")
@@ -134,14 +137,16 @@ class TransitionUI:
         
             if locationUI_prev != None:
                 location_prev = locationUI_prev.location 
-                location_ellipse_new = get_location_ellipse(x, y)
                 locationUI_prev.remove_transition_ellipse(ellipse)
         
+            location_ellipse_new = get_location_ellipse(x, y)
             if location_ellipse_new != None:
                 location_new = location_ellipse_new.get_data("location")
                 locationUI_new = location_ellipse_new.get_parent().get_data("locationUI")
                 self.transition.source = location_new
                 locationUI_new.add_transition_ellipse(ellipse)
+            else:
+                ellipse.set_data("locationUI", None)
     
         self.path.set_property("data", get_path_data(start_x, start_y, end_x, end_y))
 
@@ -155,10 +160,10 @@ def on_transition_leave(item, target, event):
     tmp.set_property("visibility", goocanvas.ITEM_INVISIBLE)
 
 def on_transition_button_press(item, target, event):
-        return on_button_press(item, target, event)
+    return on_button_press(item, target, event)
 
 def on_transition_button_release(item, target, event):
-        return on_button_release(item, target, event)
+    return on_button_release(item, target, event)
 
 def get_location_ellipse(x, y):
     global canvas
