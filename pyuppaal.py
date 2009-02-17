@@ -317,8 +317,8 @@ def from_xml(xmlsock):
             for labelxml in locationxml.getiterator("label"):
                 if labelxml.get('kind') == 'invariant':
                     location.invariant = labelxml.text
-                    location.invariant_xpos = labelxml.get('x', 0)
-                    location.invariant_ypos = labelxml.get('y', 0)
+                    location.invariant_xpos = int(labelxml.get('x', 0) or 0)
+                    location.invariant_ypos = int(labelxml.get('y', 0) or 0)
 
                 #TODO other labels
             locations[location.id] = location
