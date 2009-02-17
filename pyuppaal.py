@@ -285,8 +285,8 @@ def from_xml(xmlsock):
 
     #ntaxml = xmldoc.getElementsByTagName("nta")[0]
     ntaxml = xmldoc
-    system_declaration = ntaxml.getElementsByTagName('declaration')[0].childNodes[0].data
-    system = ntaxml.getElementsByTagName('system')[0].childNodes[0].data
+    system_declaration = get_node_text(ntaxml, 'declaration')
+    system = get_node_text(ntaxml, 'system')
     templates = []
     for templatexml in ntaxml.getElementsByTagName("template"):
         locations = {}
@@ -327,12 +327,12 @@ def from_xml(xmlsock):
                     transition.guard_ypos = int(get_attr_val(labelxml, 'y', 0))
                 if labelxml.attributes['kind'].value == 'assignment':
                     transition.assignment = str(labelxml.childNodes[0].data)
-                    transition.assignment_xpos = int(get_attr_val(labelxml, 'x', 0))
-                    transition.assignment_ypos = int(get_attr_val(labelxml, 'y', 0))
+                    transition.assignment_xpos = int(get_attr_val(labelxml, 'x', 0) or 0)
+                    transition.assignment_ypos = int(get_attr_val(labelxml, 'y', 0) or 0)
                 if labelxml.attributes['kind'].value == 'synchronisation':
                     transition.synchronisation = str(labelxml.childNodes[0].data)
-                    transition.synchronisation_xpos = int(get_attr_val(labelxml, 'x', 0))
-                    transition.synchronisation_ypos = int(get_attr_val(labelxml, 'y', 0))
+                    transition.synchronisation_xpos = int(get_attr_val(labelxml, 'x', 0) or 0)
+                    transition.synchronisation_ypos = int(get_attr_val(labelxml, 'y', 0) or 0)
             for nailxml in transitionxml.getElementsByTagName("nail"):
                 transition.nails += [Nail(int(nailxml.attributes['x'].value), int(nailxml.attributes['y'].value))]
             transitions += [transition]

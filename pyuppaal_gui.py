@@ -390,25 +390,20 @@ def add_text(str, xpos, ypos, group):
     group.add_child(text, -1)
     return text
 
-def get_locationUI(locationUIs, loc):
-    for l in locationUIs:
-        if l.location == loc:
-            return l
-
 def setup_canvas (canvas, nta):
     root = goocanvas.GroupModel ()
-    locationUIs = []
+    locationUIs = {}
 
     canvas.set_root_item_model (root)
     for t in nta.templates:
         for l in t.locations:
-            locationUIs.append(LocationUI(l, canvas))
+            locationUIs[l] = LocationUI(l, canvas)
 
     for t in nta.templates:
         for transition in t.transitions:
             TransitionUI(transition, canvas, 
-                              get_locationUI(locationUIs, transition.source), 
-                              get_locationUI(locationUIs, transition.target))
+                              locationUIs[transition.source],
+                              locationUIs[transition.target])
 
 def setup_nta():
     loc2 = Location("z < Max", True, "Location 2", "id", -100, -200)
