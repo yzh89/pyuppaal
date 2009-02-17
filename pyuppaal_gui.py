@@ -29,6 +29,7 @@ import os
 import gtk.glade
 import math
 import cairo
+import sys
 
 canvas = None
 
@@ -431,12 +432,17 @@ def setup_nta():
 class MainWindow:
 
     def __init__(self):
-        self.nta = setup_nta ()
-
         self.canvas = goocanvas.Canvas ()
         self.canvas.set_size_request (700, 600)
         self.canvas.set_bounds (-500, -500, 500, 500)
+
+        if len(sys.argv) > 1:
+            fname = sys.argv[1]
+            self.open_file(fname)
+        else:
+            self.nta = setup_nta ()
         setup_canvas (self.canvas, self.nta)
+
         self.canvas.add_events(gtk.gdk.SCROLL_MASK)
         global canvas
         canvas = self.canvas
@@ -542,7 +548,9 @@ class MainWindow:
         else:
             file_open.destroy()
             return
+        self.open_file(filename)
             
+    def open_file(self, filename):
         filesock = open(filename, "r")
         self.nta = pyuppaal.from_xml(filesock)
         setup_canvas(self.canvas, self.nta)
