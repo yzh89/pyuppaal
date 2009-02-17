@@ -407,7 +407,7 @@ def setup_canvas (canvas, nta):
                               transition.target.locationUI)
 
 def setup_nta():
-    loc2 = Location("z < Max", True, "Location 2", "id", -100, -200)
+    loc2 = Location(invariant="z < Max", committed=True, name="Location 2", id="id", xpos=-100, ypos=-200)
     loc1 = Location()
     loc3 = Location()
     loc4 = Location()
