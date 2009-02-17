@@ -23,6 +23,17 @@ import pygraphviz
 import cgi
 import xml.etree.cElementTree as ElementTree
 
+def require_keyword_args(num_unnamed):
+    """Decorator s.t. a function's named arguments cannot be used unnamed"""
+    def real_decorator(fn):
+        def check_call(*args, **kwargs):
+            if len(args) > num_unnamed:
+                raise TypeError("%s should be called with only %s unnamed arguments" 
+                    % (fn, num_unnamed))
+            return fn(*args, **kwargs)
+        return check_call
+    return real_decorator
+
 UPPAAL_LINEHEIGHT = 15
 class NTA:
     def __init__(self, declaration="", system="", templates=[]):
@@ -83,8 +94,13 @@ class Template:
                 #add label to first segment
                 if curnode == t.source:
                     edge = G.get_edge(curnode.id, nextnode.id)
-                    edge.attr['label'] = t.guard.replace('\n', '\\n')+\
-                        '\\n'+t.assignment.replace('\n', '\\n')
+                    label = '';
+                    for a in [t.select, t.guard, t.synchronisation, t.assignment]:
+                        if len(a) > 0:
+                            label += a.replace('\n', '\\n')+'\\n'
+                    if len(label) > 0:
+                        label = label[0:len(label)-2]
+                    edge.attr['label'] = label
                 curnode = nextnode
         G.layout(prog='dot')
         G.write('/tmp/test1.dot')
@@ -107,11 +123,13 @@ class Template:
                     xpos, ypos = map(self.dot2uppaalcoord, nailpos.split(","))
                     t.nails += [Nail(xpos, ypos)]
 
-            (t.guard_xpos, t.guard_ypos) = map(self.dot2uppaalcoord, edge.attr['lp'].split(','))
-            (t.assignment_xpos, t.assignment_ypos) = map(self.dot2uppaalcoord, edge.attr['lp'].split(','))
-            t.assignment_ypos += UPPAAL_LINEHEIGHT
-            (t.synchronisation_xpos, t.synchronisation_ypos) = map(self.dot2uppaalcoord, edge.attr['lp'].split(','))
-            t.synchronisation_ypos += 2 * UPPAAL_LINEHEIGHT
+            ydelta = 0
+            for a in ['select', 'guard', 'synchronisation', 'assignment']:
+                if len(getattr(t, a)) > 0:
+                    (x, y) = map(self.dot2uppaalcoord, edge.attr['lp'].split(','))
+                    setattr(t, a+'_xpos', x)
+                    setattr(t, a+'_ypos', y+ydelta)
+                    ydelta += UPPAAL_LINEHEIGHT
 
     def _parameter_to_xml(self):
         if self.parameter:
@@ -136,6 +154,7 @@ class Template:
     "\n".join([l.to_xml() for l in self.transitions]))
 
 class Location:
+    @require_keyword_args(1)
     def __init__(self, invariant="", committed=False, name="", id = "",
         xpos=0, ypos=0):
         self.invariant = invariant
@@ -190,13 +209,15 @@ class Branchpoint:
 
 last_transition_id = 0
 class Transition:
-    def __init__(self, source, target, guard='', assignment='',
-                    synchronisation=''):
+    @require_keyword_args(3)
+    def __init__(self, source, target, select='', guard='', synchronisation='',
+                    assignment=''):
         self.source = source
         self.target = target
+        self.select = select
         self.guard = guard
-        self.assignment = assignment
         self.synchronisation = synchronisation
+        self.assignment = assignment
         self.nails = []
         self.guard_xpos = 0
         self.guard_ypos = 0
@@ -214,9 +235,10 @@ class Transition:
       %s
       %s
       %s
+      %s
     </transition>""" % (self.source.id, self.target.id,
-        self.guard_to_xml(), self.assignment_to_xml(),
-        self.synchronisation_to_xml(),
+        self.select_to_xml(), self.guard_to_xml(),
+        self.synchronisation_to_xml(), self.assignment_to_xml(),
         "\n".join(map(lambda x: x.to_xml(), self.nails))
         )
 
@@ -226,17 +248,16 @@ class Transition:
             self.nails += [Nail()]
 
     def move_relative(self, x, y):
-        if self.guard:
-            self.guard_xpos = self.guard_xpos+x
-            self.guard_ypos = self.guard_ypos+y
+        for a in ['select', 'guard', 'synchronisation', 'assignment']:
+            if len(getattr(self, a)) > 0:
+                setattr(self, a+'_xpos', x+getattr(self, a+'_xpos'))
+                setattr(self, a+'_ypos', y+getattr(self, a+'_ypos'))
 
-        if self.assignment:
-            self.assignment_xpos = self.assignment_xpos+x
-            self.assignment_ypos = self.assignment_ypos+y
-
-        if self.synchronisation:
-            self.synchronisation_xpos = self.synchronisation_xpos+x
-            self.synchronisation_ypos = self.synchronisation_ypos+y
+    def select_to_xml(self):
+        if self.select:
+            return '<label kind="select" x="%s" y="%s">%s</label>' % \
+                (self.select_xpos, self.select_ypos, cgi.escape(self.select))
+        return ''
 
     def guard_to_xml(self):
         if self.guard:
@@ -244,16 +265,16 @@ class Transition:
                 (self.guard_xpos, self.guard_ypos, cgi.escape(self.guard))
         return ''
 
-    def assignment_to_xml(self):
-        if self.assignment:
-            return '<label kind="assignment" x="%s" y="%s">%s</label>' % \
-                (self.assignment_xpos, self.assignment_ypos, cgi.escape(self.assignment))
-        return ''
-
     def synchronisation_to_xml(self):
         if self.synchronisation:
             return '<label kind="synchronisation" x="%s" y="%s">%s</label>' % \
                 (self.synchronisation_xpos, self.synchronisation_ypos, cgi.escape(self.synchronisation))
+        return ''
+
+    def assignment_to_xml(self):
+        if self.assignment:
+            return '<label kind="assignment" x="%s" y="%s">%s</label>' % \
+                (self.assignment_xpos, self.assignment_ypos, cgi.escape(self.assignment))
         return ''
 
 last_nail_id = 0
