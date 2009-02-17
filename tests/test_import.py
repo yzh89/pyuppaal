@@ -17,6 +17,12 @@ class TestMinimalImport(unittest.TestCase):
         self.assertEqual(nta.templates[0].locations[0].xpos, 16)
         self.assertEqual(nta.templates[0].locations[0].ypos, -40)
         self.assertTrue(nta.templates[0].locations[0] == nta.templates[0].initlocation)
+        self.assertEqual(nta.declaration, '// Place global declarations here.\n')
+        self.assertEqual(nta.system, """// Place template instantiations here.
+Process = Template();
+
+// List one or more processes to be composed into a system.
+system Process;""")
 
     def test_import_small(self):
         file = open(os.path.join(os.path.dirname(sys.argv[0]), 'small.xml'))
@@ -69,6 +75,8 @@ class TestMinimalImport(unittest.TestCase):
         file = open(os.path.join(os.path.dirname(sys.argv[0]), 'strangeguard.xml'))
         nta = pyuppaal.from_xml(file)
         self.assertEqual(nta.templates[0].transitions[0].guard, "")
+        self.assertEqual(nta.templates[0].transitions[0].guard_xpos, -44)
+        self.assertEqual(nta.templates[0].transitions[0].guard_ypos, -10)
 
     def test_import_noxypos(self):
         file = open(os.path.join(os.path.dirname(sys.argv[0]), 'location_no_xypos.xml'))

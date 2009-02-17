@@ -21,7 +21,7 @@
 
 import pygraphviz
 import cgi
-from xml.dom import minidom
+import xml.etree.cElementTree as ElementTree
 
 UPPAAL_LINEHEIGHT = 15
 class NTA:
@@ -197,6 +197,8 @@ class Transition:
         self.assignment = assignment
         self.synchronisation = synchronisation
         self.nails = []
+        self.guard_xpos = 0
+        self.guard_ypos = 0
 
         global last_transition_id
         self.id = 'Transition' + str(last_transition_id)
@@ -268,91 +270,73 @@ class Nail:
             (self.xpos, self.ypos)
 
 def from_xml(xmlsock):
-    xmldoc = minidom.parse(xmlsock).documentElement
+    xmldoc = ElementTree.ElementTree(file=xmlsock).getroot()
     xmlsock.close()
 
-    def get_node_text(node, tagname):
-        tagnodes = [n for n in node.childNodes if getattr(n, 'tagName', '') == tagname]
-        #tagnodes = node.getElementsByTagName(tagname)
-        if len(tagnodes) > 0:
-            subnode = tagnodes[0]
-            return subnode.hasChildNodes() and subnode.childNodes[0].data or None
-        return None
-    def get_attr_val(node, attrname, default=None):
-        if attrname in node.attributes.keys():
-            return node.attributes[attrname].value
-        else:
-            return default
-
-    def getChildByTagName(node, tagname):
-        for cn in node.childNodes:
-            if getattr(cn, 'tagName', '') == tagname:
-                return cn
-
     def getChildsByTagName(node, tagname):
-        for cn in node.childNodes:
+        for cn in node.getchildren():
             if getattr(cn, 'tagName', '') == tagname:
                 yield cn
 
     #ntaxml = xmldoc.getElementsByTagName("nta")[0]
     ntaxml = xmldoc
-    system_declaration = get_node_text(ntaxml, 'declaration')
-    system = get_node_text(ntaxml, 'system')
+    system_declaration = ntaxml.findtext('declaration')
+    system = ntaxml.findtext('system')
     templates = []
-    for templatexml in getChildsByTagName(ntaxml, "template"):
+    for templatexml in ntaxml.getiterator("template"):
         locations = {}
-        for locationxml in getChildsByTagName(templatexml, "location"):
-            name = get_node_text(locationxml, "name")
-            location = Location(id=locationxml.attributes['id'].value,
-                xpos=int(get_attr_val(locationxml, 'x', 0)),
-                ypos=int(get_attr_val(locationxml, 'y', 0)), name=name)
-            if getChildByTagName(locationxml, "committed"):
+        for locationxml in templatexml.getiterator("location"):
+            name = locationxml.findtext("name")
+            location = Location(id=locationxml.get('id'),
+                xpos=int(locationxml.get('x', 0)),
+                ypos=int(locationxml.get('y', 0)), name=name)
+            if locationxml.find("committed") != None:
                 location.committed = True
-            for labelxml in getChildsByTagName(locationxml, "label"):
-                if labelxml.attributes['kind'].value == 'invariant':
-                    location.invariant = str(labelxml.childNodes[0].data)
-                    location.invariant_xpos = int(get_attr_val(labelxml, 'x', 0))
-                    location.invariant_ypos = int(get_attr_val(labelxml, 'y', 0))
+            for labelxml in locationxml.getiterator("label"):
+                if labelxml.get('kind') == 'invariant':
+                    location.invariant = labelxml.text
+                    location.invariant_xpos = labelxml.get('x', 0)
+                    location.invariant_ypos = labelxml.get('y', 0)
 
                 #TODO other labels
             locations[location.id] = location
-        for branchpointxml in getChildsByTagName(templatexml, "branchpoint"):
-            branchpoint = Branchpoint(id=branchpointxml.attributes['id'].value,
-                xpos=int(branchpointxml.attributes['x'].value),
-                ypos=int(branchpointxml.attributes['y'].value))
+        for branchpointxml in templatexml.getiterator("branchpoint"):
+            branchpoint = Branchpoint(id=branchpointxml.get('id'),
+                xpos=int(branchpointxml.get('x', 0)),
+                ypos=int(branchpointxml.get('y', 0)))
             locations[branchpoint.id] = branchpoint
         transitions = []
-        for transitionxml in getChildsByTagName(templatexml, "transition"):
+        for transitionxml in templatexml.getiterator("transition"):
             transition = Transition(
-                locations[getChildByTagName(transitionxml, 'source').attributes['ref'].value],
-                locations[getChildByTagName(transitionxml, 'target').attributes['ref'].value],
+                locations[transitionxml.find('source').get('ref')],
+                locations[transitionxml.find('target').get('ref')],
                 )
-            for labelxml in getChildsByTagName(transitionxml, "label"):
-                if labelxml.attributes['kind'].value == 'guard' and \
-                    len(labelxml.childNodes) > 0:
-                    transition.guard = str(labelxml.childNodes[0].data)
-                    transition.guard_xpos = int(get_attr_val(labelxml, 'x', 0))
-                    transition.guard_ypos = int(get_attr_val(labelxml, 'y', 0))
-                if labelxml.attributes['kind'].value == 'assignment':
-                    transition.assignment = str(labelxml.childNodes[0].data)
-                    transition.assignment_xpos = int(get_attr_val(labelxml, 'x', 0) or 0)
-                    transition.assignment_ypos = int(get_attr_val(labelxml, 'y', 0) or 0)
-                if labelxml.attributes['kind'].value == 'synchronisation':
-                    transition.synchronisation = str(labelxml.childNodes[0].data)
-                    transition.synchronisation_xpos = int(get_attr_val(labelxml, 'x', 0) or 0)
-                    transition.synchronisation_ypos = int(get_attr_val(labelxml, 'y', 0) or 0)
-            for nailxml in getChildsByTagName(transitionxml, "nail"):
-                transition.nails += [Nail(int(nailxml.attributes['x'].value), int(nailxml.attributes['y'].value))]
+            for labelxml in transitionxml.getiterator("label"):
+                if labelxml.get('kind') == 'guard':
+                    transition.guard = labelxml.text or ''
+                    transition.guard_xpos = int(labelxml.get('x', 0) or 0)
+                    transition.guard_ypos = int(labelxml.get('y', 0) or 0)
+                if labelxml.get('kind') == 'assignment':
+                    transition.assignment = labelxml.text
+                    transition.assignment_xpos = int(labelxml.get('x', 0) or 0)
+                    transition.assignment_ypos = int(labelxml.get('y', 0) or 0)
+                if labelxml.get('kind') == 'synchronisation':
+                    transition.synchronisation = labelxml.text
+                    transition.synchronisation_xpos = int(labelxml.get('x', 0) or 0)
+                    transition.synchronisation_ypos = int(labelxml.get('y', 0) or 0)
+            for nailxml in transitionxml.getiterator("nail"):
+                transition.nails += [
+                    Nail(int(nailxml.get('x', 0) or 0), int(nailxml.get('y', 0) or 0))]
             transitions += [transition]
 
-        declaration = get_node_text(templatexml, "declaration")
-        parameter = get_node_text(templatexml, "parameter")
+        declaration = templatexml.findtext("declaration")
+        parameter = templatexml.findtext("parameter")
 
-        if getChildByTagName(templatexml, "init"):
-            initlocation=locations[getChildByTagName(templatexml, "init").attributes['ref'].value]
+        if templatexml.find("init") != None:
+            initlocation=locations[templatexml.find("init").get('ref')]
         else:
             initlocation = None
-        template = Template(getChildByTagName(templatexml, "name").childNodes[0].data,
+        template = Template(templatexml.find("name").text,
             declaration,
             locations.values(),
             initlocation=initlocation,
