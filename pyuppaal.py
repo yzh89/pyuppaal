@@ -272,7 +272,8 @@ def from_xml(xmlsock):
     xmlsock.close()
 
     def get_node_text(node, tagname):
-        tagnodes = node.getElementsByTagName(tagname)
+        tagnodes = [n for n in node.childNodes if getattr(n, 'tagName', '') == tagname]
+        #tagnodes = node.getElementsByTagName(tagname)
         if len(tagnodes) > 0:
             subnode = tagnodes[0]
             return subnode.hasChildNodes() and subnode.childNodes[0].data or None
@@ -283,24 +284,31 @@ def from_xml(xmlsock):
         else:
             return default
 
+    def getChildByTagName(node, tagname):
+        for cn in node.childNodes:
+            if getattr(cn, 'tagName', '') == tagname:
+                return cn
+
+    def getChildsByTagName(node, tagname):
+        for cn in node.childNodes:
+            if getattr(cn, 'tagName', '') == tagname:
+                yield cn
+
     #ntaxml = xmldoc.getElementsByTagName("nta")[0]
     ntaxml = xmldoc
     system_declaration = get_node_text(ntaxml, 'declaration')
     system = get_node_text(ntaxml, 'system')
     templates = []
-    for templatexml in ntaxml.getElementsByTagName("template"):
+    for templatexml in getChildsByTagName(ntaxml, "template"):
         locations = {}
-        for locationxml in templatexml.getElementsByTagName("location"):
-            name = ''
-            if len(locationxml.getElementsByTagName("name")) > 0 and \
-                len(locationxml.getElementsByTagName("name")[0].childNodes) > 0:
-                name = locationxml.getElementsByTagName("name")[0].childNodes[0].data
+        for locationxml in getChildsByTagName(templatexml, "location"):
+            name = get_node_text(locationxml, "name")
             location = Location(id=locationxml.attributes['id'].value,
                 xpos=int(get_attr_val(locationxml, 'x', 0)),
                 ypos=int(get_attr_val(locationxml, 'y', 0)), name=name)
-            if locationxml.getElementsByTagName("committed"):
+            if getChildByTagName(locationxml, "committed"):
                 location.committed = True
-            for labelxml in locationxml.getElementsByTagName("label"):
+            for labelxml in getChildsByTagName(locationxml, "label"):
                 if labelxml.attributes['kind'].value == 'invariant':
                     location.invariant = str(labelxml.childNodes[0].data)
                     location.invariant_xpos = int(get_attr_val(labelxml, 'x', 0))
@@ -308,18 +316,18 @@ def from_xml(xmlsock):
 
                 #TODO other labels
             locations[location.id] = location
-        for branchpointxml in templatexml.getElementsByTagName("branchpoint"):
+        for branchpointxml in getChildsByTagName(templatexml, "branchpoint"):
             branchpoint = Branchpoint(id=branchpointxml.attributes['id'].value,
                 xpos=int(branchpointxml.attributes['x'].value),
                 ypos=int(branchpointxml.attributes['y'].value))
             locations[branchpoint.id] = branchpoint
         transitions = []
-        for transitionxml in templatexml.getElementsByTagName("transition"):
+        for transitionxml in getChildsByTagName(templatexml, "transition"):
             transition = Transition(
-                locations[transitionxml.getElementsByTagName('source')[0].attributes['ref'].value],
-                locations[transitionxml.getElementsByTagName('target')[0].attributes['ref'].value],
+                locations[getChildByTagName(transitionxml, 'source').attributes['ref'].value],
+                locations[getChildByTagName(transitionxml, 'target').attributes['ref'].value],
                 )
-            for labelxml in transitionxml.getElementsByTagName("label"):
+            for labelxml in getChildsByTagName(transitionxml, "label"):
                 if labelxml.attributes['kind'].value == 'guard' and \
                     len(labelxml.childNodes) > 0:
                     transition.guard = str(labelxml.childNodes[0].data)
@@ -333,18 +341,18 @@ def from_xml(xmlsock):
                     transition.synchronisation = str(labelxml.childNodes[0].data)
                     transition.synchronisation_xpos = int(get_attr_val(labelxml, 'x', 0) or 0)
                     transition.synchronisation_ypos = int(get_attr_val(labelxml, 'y', 0) or 0)
-            for nailxml in transitionxml.getElementsByTagName("nail"):
+            for nailxml in getChildsByTagName(transitionxml, "nail"):
                 transition.nails += [Nail(int(nailxml.attributes['x'].value), int(nailxml.attributes['y'].value))]
             transitions += [transition]
 
         declaration = get_node_text(templatexml, "declaration")
         parameter = get_node_text(templatexml, "parameter")
 
-        if len(templatexml.getElementsByTagName("init")) > 0:
-            initlocation=locations[templatexml.getElementsByTagName("init")[0].attributes['ref'].value]
+        if getChildByTagName(templatexml, "init"):
+            initlocation=locations[getChildByTagName(templatexml, "init").attributes['ref'].value]
         else:
             initlocation = None
-        template = Template(templatexml.getElementsByTagName("name")[0].childNodes[0].data,
+        template = Template(getChildByTagName(templatexml, "name").childNodes[0].data,
             declaration,
             locations.values(),
             initlocation=initlocation,
