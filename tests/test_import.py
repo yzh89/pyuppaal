@@ -69,20 +69,51 @@ system Process;""")
     def test_import_minimal_name(self):
         file = open(os.path.join(os.path.dirname(sys.argv[0]), 'minimal_name.xml'))
         nta = pyuppaal.from_xml(file)
-        self.assertEqual(nta.templates[0].initlocation.name, "abemad")
+        self.assertEqual(nta.templates[0].initlocation.name.value, "abemad")
 
     def test_import_strangeguard(self):
         file = open(os.path.join(os.path.dirname(sys.argv[0]), 'strangeguard.xml'))
         nta = pyuppaal.from_xml(file)
-        self.assertEqual(nta.templates[0].transitions[0].guard, "")
-        self.assertEqual(nta.templates[0].transitions[0].guard_xpos, -44)
-        self.assertEqual(nta.templates[0].transitions[0].guard_ypos, -10)
+        self.assertEqual(nta.templates[0].transitions[0].guard.get_value(), "")
+        self.assertEqual(nta.templates[0].transitions[0].guard.xpos, -44)
+        self.assertEqual(nta.templates[0].transitions[0].guard.ypos, -10)
 
     def test_import_noxypos(self):
         file = open(os.path.join(os.path.dirname(sys.argv[0]), 'location_no_xypos.xml'))
         nta = pyuppaal.from_xml(file)
         self.assertEqual(nta.templates[0].locations[0].xpos, 0)
         self.assertEqual(nta.templates[0].locations[0].ypos, 0)
+
+    def test_import_nocoords(self):
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'small_nocoords.xml'))
+        nta = pyuppaal.from_xml(file)
+        for l in nta.templates[0].locations:
+            self.assertEqual(l.invariant.xpos, None)
+            self.assertEqual(l.invariant.ypos, None)
+            self.assertEqual(l.name.xpos, None)
+            self.assertEqual(l.name.ypos, None)
+        t = nta.templates[0].transitions[0]
+        for a in [t.select, t.guard, t.synchronisation, t.assignment]:
+            self.assertEqual(a.xpos, None)
+            self.assertEqual(a.ypos, None)
+
+    def test_import_all_labels(self):
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'small_all_labels.xml'))
+        nta = pyuppaal.from_xml(file)
+        temp = nta.templates[0]
+        l1 = temp.locations[1]
+        l2 = temp.locations[0]
+        t1 = temp.transitions[0]
+
+        self.assertEqual(l1.name.get_value(), "name1")
+        self.assertEqual(l1.invariant.get_value(), "invariant1")
+        self.assertEqual(l2.name.get_value(), "name2")
+        self.assertEqual(l2.invariant.get_value(), "invariant2")
+
+        self.assertEqual(t1.select.get_value(), "select")
+        self.assertEqual(t1.guard.get_value(), "guard")
+        self.assertEqual(t1.synchronisation.get_value(), "sync")
+        self.assertEqual(t1.assignment.get_value(), "update")
 
 if __name__ == '__main__':
     unittest.main()

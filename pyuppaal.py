@@ -84,7 +84,7 @@ class Template:
             #TODO: initial node should be the first (dot will place it at the top then)
             G.add_node(l.id)
             node = G.get_node(l.id)
-            node.attr['label'] = l.invariant.replace('\n', '\\n')
+            node.attr['label'] = l.invariant.get_value().replace('\n', '\\n')
         for t in self.transitions:
             if auto_nails:
                 t.nails = []
@@ -96,8 +96,8 @@ class Template:
                     edge = G.get_edge(curnode.id, nextnode.id)
                     label = '';
                     for a in [t.select, t.guard, t.synchronisation, t.assignment]:
-                        if len(a) > 0:
-                            label += a.replace('\n', '\\n')+'\\n'
+                        if a.get_value() != None:
+                            label += a.get_value().replace('\n', '\\n')+'\\n'
                     if len(label) > 0:
                         label = label[0:len(label)-2]
                     edge.attr['label'] = label
@@ -107,8 +107,8 @@ class Template:
 
         for l in self.locations:
             (l.xpos, l.ypos) = map(self.dot2uppaalcoord, G.get_node(l.id).attr['pos'].split(','))
-            (l.name_xpos, l.name_ypos) = (l.xpos, l.ypos + UPPAAL_LINEHEIGHT)
-            (l.invariant_xpos, l.invariant_ypos) = (l.xpos, l.ypos + 2 * UPPAAL_LINEHEIGHT)
+            (l.name.xpos, l.name.ypos) = (l.xpos, l.ypos + UPPAAL_LINEHEIGHT)
+            (l.invariant.xpos, l.invariant.ypos) = (l.xpos, l.ypos + 2 * UPPAAL_LINEHEIGHT)
         for t in self.transitions:
             #for nail in t.nails:
             #    nailnode = G.get_node(nail.id)
@@ -125,10 +125,11 @@ class Template:
 
             ydelta = 0
             for a in ['select', 'guard', 'synchronisation', 'assignment']:
-                if len(getattr(t, a)) > 0:
+                label = getattr(t, a)
+                if label.get_value() != None:
                     (x, y) = map(self.dot2uppaalcoord, edge.attr['lp'].split(','))
-                    setattr(t, a+'_xpos', x)
-                    setattr(t, a+'_ypos', y+ydelta)
+                    label.xpos = x
+                    label.ypos = y+ydelta
                     ydelta += UPPAAL_LINEHEIGHT
 
     def _parameter_to_xml(self):
@@ -153,28 +154,53 @@ class Template:
     self.initlocation.id,
     "\n".join([l.to_xml() for l in self.transitions]))
 
+class Label:
+    def __init__(self, kind, value=None, xpos=None, ypos=None):
+        self.kind = kind
+        self.value = value
+        self.xpos = xpos
+        self.ypos = ypos
+
+    def get_value(self):
+        if self.value:
+            return self.value
+        return ""
+
+    def move_relative(self, dx, dy):
+        self.xpos += dx
+        self.ypos += dy
+
+    def to_xml(self):
+        if self.value:
+            attrs = ['kind="%s"' % self.kind]
+            if self.xpos:
+                attrs += ['x="%s"' % self.xpos]
+            if self.ypos:
+                attrs += ['y="%s"' % self.ypos]
+            return '<label %s>%s</label>' % \
+                (" ".join(attrs), cgi.escape(self.value))
+        return ''
+
 class Location:
     @require_keyword_args(1)
-    def __init__(self, invariant="", committed=False, name="", id = "",
+    def __init__(self, invariant=None, committed=False, name=None, id = None,
         xpos=0, ypos=0):
-        self.invariant = invariant
-        self.invariant_xpos = xpos
-        self.invariant_ypos = ypos + 10
+        self.invariant = Label("invariant", invariant)
         self.committed = committed
-        self.name = name
-        self.name_xpos = xpos
-        self.name_ypos = ypos + 20
+        self.name = Label("name", name)
         self.id = id
         self.xpos = xpos
         self.ypos = ypos
 
+    def move_relative(self, dx, dy):
+        self.xpos += dx
+        self.ypos += dy
+        for l in [self.invariant, self.name]:
+            l.move_relative(dx, dy)
+
     def to_xml(self):
-        namexml = ""
-        invariantxml = ""
-        if not self.invariant:
-            invariantxml = '<label kind="invariant" x="'+str(self.invariant_xpos)+'" y="'+str(self.invariant_ypos)+'">'+cgi.escape(self.invariant)+'</label>'
-        if not self.name:
-            namexml = '<name x="'+str(self.name_xpos)+'" y="'+str(self.name_ypos)+'">'+self.name+'</name>'
+        namexml = self.name.to_xml()
+        invariantxml = self.invariant.to_xml()
         return """
     <location id="%s" x="%s" y="%s">
       %s
@@ -183,24 +209,12 @@ class Location:
     </location>""" % (self.id, self.xpos, self.ypos, namexml, invariantxml,
         self.committed and '<committed />' or '')
 
-    def move_relative(self, x, y):
-        if self.invariant:
-            self.invariant_xpos = self.invariant_xpos+x
-            self.invariant_ypos = self.invariant_ypos+x
-
-        if self.name:
-            self.name_xpos = self.name_xpos+x
-            self.name_ypos = self.name_ypos+x
-
-        self.xpos = self.xpos+x
-        self.ypos = self.ypos+y
-
 class Branchpoint:
-    def __init__(self, id = "", xpos=0, ypos=0):
+    @require_keyword_args(1)
+    def __init__(self, id=None, xpos=0, ypos=0):
         self.id = id
         self.xpos = xpos
         self.ypos = ypos
-        self.invariant = ""
 
     def to_xml(self):
         return """
@@ -214,13 +228,11 @@ class Transition:
                     assignment=''):
         self.source = source
         self.target = target
-        self.select = select
-        self.guard = guard
-        self.synchronisation = synchronisation
-        self.assignment = assignment
+        self.select = Label("select", select)
+        self.guard = Label("guard", guard)
+        self.synchronisation = Label("synchronisation", synchronisation)
+        self.assignment = Label("assignment", assignment)
         self.nails = []
-        self.guard_xpos = 0
-        self.guard_ypos = 0
 
         global last_transition_id
         self.id = 'Transition' + str(last_transition_id)
@@ -237,8 +249,8 @@ class Transition:
       %s
       %s
     </transition>""" % (self.source.id, self.target.id,
-        self.select_to_xml(), self.guard_to_xml(),
-        self.synchronisation_to_xml(), self.assignment_to_xml(),
+        self.select.to_xml(), self.guard.to_xml(),
+        self.synchronisation.to_xml(), self.assignment.to_xml(),
         "\n".join(map(lambda x: x.to_xml(), self.nails))
         )
 
@@ -246,36 +258,6 @@ class Transition:
         self.nails = []
         for i in range(num):
             self.nails += [Nail()]
-
-    def move_relative(self, x, y):
-        for a in ['select', 'guard', 'synchronisation', 'assignment']:
-            if len(getattr(self, a)) > 0:
-                setattr(self, a+'_xpos', x+getattr(self, a+'_xpos'))
-                setattr(self, a+'_ypos', y+getattr(self, a+'_ypos'))
-
-    def select_to_xml(self):
-        if self.select:
-            return '<label kind="select" x="%s" y="%s">%s</label>' % \
-                (self.select_xpos, self.select_ypos, cgi.escape(self.select))
-        return ''
-
-    def guard_to_xml(self):
-        if self.guard:
-            return '<label kind="guard" x="%s" y="%s">%s</label>' % \
-                (self.guard_xpos, self.guard_ypos, cgi.escape(self.guard))
-        return ''
-
-    def synchronisation_to_xml(self):
-        if self.synchronisation:
-            return '<label kind="synchronisation" x="%s" y="%s">%s</label>' % \
-                (self.synchronisation_xpos, self.synchronisation_ypos, cgi.escape(self.synchronisation))
-        return ''
-
-    def assignment_to_xml(self):
-        if self.assignment:
-            return '<label kind="assignment" x="%s" y="%s">%s</label>' % \
-                (self.assignment_xpos, self.assignment_ypos, cgi.escape(self.assignment))
-        return ''
 
 last_nail_id = 0
 class Nail:
@@ -295,10 +277,10 @@ def from_xml(xmlsock):
     xmldoc = ElementTree.ElementTree(file=xmlsock).getroot()
     xmlsock.close()
 
-    def getChildsByTagName(node, tagname):
-        for cn in node.getchildren():
-            if getattr(cn, 'tagName', '') == tagname:
-                yield cn
+    def int_or_none(text):
+        if text != None:
+            return int(text)
+        return None
 
     #ntaxml = xmldoc.getElementsByTagName("nta")[0]
     ntaxml = xmldoc
@@ -308,7 +290,7 @@ def from_xml(xmlsock):
     for templatexml in ntaxml.getiterator("template"):
         locations = {}
         for locationxml in templatexml.getiterator("location"):
-            name = locationxml.findtext("name", "")
+            name = locationxml.findtext("name")
             location = Location(id=locationxml.get('id'),
                 xpos=int(locationxml.get('x', 0)),
                 ypos=int(locationxml.get('y', 0)), name=name)
@@ -316,16 +298,16 @@ def from_xml(xmlsock):
                 location.committed = True
             for labelxml in locationxml.getiterator("label"):
                 if labelxml.get('kind') == 'invariant':
-                    location.invariant = labelxml.text
-                    location.invariant_xpos = int(labelxml.get('x', 0) or 0)
-                    location.invariant_ypos = int(labelxml.get('y', 0) or 0)
+                    location.invariant = Label("invariant", labelxml.text)
+                    location.invariant.xpos = int_or_none(labelxml.get('x', None))
+                    location.invariant.ypos = int_or_none(labelxml.get('y', None))
 
                 #TODO other labels
             locations[location.id] = location
         for branchpointxml in templatexml.getiterator("branchpoint"):
             branchpoint = Branchpoint(id=branchpointxml.get('id'),
-                xpos=int(branchpointxml.get('x', 0)),
-                ypos=int(branchpointxml.get('y', 0)))
+                xpos=int_or_none(branchpointxml.get('x', None)),
+                ypos=int_or_none(branchpointxml.get('y', None)))
             locations[branchpoint.id] = branchpoint
         transitions = []
         for transitionxml in templatexml.getiterator("transition"):
@@ -334,21 +316,16 @@ def from_xml(xmlsock):
                 locations[transitionxml.find('target').get('ref')],
                 )
             for labelxml in transitionxml.getiterator("label"):
-                if labelxml.get('kind') == 'guard':
-                    transition.guard = labelxml.text or ''
-                    transition.guard_xpos = int(labelxml.get('x', 0) or 0)
-                    transition.guard_ypos = int(labelxml.get('y', 0) or 0)
-                if labelxml.get('kind') == 'assignment':
-                    transition.assignment = labelxml.text
-                    transition.assignment_xpos = int(labelxml.get('x', 0) or 0)
-                    transition.assignment_ypos = int(labelxml.get('y', 0) or 0)
-                if labelxml.get('kind') == 'synchronisation':
-                    transition.synchronisation = labelxml.text
-                    transition.synchronisation_xpos = int(labelxml.get('x', 0) or 0)
-                    transition.synchronisation_ypos = int(labelxml.get('y', 0) or 0)
+                if labelxml.get('kind') in ['select', 'guard', 'assignment', 
+                                            'synchronisation']:
+                    label = getattr(transition, labelxml.get('kind'))
+                    label.value = labelxml.text
+                    label.xpos = int_or_none(labelxml.get('x', None))
+                    label.ypos = int_or_none(labelxml.get('y', None))
             for nailxml in transitionxml.getiterator("nail"):
                 transition.nails += [
-                    Nail(int(nailxml.get('x', 0) or 0), int(nailxml.get('y', 0) or 0))]
+                    Nail(int_or_none(nailxml.get('x', None)), 
+                        int_or_none(nailxml.get('y', None)))]
             transitions += [transition]
 
         declaration = templatexml.findtext("declaration")

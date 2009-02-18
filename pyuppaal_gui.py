@@ -76,14 +76,14 @@ class TransitionUI:
         item.connect("enter_notify_event", on_transition_enter)
         item.connect("leave_notify_event", on_transition_leave)
 
-        if self.transition.guard:
-            self.guard = add_text(self.transition.guard, self.transition.guard_xpos, self.transition.guard_ypos, self.group)
+        if self.transition.guard.get_value():
+            self.guard = add_text(self.transition.guard.get_value(), self.transition.guard.xpos, self.transition.guard.ypos, self.group)
     
-        if self.transition.assignment:
-            self.assignment = add_text(self.transition.assignment, self.transition.assignment_xpos, self.transition.assignment_ypos, self.group)
+        if self.transition.assignment.get_value():
+            self.assignment = add_text(self.transition.assignment.get_value(), self.transition.assignment.xpos, self.transition.assignment.ypos, self.group)
 
-        if self.transition.synchronisation:
-            self.synchronisation = add_text(self.transition.synchronisation, self.transition.synchronisation_xpos, self.transition.synchronisation_ypos, self.group)
+        if self.transition.synchronisation.get_value():
+            self.synchronisation = add_text(self.transition.synchronisation.get_value(), self.transition.synchronisation.xpos, self.transition.synchronisation.ypos, self.group)
 
         item = canvas.get_item(self.ellipse_target)
         item.connect("button_press_event", on_transition_button_press)
@@ -310,11 +310,11 @@ class LocationUI:
         item.connect("button_release_event", on_button_release)
         item.connect("motion_notify_event", on_motion)
 
-        if location.invariant:
-            self.invariant = add_text(location.invariant, (location.invariant_xpos), (location.invariant_ypos), self.group)
+        if location.invariant.get_value():
+            self.invariant = add_text(location.invariant.get_value(), (location.invariant.xpos), (location.invariant.ypos), self.group)
     
-        if location.name:
-            self.name = add_text(location.name, (location.name_xpos), (location.name_ypos), self.group)
+        if location.name.get_value():
+            self.name = add_text(location.name.get_value(), (location.name.xpos), (location.name.ypos), self.group)
 
         ellipse.set_data("group", self.group)
         self.group.set_data("locationUI", self)
