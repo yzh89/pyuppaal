@@ -171,9 +171,9 @@ class Location:
     def to_xml(self):
         namexml = ""
         invariantxml = ""
-        if self.invariant != "":
+        if not self.invariant:
             invariantxml = '<label kind="invariant" x="'+str(self.invariant_xpos)+'" y="'+str(self.invariant_ypos)+'">'+cgi.escape(self.invariant)+'</label>'
-        if self.name != "":
+        if not self.name:
             namexml = '<name x="'+str(self.name_xpos)+'" y="'+str(self.name_ypos)+'">'+self.name+'</name>'
         return """
     <location id="%s" x="%s" y="%s">
@@ -308,7 +308,7 @@ def from_xml(xmlsock):
     for templatexml in ntaxml.getiterator("template"):
         locations = {}
         for locationxml in templatexml.getiterator("location"):
-            name = locationxml.findtext("name")
+            name = locationxml.findtext("name", "")
             location = Location(id=locationxml.get('id'),
                 xpos=int(locationxml.get('x', 0)),
                 ypos=int(locationxml.get('y', 0)), name=name)
