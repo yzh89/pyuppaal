@@ -166,6 +166,14 @@ class Label:
             return self.value
         return ""
 
+    def append(self, expr, auto_newline=True):
+        nl = auto_newline and '\n' or ''
+        if self.get_value():
+            self.value = self.get_value() + "," + nl + expr
+        else:
+            self.value = expr
+            
+
     def move_relative(self, dx, dy):
         self.xpos += dx
         self.ypos += dy
