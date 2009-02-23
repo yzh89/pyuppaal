@@ -185,8 +185,14 @@ class Label:
                 attrs += ['x="%s"' % self.xpos]
             if self.ypos:
                 attrs += ['y="%s"' % self.ypos]
-            return '<label %s>%s</label>' % \
-                (" ".join(attrs), cgi.escape(self.value))
+
+            #special case for location names
+            if self.kind == 'name':
+                return '<name %s>%s</name>' % \
+                    (" ".join(attrs[1:]), cgi.escape(self.value))
+            else:
+                return '<label %s>%s</label>' % \
+                    (" ".join(attrs), cgi.escape(self.value))
         return ''
 
 class Location:
@@ -302,6 +308,12 @@ def from_xml(xmlsock):
             location = Location(id=locationxml.get('id'),
                 xpos=int(locationxml.get('x', 0)),
                 ypos=int(locationxml.get('y', 0)), name=name)
+            namexml = locationxml.find('name')
+            if namexml != None:
+                (location.name.xpos, location.name.ypos) = \
+                    (int_or_none(namexml.get('x', None)),
+                    int_or_none(namexml.get('y', None))
+                    )
             if locationxml.find("committed") != None:
                 location.committed = True
             for labelxml in locationxml.getiterator("label"):

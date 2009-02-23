@@ -115,5 +115,20 @@ system Process;""")
         self.assertEqual(t1.synchronisation.get_value(), "sync")
         self.assertEqual(t1.assignment.get_value(), "update")
 
+    def test_import_minimal_0coord(self):
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'minimal_0coord.xml'))
+        nta = pyuppaal.from_xml(file)
+        self.assertEqual(len(nta.templates), 1)
+        self.assertEqual(nta.templates[0].locations[0].xpos, 0)
+        self.assertEqual(nta.templates[0].locations[0].ypos, 0)
+        self.assertTrue(nta.templates[0].locations[0].xpos != None)
+        self.assertTrue(nta.templates[0].locations[0].ypos != None)
+
+        #the name label
+        self.assertEqual(nta.templates[0].locations[0].name.xpos, 0)
+        self.assertEqual(nta.templates[0].locations[0].name.ypos, 0)
+        self.assertTrue(nta.templates[0].locations[0].name.xpos != None)
+        self.assertTrue(nta.templates[0].locations[0].name.ypos != None)
+
 if __name__ == '__main__':
     unittest.main()
