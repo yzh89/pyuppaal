@@ -22,6 +22,8 @@
 import pygraphviz
 import cgi
 import xml.etree.cElementTree as ElementTree
+import subprocess
+import re
 
 def require_keyword_args(num_unnamed):
     """Decorator s.t. a function's named arguments cannot be used unnamed"""
@@ -365,5 +367,53 @@ def from_xml(xmlsock):
         
     nta = NTA(system_declaration, system, templates)
     return nta
+
+class QueryFile:
+    def __init__(self):
+        self.queries = []
+
+    def addQuery(self, q, comment=''):
+        self.queries += [(q, comment)]
+
+    def saveFile(self, fh):
+        out = ['//This file was generated from pyUppaal'] + \
+            ['/*\n' + comment + '*/\n' + q for (q, comment) in self.queries]
+        fh.write("\n\n".join(out))
+
+def verify(modelfilename, queryfilename, verifyta='verifyta',
+            searchorder='bfs'):
+    searchorder = { 'bfs': '0', #Breadth first
+                    'dfs': '1', #Depth first
+                    'rdfs': '2', #Random depth first
+                    'ofs': '3', #Optimal first
+                    'rodfs': '4', #Random optimal depth first
+                    'tfs': '6', #Target first
+                    }[searchorder]
+
+    proc = subprocess.Popen(
+        [verifyta, '-o' + searchorder, '-q', modelfilename, queryfilename], 
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #TODO - report progress
+    (stdoutdata, stderrdata) = proc.communicate()
+
+    lines = stdoutdata.split('\n')
+
+    regex = re.compile('^Verifying property ([0-9]+) at line ')
+    res = []
+    lastprop = None
+    for line in lines:
+        print line
+        match = regex.match(line)
+        if lastprop:
+            if line.endswith(' -- Property is satisfied.'):
+                res += [True]
+            elif line.endswith(' -- Property is NOT satisfied.'):
+                res += [False]
+            else:
+                pass #Ignore garbage
+            lastprop = None
+        elif match:
+            lastprop = int(match.group(1))
+    return res
 
 # vim:ts=4:sw=4:expandtab
