@@ -402,7 +402,6 @@ def verify(modelfilename, queryfilename, verifyta='verifyta',
     res = []
     lastprop = None
     for line in lines:
-        print line
         match = regex.match(line)
         if lastprop:
             if line.endswith(' -- Property is satisfied.'):
