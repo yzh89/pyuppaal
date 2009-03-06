@@ -291,7 +291,6 @@ class Nail:
 
 def from_xml(xmlsock):
     xmldoc = ElementTree.ElementTree(file=xmlsock).getroot()
-    xmlsock.close()
 
     def int_or_none(text):
         if text != None:
