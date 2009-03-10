@@ -299,8 +299,8 @@ def from_xml(xmlsock):
 
     #ntaxml = xmldoc.getElementsByTagName("nta")[0]
     ntaxml = xmldoc
-    system_declaration = ntaxml.findtext('declaration')
-    system = ntaxml.findtext('system')
+    system_declaration = ntaxml.findtext('declaration') or ""
+    system = ntaxml.findtext('system') or ""
     templates = []
     for templatexml in ntaxml.getiterator("template"):
         locations = {}
@@ -349,8 +349,8 @@ def from_xml(xmlsock):
                         int_or_none(nailxml.get('y', None)))]
             transitions += [transition]
 
-        declaration = templatexml.findtext("declaration")
-        parameter = templatexml.findtext("parameter")
+        declaration = templatexml.findtext("declaration") or ""
+        parameter = templatexml.findtext("parameter") or ""
 
         if templatexml.find("init") != None:
             initlocation=locations[templatexml.find("init").get('ref')]
