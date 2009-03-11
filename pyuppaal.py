@@ -24,6 +24,7 @@ import cgi
 import xml.etree.cElementTree as ElementTree
 import subprocess
 import re
+import tempfile, os
 
 def require_keyword_args(num_unnamed):
     """Decorator s.t. a function's named arguments cannot be used unnamed"""
@@ -368,8 +369,11 @@ def from_xml(xmlsock):
     return nta
 
 class QueryFile:
-    def __init__(self):
+    def __init__(self, q = '', comment = ''):
         self.queries = []
+
+        if q != '':
+            self.addQuery(q, comment)
 
     def addQuery(self, q, comment=''):
         self.queries += [(q, comment)]
@@ -378,6 +382,22 @@ class QueryFile:
         out = ['//This file was generated from pyUppaal'] + \
             ['/*\n' + comment + '*/\n' + q for (q, comment) in self.queries]
         fh.write("\n\n".join(out))
+
+    #Call deleteTempFile to close and delete the tempfile
+    def getTempFile(self):
+        (fileh, path) = tempfile.mkstemp(suffix='.q')
+        file = os.fdopen(fileh)
+        file.close()
+        file = open(path, 'r+w')
+        self.saveFile(file)
+        file.close()
+        file = open(path, 'r')
+        return (file, path)
+
+    def deleteTempFile(self, file):
+        path = file.name
+        file.close()
+        os.unlink(path)
 
 def verify(modelfilename, queryfilename, verifyta='verifyta',
             searchorder='bfs'):
