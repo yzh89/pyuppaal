@@ -130,5 +130,16 @@ system Process;""")
         self.assertTrue(nta.templates[0].locations[0].name.xpos != None)
         self.assertTrue(nta.templates[0].locations[0].name.ypos != None)
 
+    def test_export_queryfile(self):
+        import tempfile
+        qf = pyuppaal.QueryFile()
+        qf.addQuery('')
+
+        (fh, path) = qf.getTempFile()
+
+        lines = fh.read().split('\n')
+        self.assertEqual(lines[-1], '//NO_QUERY')
+        
+
 if __name__ == '__main__':
     unittest.main()

@@ -380,7 +380,7 @@ class QueryFile:
 
     def saveFile(self, fh):
         out = ['//This file was generated from pyUppaal'] + \
-            ['/*\n' + comment + '*/\n' + q for (q, comment) in self.queries]
+            ['/*\n' + comment + '*/\n' + (q == '' and '//NO_QUERY' or q) for (q, comment) in self.queries]
         fh.write("\n\n".join(out))
 
     #Call deleteTempFile to close and delete the tempfile
