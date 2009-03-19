@@ -420,6 +420,7 @@ def verify(modelfilename, queryfilename, verifyta='verifyta',
     regex = re.compile('^Verifying property ([0-9]+) at line ')
     res = []
     lastprop = None
+    sub = None
     for line in lines:
         match = regex.match(line)
         if lastprop:
@@ -430,6 +431,11 @@ def verify(modelfilename, queryfilename, verifyta='verifyta',
             else:
                 pass #Ignore garbage
             lastprop = None
+        elif line.endswith('sup:'):
+            sub = 1
+        elif sub:
+            res[-1] = line
+            sub = None
         elif match:
             lastprop = int(match.group(1))
     return res
