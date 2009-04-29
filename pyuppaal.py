@@ -383,6 +383,7 @@ class QueryFile:
             ['/*\n' + comment + '*/\n' + (q == '' and '//NO_QUERY' or q) for (q, comment) in self.queries]
         fh.write("\n\n".join(out))
 
+    #XXX tempfile handling is fugly
     #Call deleteTempFile to close and delete the tempfile
     def getTempFile(self):
         (fileh, path) = tempfile.mkstemp(suffix='.q')
@@ -400,7 +401,8 @@ class QueryFile:
         os.unlink(path)
 
 def verify(modelfilename, queryfilename, verifyta='verifyta',
-            searchorder='bfs'):
+            searchorder='bfs', getoutput=False,
+            remotehost=None, remotedir='/tmp/'):
     searchorder = { 'bfs': '0', #Breadth first
                     'dfs': '1', #Depth first
                     'rdfs': '2', #Random depth first
@@ -409,9 +411,23 @@ def verify(modelfilename, queryfilename, verifyta='verifyta',
                     'tfs': '6', #Target first
                     }[searchorder]
 
+    cmdline = ''
+    #If we're using a remote host, copy stuff first
+    if remotehost:
+        scpstuff = 'scp -q ' + modelfilename + ' ' + queryfilename + ' ' + remotehost + ':' + remotedir
+        subprocess.check_call(scpstuff, shell=True)
+
+        modelfilename = os.path.join(remotedir, os.path.basename(modelfilename))
+        queryfilename = os.path.join(remotedir, os.path.basename(queryfilename))
+
+        cmdline = 'ssh ' + remotehost + ' '
+
+    cmdline += verifyta + ' -o' + searchorder + ' -q ' + modelfilename + ' ' + queryfilename
+
+    #print 'Executing', cmdline
     proc = subprocess.Popen(
-        [verifyta, '-o' + searchorder, '-q', modelfilename, queryfilename], 
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmdline, 
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     #TODO - report progress
     (stdoutdata, stderrdata) = proc.communicate()
 
@@ -438,6 +454,10 @@ def verify(modelfilename, queryfilename, verifyta='verifyta',
             sub = None
         elif match:
             lastprop = int(match.group(1))
+
+    if getoutput:
+        return (res, stdoutdata)
+
     return res
 
 # vim:ts=4:sw=4:expandtab

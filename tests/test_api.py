@@ -35,5 +35,28 @@ class TestAPI(unittest.TestCase):
         l.append('a==b')
         self.assertEqual(l.get_value(), "a==b")
 
+    def test_verify(self):
+        ntafilename = os.path.join(os.path.dirname(sys.argv[0]), 'small_verify.xml')
+
+        qf = QueryFile('E<> Process.done')
+        (qfh, qfname) = qf.getTempFile()
+
+        res = verify(ntafilename, qfname)
+        self.assertEqual(res, [True])
+
+        qf.deleteTempFile(qfh)
+
+    
+    def DISABLED_test_verify_remote(self):
+        ntafilename = os.path.join(os.path.dirname(sys.argv[0]), 'small_verify.xml')
+
+        qf = QueryFile('E<> Process.done')
+        (qfh, qfname) = qf.getTempFile()
+
+        res = verify(ntafilename, qfname, remotehost='apu')
+        self.assertEqual(res, [True])
+
+        qf.deleteTempFile(qfh)
+
 if __name__ == '__main__':
     unittest.main()
