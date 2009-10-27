@@ -62,11 +62,15 @@ class Parser:
                     identifier = self.parseIdentifier()
                     statements.append(self.parseFunction(type, identifier))
                 elif self.currentToken.type in ('CONST', 'CLOCK', 'CHANNEL', 'URGENT', 'BROADCAST'): #Declaration
-                    type = self.parseDeclType()
+                    if self.currentToken.type == 'CONST':
+                        self.accept('CONST')
+                        type = self.parseStdType(True)
+                    else:
+                        type = self.parseDeclType()
                     identifier = self.parseIdentifier()
                     statements.append(self.parseDeclaration(type, identifier))
                 elif self.currentToken.type in ('INT', 'BOOL'): #Function or declaration           
-                    type = self.parseStdType()
+                    type = self.parseStdType(False)
                     identifier = self.parseIdentifier()
                     statements.append(self.parseDeclaration(type, identifier))
                     
@@ -113,8 +117,12 @@ class Parser:
 
     def parseParameters(self):
         parameters = []
-        while self.currentToken.type in ('VOID', 'INT', 'BOOL', 'CONST', 'CLOCK', 'CHANNEL', 'URGENT', 'BROADCAST'):
-            type = self.parseStdType() #TODO add const
+        while self.currentToken.type in ('INT', 'BOOL', 'CONST'):
+            isConst = False
+            if self.currentToken.type == 'CONST':
+                self.accept('CONST')
+                isConst = True
+            type = self.parseStdType(isConst) 
             #TODO add support for &
             identifier = self.parseIdentifier()
             parameters.append( Node('Parameter', [], (type, identifier)) )
@@ -138,15 +146,7 @@ class Parser:
         return n
 
     def parseDeclType(self):
-        if self.currentToken.type == 'CONST':
-            self.accept('CONST')
-            if self.currentToken.type == 'INT':
-                self.accept('INT')
-                return Node('TypeConstInt')
-            if self.currentToken.type == 'BOOL':
-                self.accept('BOOL')
-                return Node('TypeConstBool')
-        elif self.currentToken.type == 'URGENT':
+        if self.currentToken.type == 'URGENT':
             self.accept('URGENT')
             if self.currentToken.type == 'CHANNEL':
                 self.accept('CHANNEL')
@@ -173,13 +173,19 @@ class Parser:
             self.accept('VOID')
             return Node('TypeVoid')
 
-    def parseStdType(self):
+    def parseStdType(self, isConst):
         if self.currentToken.type == 'INT':
             self.accept('INT')
-            return Node('TypeInt')
+            if isConst:
+                return Node('TypeConstInt')
+            else:
+                return Node('TypeInt')
         elif self.currentToken.type == 'BOOL':
             self.accept('BOOL')
-            return Node('TypeBool')
+            if isConst:
+                return Node('TypeConstBool')
+            else:
+                return Node('TypeBool')
 
 
     def accept(self, expectedTokenType):
