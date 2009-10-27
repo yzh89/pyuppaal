@@ -57,38 +57,52 @@ class Parser:
 
         while 1:
             if self.currentToken:
-                if self.currentToken.type in ('INT', 'BOOL', 'CONST', 'CLOCK', 'CHANNEL', 'URGENT', 'BROADCAST'):
-                    type = self.parseType()
+                if self.currentToken.type in ('VOID'): #Function
+                    type = self.parseFuncType()
                     identifier = self.parseIdentifier()
-                    varList = []
-                    if self.currentToken.type == 'COMMA':
-                        varList.append(identifier)
-                        varList.extend(self.parseVariableList())
+                    statements.append(self.parseFunction(type, identifier))
+                elif self.currentToken.type in ('CONST', 'CLOCK', 'CHANNEL', 'URGENT', 'BROADCAST'): #Declaration
+                    type = self.parseDeclType()
+                    identifier = self.parseIdentifier()
+                    statements.append(self.parseDeclaration(type, identifier))
+                elif self.currentToken.type in ('INT', 'BOOL'): #Function or declaration           
+                    type = self.parseStdType()
+                    identifier = self.parseIdentifier()
+                    statements.append(self.parseDeclaration(type, identifier))
                     
-                    if self.currentToken.type == 'SEMI':
-                        self.accept('SEMI')
-                        statements.append(Node('VarDecl', varList, type))
-                        #TODO structs
-                        #TODO scalars
-                        #TODO arrays
-                    elif self.currentToken.type == 'LPAREN':
-                        #TODO check type is function type
+                    if self.currentToken.type == 'LPAREN':
                         statements.append(self.parseFunction(type, identifier))
+                else:
+                    break 
             else:
                 break
 
         if self.currentToken != None:
-            self.error('at token %s on line %d: Did not expect any token' % (self.currentToken.value, self.currentToken.lineno))
+            self.error('at token "%s" on line %d: Did not expect any token, but found token of type %s' % (self.currentToken.value, self.currentToken.lineno, self.currentToken.type))
 
         return statements
     
+    def parseDeclaration(self, type, identifier):
+        varList = []
+        
+        #TODO structs
+        #TODO scalars
+        #TODO arrays
+        varList.append(identifier)
+        if self.currentToken.type == 'COMMA':
+            varList.extend(self.parseVariableList())
+                    
+        if self.currentToken.type == 'SEMI':
+            self.accept('SEMI')
+            return Node('VarDecl', varList, type)
+
     def parseFunction(self, type, identifier):
         children = []
         self.accept('LPAREN')
-        parameters = parseParameters()
+        parameters = self.parseParameters()
         self.accept('RPAREN')
         self.accept('LCURLYPAREN')
-        children.extend(self.parseBody())
+        children.extend(self.parseBodyStatements())
         self.accept('RCURLYPAREN')
 
         return Node('Function', children, (type, identifier))
@@ -99,13 +113,13 @@ class Parser:
 
     def parseParameters(self):
         parameters = []
-        while self.currentToken.type in ('INT', 'BOOL', 'CONST', 'CLOCK', 'CHANNEL', 'URGENT', 'BROADCAST'):
-            type = self.parseType()
+        while self.currentToken.type in ('VOID', 'INT', 'BOOL', 'CONST', 'CLOCK', 'CHANNEL', 'URGENT', 'BROADCAST'):
+            type = self.parseStdType() #TODO add const
             #TODO add support for &
             identifier = self.parseIdentifier()
             parameters.append( Node('Parameter', [], (type, identifier)) )
             #TODO arrays
-            if self.currentToken.type != 'COMMA':
+            if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
 
         return parameters
@@ -123,8 +137,16 @@ class Parser:
         self.accept('IDENTIFIER')
         return n
 
-    def parseType(self):
-        if self.currentToken.type == 'URGENT':
+    def parseDeclType(self):
+        if self.currentToken.type == 'CONST':
+            self.accept('CONST')
+            if self.currentToken.type == 'INT':
+                self.accept('INT')
+                return Node('TypeConstInt')
+            if self.currentToken.type == 'BOOL':
+                self.accept('BOOL')
+                return Node('TypeConstBool')
+        elif self.currentToken.type == 'URGENT':
             self.accept('URGENT')
             if self.currentToken.type == 'CHANNEL':
                 self.accept('CHANNEL')
@@ -145,23 +167,20 @@ class Parser:
             return Node('TypeClock')
         else: 
             return self.parseStdType()
+    
+    def parseFuncType(self):
+        if self.currentToken.type == 'VOID':
+            self.accept('VOID')
+            return Node('TypeVoid')
 
     def parseStdType(self):
-        if self.currentToken.type == 'CONST':
-            self.accept('CONST')
-            if self.currentToken.type == 'INT':
-                self.accept('INT')
-                return Node('TypeConstInt')
-            if self.currentToken.type == 'BOOL':
-                self.accept('BOOL')
-                return Node('TypeConstBool')
-
         if self.currentToken.type == 'INT':
             self.accept('INT')
             return Node('TypeInt')
         elif self.currentToken.type == 'BOOL':
             self.accept('BOOL')
             return Node('TypeBool')
+
 
     def accept(self, expectedTokenType):
         if self.currentToken.type == expectedTokenType:

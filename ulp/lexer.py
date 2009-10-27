@@ -20,6 +20,7 @@ import sys
 import re
 
 reserved = {
+'void' : 'VOID',
 'int' : 'INT',
 'bool' : 'BOOL',
 'chan' : 'CHANNEL',
@@ -45,7 +46,7 @@ tokens = [
     'ASSIGN',
     'EQUAL',
     'SEMI',
-	'COMMA',
+    'COMMA',
     'PLUS',
     'NOT',
     'LESS',
