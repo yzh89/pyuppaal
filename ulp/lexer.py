@@ -1,5 +1,7 @@
 """
-    Copyright (C) 2008 Andreas Engelbredt Dalsgaard <andreas.dalsgaard@gmail.com>
+    Copyright (C) 2009 
+    Andreas Engelbredt Dalsgaard <andreas.dalsgaard@gmail.com>
+    Mads Chr. Olesen <mchro@cs.aau.dk>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -31,42 +33,116 @@ reserved = {
 'if' : 'IF',
 'else' : 'ELSE',
 'while' : 'WHILE',
-'struct' : 'STRUCT'
+'struct' : 'STRUCT',
+'true' : 'TRUE',
+'false' : 'FALSE',
+'not' : 'NOT',
+'and' : 'AND',
+'or' : 'OR',
+'imply' : 'IMPLY'
 }
+#TODO add <? and ?>
 
 # This is the list of token names.
 tokens = [
     'IDENTIFIER',
+    'NUMBER',
+# Operators
+    'PLUS',
+    'MINUS',
+    'TIMES',
+    'DIVIDE',
+    'MODULO',
+    'BITAND',
+    'BITOR',
+    'XOR',
+    'LSHIFT',
+    'RSHIFT',
+    'LOR',
+    'LAND',
+    'LNOT',
+    'LESS',
+    'GREATER',
+    'LESSEQ',
+    'GREATEREQ',
+    'EQUAL',
+    'NOTEQUAL',
+    'PLUSPLUS',
+    'MINUSMINUS',
+# Assignments
+    'EQUALS',
+    'ASSIGN',
+    'TIMESEQUAL',
+    'DIVEQUAL',
+    'MODEQUAL',
+    'PLUSEQUAL',
+    'MINUSEQUAL',
+    'LSHIFTEQUAL',
+    'RSHIFTEQUAL',
+    'ANDEQUAL',
+    'OREQUAL',
+    'XOREQUAL',
+#Delimeters
+    'SEMI',
+    'COMMA',
+    'DOT',
+    'COLON',
     'LPAREN',
     'RPAREN',
     'LCURLYPAREN',
     'RCURLYPAREN',
-    'LSQUAREBRACKET',
-    'RSQUAREBRACKET',
-    'ASSIGN',
-    'EQUAL',
-    'SEMI',
-    'COMMA',
-    'PLUS',
-    'NOT',
-    'LESS',
-    'GREATER' ] +list(reserved.values())
+    'LBRACKET',
+    'RBRACKET' ] +list(reserved.values())
+ 
 # These are regular expression rules for simple tokens.
-t_ASSIGN = r':='
-t_EQUAL = r'='
-t_SEMI = r';'
-t_COMMA = r','
-t_PLUS = r'\+'
-t_NOT = r'!'
-t_LESS = r'<'
-t_GREATER = r'>'
-t_LPAREN = r'\('
-t_RPAREN = r'\)'
+# Operators (The following sections is inspired by c_lexer.py)
+t_PLUS        = r'\+'
+t_MINUS       = r'-'
+t_TIMES       = r'\*'
+t_DIVIDE      = r'/'
+t_MODULO      = r'%'
+t_BITAND      = r'&'
+t_BITOR       = r'\|'
+t_XOR         = r'\^'
+t_LSHIFT      = r'<<'
+t_RSHIFT      = r'>>'
+t_LOR         = r'\|\|'
+t_LAND        = r'&&'
+t_LNOT        = r'!'
+t_LESS        = r'<'
+t_GREATER     = r'>'
+t_LESSEQ      = r'<='
+t_GREATEREQ   = r'>='
+t_EQUAL       = r'=='
+t_NOTEQUAL    = r'!='
+t_PLUSPLUS    = r'\+\+'
+t_MINUSMINUS  = r'--'
+
+# Assignments
+t_EQUALS      = r'='
+t_ASSIGN      = r':='
+t_TIMESEQUAL  = r'\*='
+t_DIVEQUAL    = r'/='
+t_MODEQUAL    = r'%='
+t_PLUSEQUAL   = r'\+='
+t_MINUSEQUAL  = r'-='
+t_LSHIFTEQUAL = r'<<='
+t_RSHIFTEQUAL = r'>>='
+t_ANDEQUAL    = r'&='
+t_OREQUAL     = r'\|='
+t_XOREQUAL    = r'^='
+
+# Delimeters
+t_SEMI        = r';'
+t_COMMA       = r','
+t_DOT         = r'\.'
+t_COLON       = r':'
+t_LPAREN      = r'\('
+t_RPAREN      = r'\)'
 t_LCURLYPAREN = r'\{'
 t_RCURLYPAREN = r'\}'
-t_LSQUAREBRACKET = r'\['
-t_RSQUAREBRACKET = r'\]'
-
+t_LBRACKET    = r'\['
+t_RBRACKET    = r'\]'
 
 def t_IDENTIFIER(t):
     r'[a-zA-Z_][a-zA-Z_0-9]*'
@@ -79,7 +155,8 @@ def t_NUMBER(t):
     t.value = int(t.value)
     return t
 
-# Ignore comments.
+# Ignore comments. 
+#TODO add c style comments
 def t_comment(t):
     r'[//][^\n]*'
     pass
@@ -96,6 +173,6 @@ def t_error(t):
     raise SyntaxError("syntax error on line %d near '%s'" %
         (t.lineno, t.value))
 # Build the lexer.
-lex.lex()
+lexer = lex.lex()
 
 # vim:ts=4:sw=4:expandtab

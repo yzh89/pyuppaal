@@ -1,6 +1,8 @@
 """ 
-    Copyright (C) 2008 Andreas Engelbredt Dalsgaard <andreas.dalsgaard@gmail.com>
-    and Martin Toft <mt@martintoft.dk>
+    Copyright (C) 2009
+    Andreas Engelbredt Dalsgaard <andreas.dalsgaard@gmail.com>
+    Martin Toft <mt@martintoft.dk>
+    Mads Chr. Olesen <mchro@cs.aau.dk>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,23 +18,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. """
 
 from lexer import *
-
-#AST
-class Node:
-    def __init__(self, type, children=[], leaf=[]):
-        self.type = type
-        self.children = children
-        self.leaf = leaf
-
-    def visit(self):
-        print "visit", self.type, 
-        if self.leaf:
-            print self.leaf
-        else:
-            print 
-
-        for v in self.children:
-            v.visit();
+import expression_parser
+from node import Node
 
 # dictionary of names
 identifiers = { }
@@ -41,12 +28,13 @@ class Parser:
 
     currentToken = None
     lexer = None
+    expressionParser = None
 
     def __init__(self, data, lexer):
-        print data
         self.lexer = lexer
         self.lexer.input(data)
         self.currentToken = self.lexer.token()
+        self.expressionParser = expression_parser.parser
         children = []
         if self.currentToken != None:
             children = self.parseStatements()
@@ -111,10 +99,6 @@ class Parser:
 
         return Node('Function', children, (type, identifier))
     
-    def parseBodyStatements(self):
-        statements = []
-        return statements 
-
     def parseParameters(self):
         parameters = []
         while self.currentToken.type in ('INT', 'BOOL', 'CONST'):
@@ -132,6 +116,47 @@ class Parser:
 
         return parameters
    
+    def parseBodyStatements(self):
+        statements = []
+        while self.currentToken.type != 'RCURLYPAREN':
+            if self.currentToken.type in ('IDENTIFIER', 'NUMBER', 'MINUS', 'PLUS'):
+                expression = self.expressionParser.parse()
+             
+        return statements 
+
+#    def parseExpression(self):
+#        n = None
+#
+#        if self.currentToken.type == 'IDENTIFIER':
+#            n = self.parseIdentifier()
+#        elif self.currentToken.type == 'NUMBER':
+#            n = Node('Number', [], self.currentToken.value)
+#            self.accept('NUMBER')
+#        elif self.currentToke.type in ('MINUS', 'PLUS', 'NOT'):
+#            n = self.parseUnary()
+#        elif self.currentToken.type == 'TRUE':
+#            self.accept('TRUE')
+#            n = Node('True')
+#        elif self.currentToken.type == 'FALSE':
+#            self.accept('FALSE')
+#            n = Node('False')
+#        elif self.currentToken.type == 'LPAREN':
+#            n = self.parseExpression()
+#        
+#
+#    def parseUnary(self):
+#        if self.currentToke.type == 'MINUS':
+#            self.accept('MINUS')
+#            return = Node('Minus')
+#        elif self.currentToke.type == 'PLUS':
+#            self.accept('PLUS')
+#            return = Node('Plus')
+#        elif self.currentToke.type == 'NOT':
+#            self.accept('NOT')
+#            return = Node('Not')
+#        else:
+#            self.error('unknown Unary token')
+
     def parseVariableList(self):
         children = []
         while self.currentToken.type == 'COMMA':
@@ -186,7 +211,6 @@ class Parser:
                 return Node('TypeConstBool')
             else:
                 return Node('TypeBool')
-
 
     def accept(self, expectedTokenType):
         if self.currentToken.type == expectedTokenType:
