@@ -18,13 +18,27 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. """
 
 from lexer import *
-import expression_parser
+import expressionParser
 from node import Node
 
 # dictionary of names
 identifiers = { }
 
 class Parser:
+#    currentToken = None
+#    lexer = None
+#
+#    def __init__(self, data, lexer):
+#        self.lexer = lexer
+#        self.lexer.input(data)
+#        self.currentToken = self.lexer.token()
+#        self.expressionParser = expression_parser.parser
+#        children = []
+#        if self.currentToken != None:
+#            children = self.parseStatements()
+#        self.AST = Node('RootNode', children)
+# 
+#class UPPAALCParser:
 
     currentToken = None
     lexer = None
@@ -34,7 +48,7 @@ class Parser:
         self.lexer = lexer
         self.lexer.input(data)
         self.currentToken = self.lexer.token()
-        self.expressionParser = expression_parser.parser
+        self.expressionParser = expressionParser.ExpressionParser(self.lexer, self)
         children = []
         if self.currentToken != None:
             children = self.parseStatements()
@@ -119,44 +133,64 @@ class Parser:
     def parseBodyStatements(self):
         statements = []
         while self.currentToken.type != 'RCURLYPAREN':
-            if self.currentToken.type in ('IDENTIFIER', 'NUMBER', 'MINUS', 'PLUS'):
-                expression = self.expressionParser.parse()
-             
+            if self.currentToken.type in ('INT', 'BOOL', 'CONST'):
+                if self.currentToken.type == 'CONST':
+                    type = self.parseStdType(True)
+                else:
+                    type = self.parseStdType(False)
+                identifier = self.parseIdentifier()
+                statements.append(self.parseDeclaration(type, identifier))
+            elif self.currentToken.type == 'FOR':
+                statements.append(self.parseForLoop())
+            elif self.currentToken.type == 'IDENTIFIER':
+                identifier = self.parseIdentifier()
+                statements.append(self.parseAssignment(identifier))
+                self.accept('SEMI')
+            else:
+                self.error('parseBodyStatement unknown token: %s' % self.currentToken.type)
+                break
+                
+
         return statements 
 
-#    def parseExpression(self):
-#        n = None
-#
-#        if self.currentToken.type == 'IDENTIFIER':
-#            n = self.parseIdentifier()
-#        elif self.currentToken.type == 'NUMBER':
-#            n = Node('Number', [], self.currentToken.value)
-#            self.accept('NUMBER')
-#        elif self.currentToke.type in ('MINUS', 'PLUS', 'NOT'):
-#            n = self.parseUnary()
-#        elif self.currentToken.type == 'TRUE':
-#            self.accept('TRUE')
-#            n = Node('True')
-#        elif self.currentToken.type == 'FALSE':
-#            self.accept('FALSE')
-#            n = Node('False')
-#        elif self.currentToken.type == 'LPAREN':
-#            n = self.parseExpression()
-#        
-#
-#    def parseUnary(self):
-#        if self.currentToke.type == 'MINUS':
-#            self.accept('MINUS')
-#            return = Node('Minus')
-#        elif self.currentToke.type == 'PLUS':
-#            self.accept('PLUS')
-#            return = Node('Plus')
-#        elif self.currentToke.type == 'NOT':
-#            self.accept('NOT')
-#            return = Node('Not')
-#        else:
-#            self.error('unknown Unary token')
+    def parseExpression(self):
+        return self.expressionParser.parse()
+       
+    def parseNumber(self):
+        n = Node('Number', [], self.currentToken.value)
+        self.accept('NUMBER')
+        return n
 
+    def parseAssignment(self, identifier):
+        if self.currentToken.type == 'EQUALS':
+            self.accept('EQUALS')
+            n = self.expressionParser.parse()
+            return Node('Assignment', [n], identifier) 
+        elif self.currentToken.type == 'PLUSPLUS':
+            self.accept('PLUSPLUS')
+            return Node('Assignment', [Node('PlusPlus', [identifier])])
+        else:
+            self.error('at assignment parsing, at token "%s" on line %d: Did not expect token type: "%s"' % (self.currentToken.value, self.currentToken.lineno, self.currentToken.type))
+
+    def parseBooleanExpression(self):
+        return self.expressionParser.parse()
+
+    def parseForLoop(self):
+        leaf = []
+        self.accept('FOR')
+        self.accept('LPAREN')
+        leaf.append(self.parseAssignment(self.parseIdentifier()))
+        self.accept('SEMI')
+        leaf.append(self.parseBooleanExpression())
+        self.accept('SEMI')
+        leaf.append(self.parseAssignment(self.parseIdentifier()))
+        self.accept('RPAREN')
+        self.accept('LCURLYPAREN')
+        children = self.parseBodyStatements()
+        self.accept('RCURLYPAREN')
+
+        return Node('ForLoop', children, leaf)
+           
     def parseVariableList(self):
         children = []
         while self.currentToken.type == 'COMMA':

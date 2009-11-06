@@ -33,6 +33,7 @@ reserved = {
 'if' : 'IF',
 'else' : 'ELSE',
 'while' : 'WHILE',
+'for' : 'FOR',
 'struct' : 'STRUCT',
 'true' : 'TRUE',
 'false' : 'FALSE',

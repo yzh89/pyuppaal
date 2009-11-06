@@ -50,6 +50,24 @@ def p_expression_binary(p):
                 | expression BITOR expression"""
     p[0] = Node(p[2], children=[p[1], p[3]])
 
+def p_error(p):
+    if p != None:
+        print "Syntax error at token", p.type
+#.parser.pleasestop
+    else:
+        print "Last token"
+    parser.pleasestop = True
+    yacc.errok()
+    #return None
+
+def eof_tokenfunc():
+    print "eof_tokenfunc"
+    #import pdb; pdb.set_trace()
+    t = lex.LexToken()
+    t.type = '$end'
+    return t
+
+
 #Precedence - listed from lowest to highest!
 precedence = (
     ('left', 'OR'),
@@ -66,3 +84,4 @@ precedence = (
 # Build the parser
 parser = yacc.yacc()
 
+# vim:ts=4:sw=4:expandtab
