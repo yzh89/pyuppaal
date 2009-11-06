@@ -202,6 +202,13 @@ class Parser:
     def parseIdentifier(self):
         n = Node('Identifier', [], self.currentToken.value)
         self.accept('IDENTIFIER')
+     
+        if self.currentToken.type == 'DOT':
+            self.accept('DOT')
+            element = Node('Identifier', [], self.currentToken.value)
+            self.accept('IDENTIFIER')
+            n.children = [element]
+
         return n
 
     def parseDeclType(self):

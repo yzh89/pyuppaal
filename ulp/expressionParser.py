@@ -116,6 +116,8 @@ class ExpressionParser:
         'LESSEQ':    Op('LessEqual', operator.le, 20),
         'EQUAL':     Op('Equal', operator.eq, 15),
         'NOTEQUAL':  Op('NotEqual', operator.ne, 15),
+        'AND':       Op('And', operator.and_, 15),
+        'OR':        Op('Or', operator.and_, 15),
     }          
     
     # A set of operators that can be unary. If such an operator
@@ -134,7 +136,7 @@ class ExpressionParser:
             operators.
         """
         self._infix_eval_atom()
-        
+ 
         while ( self.parser.currentToken.type in self._ops and 
                 self._ops[self.parser.currentToken.type].binary):
             self._push_op(self._ops[self.parser.currentToken.type])
