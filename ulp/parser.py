@@ -203,11 +203,13 @@ class Parser:
         n = Node('Identifier', [], self.currentToken.value)
         self.accept('IDENTIFIER')
      
-        if self.currentToken.type == 'DOT':
+        p = n
+        while self.currentToken.type == 'DOT':
             self.accept('DOT')
             element = Node('Identifier', [], self.currentToken.value)
             self.accept('IDENTIFIER')
-            n.children = [element]
+            p.children = [element]
+            p = element
 
         return n
 

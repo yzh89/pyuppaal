@@ -69,18 +69,56 @@ class TestBasicParsing(unittest.TestCase):
   
         res = parser.parse("5 < 5 and 4 > 3")
         self.assertEqual(res.type, "And")
-  
         self.assertEqual(res.children[0].type, "Less")
         self.assertEqual(res.children[0].children[0].type, "Number")
         self.assertEqual(res.children[0].children[0].leaf, 5)
         self.assertEqual(res.children[0].children[1].type, "Number")
         self.assertEqual(res.children[0].children[1].leaf, 5)
   
+        res = parser.parse("3 * 2 + 4")
+        self.assertEqual(res.type, "Plus")
+        self.assertEqual(res.children[0].type, "Times")
+        self.assertEqual(res.children[0].children[0].type, "Number")
+        self.assertEqual(res.children[0].children[0].leaf, 3)
+        self.assertEqual(res.children[0].children[1].type, "Number")
+        self.assertEqual(res.children[0].children[1].leaf, 2)
+        self.assertEqual(res.children[1].type, "Number")
+        self.assertEqual(res.children[1].leaf, 4)
+
         res = parser.parse("Viking1.safe and Viking2.safe") #TODO add struct support
-        res.visit()
-  
+        self.assertEqual(res.type, "And")
+        self.assertEqual(res.children[0].type, "Identifier")
+        self.assertEqual(res.children[0].leaf, "Viking1")
+        self.assertEqual(res.children[0].children[0].type, "Identifier")
+        self.assertEqual(res.children[0].children[0].leaf, "safe")
+        self.assertEqual(res.children[1].type, "Identifier")
+        self.assertEqual(res.children[1].leaf, "Viking2")
+        self.assertEqual(res.children[1].children[0].type, "Identifier")
+        self.assertEqual(res.children[1].children[0].leaf, "safe")
+
         res = parser.parse(
             "Viking1.safe and Viking2.safe and Viking3.safe and Viking4.safe")
+        self.assertEqual(res.type, "And")
+        self.assertEqual(res.children[0].type, "And")
+        self.assertEqual(res.children[1].type, "Identifier")
+        self.assertEqual(res.children[1].leaf, "Viking4")
+        self.assertEqual(res.children[1].children[0].type, "Identifier")
+        self.assertEqual(res.children[1].children[0].leaf, "safe")
+
+        self.assertEqual(res.children[0].children[0].type, "And")
+        self.assertEqual(res.children[0].children[1].type, "Identifier")
+        self.assertEqual(res.children[0].children[1].leaf, "Viking3")
+        self.assertEqual(res.children[0].children[1].children[0].type, "Identifier")
+        self.assertEqual(res.children[0].children[1].children[0].leaf, "safe")
+
+        self.assertEqual(res.children[0].children[0].children[0].type, "Identifier")
+        self.assertEqual(res.children[0].children[0].children[0].leaf, "Viking1")
+        self.assertEqual(res.children[0].children[0].children[0].children[0].type, "Identifier")
+        self.assertEqual(res.children[0].children[0].children[0].children[0].leaf, "safe")
+        self.assertEqual(res.children[0].children[0].children[1].type, "Identifier")
+        self.assertEqual(res.children[0].children[0].children[1].leaf, "Viking2")
+        self.assertEqual(res.children[0].children[0].children[1].children[0].type, "Identifier")
+        self.assertEqual(res.children[0].children[0].children[1].children[0].leaf, "safe")
 
 #TODO clean this up a bit
 class myToken:
@@ -110,6 +148,15 @@ class testParser:
     def parseIdentifier(self):
         n = node.Node('Identifier', [], self.currentToken.value)
         self.accept('IDENTIFIER')
+     
+        p = n
+        while self.currentToken.type == 'DOT':
+            self.accept('DOT')
+            element = node.Node('Identifier', [], self.currentToken.value)
+            self.accept('IDENTIFIER')
+            p.children = [element]
+            p = element
+
         return n
 
     def accept(self, expectedTokenType):
