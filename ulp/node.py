@@ -24,18 +24,19 @@ class Node:
         self.leaf = leaf
 
     def print_node(self):
-        print "visit", self.type, 
+        print "visit", "  "*self.level, self.type, 
         if self.leaf:
             print self.leaf
         else:
             print 
 
-    def visit(self, visitor=None):
+    def visit(self, visitor=None, level=0):
+        self.level = level
         if not visitor:
             visitor = Node.print_node
         visitor(self)
-
+        
         for v in self.children:
-            v.visit(visitor);
+            v.visit(visitor, self.level+1);
 
 
