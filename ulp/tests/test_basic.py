@@ -47,6 +47,23 @@ class TestBasicParsing(unittest.TestCase):
 
         self.assertEqual(len(pars.AST.children), 0)
 
+    def test_parse_array(self):
+        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_array.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        pars.AST.visit()
+        self.assertEqual(len(pars.AST.children), 6) #TODO add more asserts
+        res = pars.AST.children
+        self.assertEqual(res[0].children[0].children[0].type, "IsArray") 
+        self.assertEqual(res[1].children[0].children[0].type, "IsArray") 
+        self.assertEqual(res[2].children[0].children[0].type, "IsArray") 
+        self.assertEqual(res[3].children[0].children[0].type, "IsArray") 
+        self.assertEqual(res[4].children[0].children[0].type, "IsArray") 
+        myParser = testParser(lexer.lexer)
+        res = myParser.parse("a[]")
+        self.assertEqual(res.type, "Identifier") 
+        self.assertEqual(len(res.children), 0)
+
     def test_parse_for_loop(self):
         test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_for_loop.txt'), "r")
         lex = lexer.lexer
