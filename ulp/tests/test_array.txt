@@ -1,10 +1,9 @@
-struct
-{
-  int a[2];
-  int b;
-} s;
 int a[2];
 const bool b[2];
 const bool c[2+4*1];
 urgent chan d[2+2];
 clock e[2+2];
+
+int foo(int a[50])
+{
+}

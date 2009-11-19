@@ -96,7 +96,7 @@ class Parser:
         #TODO scalars
         #TODO arrays
         varList.append(identifier)
-        while self.currentToken.type in ('COMMA', 'EQUALS'):
+        while self.currentToken.type in ('COMMA', 'EQUALS', 'LBRACKET'):
             if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
                 identifier = self.parseIdentifier()
@@ -104,11 +104,24 @@ class Parser:
             elif self.currentToken.type == 'EQUALS':
                 a = self.parseAssignment(identifier, plusplus=False)
                 identifier.leaf = a
+            elif self.currentToken.type == 'LBRACKET':
+                array = self.parseArray()
+                identifier.children.append(array)
     
         if self.currentToken.type == 'SEMI':           
             self.accept('SEMI')
 
         return Node('VarDecl', varList, type)
+
+    def parseArray(self):
+        self.accept('LBRACKET')
+        if self.currentToken.type == 'RBRACKET':
+            self.error('invalid expression')
+            e = None
+        else:
+            e = self.parseExpression()
+        self.accept('RBRACKET')
+        return Node('IsArray', [], e)
 
     def parseFunction(self, type, identifier):
         children = []
@@ -130,6 +143,9 @@ class Parser:
                 isConst = True
             type = self.parseStdType(isConst) 
             identifier = self.parseIdentifier()
+            if self.currentToken.type == 'LBRACKET':
+                array = self.parseArray()
+                identifier.children.append(array)
             parameters.append( Node('Parameter', [], (type, identifier)) )
             if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
