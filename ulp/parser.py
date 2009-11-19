@@ -74,10 +74,11 @@ class Parser:
                 elif self.currentToken.type in ('INT', 'BOOL'): #Function or declaration           
                     type = self.parseStdType(False)
                     identifier = self.parseIdentifier()
-                    statements.append(self.parseDeclaration(type, identifier))
                     
                     if self.currentToken.type == 'LPAREN':
                         statements.append(self.parseFunction(type, identifier))
+                    else:
+                        statements.append(self.parseDeclaration(type, identifier)) 
                 else:
                     break 
             else:
@@ -95,12 +96,19 @@ class Parser:
         #TODO scalars
         #TODO arrays
         varList.append(identifier)
-        if self.currentToken.type == 'COMMA':
-            varList.extend(self.parseVariableList())
-                    
-        if self.currentToken.type == 'SEMI':
+        while self.currentToken.type in ('COMMA', 'EQUALS'):
+            if self.currentToken.type == 'COMMA':
+                self.accept('COMMA')
+                identifier = self.parseIdentifier()
+                varList.append(identifier)
+            elif self.currentToken.type == 'EQUALS':
+                a = self.parseAssignment(identifier, plusplus=False)
+                identifier.leaf = a
+    
+        if self.currentToken.type == 'SEMI':           
             self.accept('SEMI')
-            return Node('VarDecl', varList, type)
+
+        return Node('VarDecl', varList, type)
 
     def parseFunction(self, type, identifier):
         children = []
@@ -111,7 +119,7 @@ class Parser:
         children.extend(self.parseBodyStatements())
         self.accept('RCURLYPAREN')
 
-        return Node('Function', children, (type, identifier))
+        return Node('Function', children, (type, identifier, parameters))
     
     def parseParameters(self):
         parameters = []
@@ -121,10 +129,8 @@ class Parser:
                 self.accept('CONST')
                 isConst = True
             type = self.parseStdType(isConst) 
-            #TODO add support for &
             identifier = self.parseIdentifier()
             parameters.append( Node('Parameter', [], (type, identifier)) )
-            #TODO arrays
             if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
 
@@ -142,14 +148,23 @@ class Parser:
                 statements.append(self.parseDeclaration(type, identifier))
             elif self.currentToken.type == 'FOR':
                 statements.append(self.parseForLoop())
+            elif self.currentToken.type == 'WHILE':
+                statements.append(self.parseWhileLoop())
+            elif self.currentToken.type == 'DO':
+                statements.append(self.parseDoWhileLoop())
             elif self.currentToken.type == 'IDENTIFIER':
                 identifier = self.parseIdentifier()
                 statements.append(self.parseAssignment(identifier))
                 self.accept('SEMI')
+            elif self.currentToken.type == 'RETURN':
+                self.accept('RETURN')
+                expression = self.parseExpression()
+                n = Node('Return', [], expression)
+                statements.append(n)
+                self.accept('SEMI')
             else:
                 self.error('parseBodyStatement unknown token: %s' % self.currentToken.type)
                 break
-                
 
         return statements 
 
@@ -161,7 +176,7 @@ class Parser:
         self.accept('NUMBER')
         return n
 
-    def parseAssignment(self, identifier):
+    def parseAssignment(self, identifier, plusplus = True):
         if self.currentToken.type == 'EQUALS':
             self.accept('EQUALS')
             n = self.expressionParser.parse()
@@ -191,14 +206,31 @@ class Parser:
 
         return Node('ForLoop', children, leaf)
            
-    def parseVariableList(self):
-        children = []
-        while self.currentToken.type == 'COMMA':
-            self.accept('COMMA')
-            children.append(self.parseIdentifier())
-         
-        return children
+    def parseWhileLoop(self):
+        leaf = []
+        self.accept('WHILE')
+        self.accept('LPAREN')
+        leaf.append(self.parseBooleanExpression())
+        self.accept('RPAREN')
+        self.accept('LCURLYPAREN')
+        children = self.parseBodyStatements()
+        self.accept('RCURLYPAREN')
 
+        return Node('WhileLoop', children, leaf)
+
+    def parseDoWhileLoop(self):
+        leaf = []
+        self.accept('DO')
+        self.accept('LCURLYPAREN')
+        children = self.parseBodyStatements()
+        self.accept('RCURLYPAREN')
+        self.accept('WHILE')
+        self.accept('LPAREN')
+        leaf.append(self.parseBooleanExpression())
+        self.accept('RPAREN')
+        self.accept('SEMI')
+
+        return Node('DoWhileLoop', children, leaf)
     def parseIdentifier(self):
         n = Node('Identifier', [], self.currentToken.value)
         self.accept('IDENTIFIER')
@@ -244,13 +276,19 @@ class Parser:
     def parseStdType(self, isConst):
         if self.currentToken.type == 'INT':
             self.accept('INT')
-            if isConst:
+            if self.currentToken.type == 'BITAND' and not isConst:
+                self.accept('BITAND')
+                return Node('TypeIntPointer')
+            elif isConst:
                 return Node('TypeConstInt')
             else:
                 return Node('TypeInt')
         elif self.currentToken.type == 'BOOL':
             self.accept('BOOL')
-            if isConst:
+            if self.currentToken.type == 'BITAND' and not isConst:
+                self.accept('BITAND')
+                return Node('TypeBoolPointer')
+            elif isConst:
                 return Node('TypeConstBool')
             else:
                 return Node('TypeBool')

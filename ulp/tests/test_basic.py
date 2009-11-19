@@ -47,6 +47,30 @@ class TestBasicParsing(unittest.TestCase):
 
         self.assertEqual(len(pars.AST.children), 0)
 
+    def test_parse_for_loop(self):
+        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_for_loop.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
+
+    def test_parse_while_loop(self):
+        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_while_loop.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
+
+    def test_parse_do_while_loop(self):
+        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_do_while_loop.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
+
+    def test_parse_simple_function(self):
+        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_simple_function.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        self.assertEqual(len(pars.AST.children), 3) #TODO add more asserts
+
     def test_parse_expression(self):
         parser = testParser(lexer.lexer)
         res = parser.parse("5")

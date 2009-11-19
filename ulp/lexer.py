@@ -40,7 +40,9 @@ reserved = {
 'not' : 'NOT',
 'and' : 'AND',
 'or' : 'OR',
-'imply' : 'IMPLY'
+'imply' : 'IMPLY',
+'return' : 'RETURN',
+'do' : 'DO'
 }
 #TODO add <? and ?>
 
