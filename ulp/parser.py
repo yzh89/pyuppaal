@@ -109,6 +109,7 @@ class Parser:
         varList = []
         
         #TODO scalars
+        #TODO typedef
         varList.append(identifier)
         while self.currentToken.type in ('COMMA', 'EQUALS', 'LBRACKET'):
             if self.currentToken.type == 'COMMA':
