@@ -79,6 +79,8 @@ class Parser:
                         statements.append(self.parseFunction(type, identifier))
                     else:
                         statements.append(self.parseDeclaration(type, identifier)) 
+                elif self.currentToken.type == 'STRUCT':
+                    statements.append(self.parseStruct())
                 else:
                     break 
             else:
@@ -88,13 +90,25 @@ class Parser:
             self.error('at token "%s" on line %d: Did not expect any token, but found token of type %s' % (self.currentToken.value, self.currentToken.lineno, self.currentToken.type))
 
         return statements
-    
+
+    def parseStruct(self):
+        structDecl = []
+        self.accept('STRUCT')
+        self.accept('LCURLYPAREN')
+        while self.currentToken.type in ('INT', 'BOOL'): 
+            type = self.parseDeclType()
+            identifier = self.parseIdentifier()
+            structDecl.append(self.parseDeclaration(type, identifier))
+
+        self.accept('RCURLYPAREN')
+        structIden = self.parseIdentifier()
+        self.accept('SEMI')
+        return Node('Struct', structDecl, structIden)
+
     def parseDeclaration(self, type, identifier):
         varList = []
         
-        #TODO structs
         #TODO scalars
-        #TODO arrays
         varList.append(identifier)
         while self.currentToken.type in ('COMMA', 'EQUALS', 'LBRACKET'):
             if self.currentToken.type == 'COMMA':
@@ -282,7 +296,7 @@ class Parser:
             self.accept('CLOCK')
             return Node('TypeClock')
         else: 
-            return self.parseStdType()
+            return self.parseStdType(False)
     
     def parseFuncType(self):
         if self.currentToken.type == 'VOID':

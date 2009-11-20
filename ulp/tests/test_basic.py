@@ -51,7 +51,6 @@ class TestBasicParsing(unittest.TestCase):
         test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_array.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
-        pars.AST.visit()
         self.assertEqual(len(pars.AST.children), 6) #TODO add more asserts
         res = pars.AST.children
         self.assertEqual(res[0].children[0].children[0].type, "IsArray") 
@@ -64,6 +63,12 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.type, "Identifier") 
         self.assertEqual(len(res.children), 0)
 
+    def test_struct(self):
+        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_struct.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
+        
     def test_parse_for_loop(self):
         test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_for_loop.txt'), "r")
         lex = lexer.lexer
