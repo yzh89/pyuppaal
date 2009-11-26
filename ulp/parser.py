@@ -43,7 +43,8 @@ class Parser:
     currentToken = None
     lexer = None
     expressionParser = None
-
+    typedefDict = {}
+    
     def __init__(self, data, lexer):
         self.lexer = lexer
         self.lexer.input(data)
@@ -71,7 +72,7 @@ class Parser:
                         type = self.parseDeclType()
                     identifier = self.parseIdentifier()
                     statements.append(self.parseDeclaration(type, identifier))
-                elif self.currentToken.type in ('INT', 'BOOL'): #Function or declaration           
+                elif self.currentToken.type in ('INT', 'BOOL', 'IDENTIFIER'): #Function or declaration           
                     type = self.parseStdType(False)
                     identifier = self.parseIdentifier()
                     
@@ -80,7 +81,12 @@ class Parser:
                     else:
                         statements.append(self.parseDeclaration(type, identifier)) 
                 elif self.currentToken.type == 'STRUCT':
-                    statements.append(self.parseStruct())
+                    structDecl = self.parseStruct()
+                    structIden = self.parseIdentifier()
+                    self.accept('SEMI')
+                    statements.append(Node('Struct', structDecl, structIden))
+                elif self.currentToken.type == 'TYPEDEF':
+                    statements.append(self.parseTypedef())
                 else:
                     break 
             else:
@@ -101,9 +107,7 @@ class Parser:
             structDecl.append(self.parseDeclaration(type, identifier))
 
         self.accept('RCURLYPAREN')
-        structIden = self.parseIdentifier()
-        self.accept('SEMI')
-        return Node('Struct', structDecl, structIden)
+        return structDecl
 
     def parseDeclaration(self, type, identifier):
         varList = []
@@ -128,6 +132,33 @@ class Parser:
 
         return Node('VarDecl', varList, type)
 
+    def parseTypedef(self):
+        self.accept('TYPEDEF')
+        if self.currentToken.type == 'STRUCT':
+            structDecl = self.parseStruct()
+            if self.currentToken.type == 'IDENTIFIER':
+                typeName = self.currentToken.value
+                self.accept('IDENTIFIER')
+            else:
+                typeName = 'ErrorName'
+                self.error('Expected identifier')
+            n = Node('NodeTypedef', structDecl, typeName)
+            self.typedefDict[typeName] = n
+            self.accept('SEMI')
+            return n
+        else:
+            type = self.parseStdType(False)
+            if self.currentToken.type == 'IDENTIFIER':
+                typeName = self.currentToken.value
+                self.accept('IDENTIFIER')
+            else:
+                typeName = 'ErrorName'
+                self.error('Expected identifier')
+            n = Node('NodeTypedef', [type], typeName)
+            self.typedefDict[typeName] = n
+            self.accept('SEMI')
+            return n
+
     def parseArray(self):
         self.accept('LBRACKET')
         if self.currentToken.type == 'RBRACKET':
@@ -151,7 +182,7 @@ class Parser:
     
     def parseParameters(self):
         parameters = []
-        while self.currentToken.type in ('INT', 'BOOL', 'CONST'):
+        while self.currentToken.type in ('INT', 'BOOL', 'CONST', 'IDENTIFIER'):
             isConst = False
             if self.currentToken.type == 'CONST':
                 self.accept('CONST')
@@ -184,6 +215,8 @@ class Parser:
             elif self.currentToken.type == 'DO':
                 statements.append(self.parseDoWhileLoop())
             elif self.currentToken.type == 'IDENTIFIER':
+                if self.isType(self.currentToken.value):
+                    statements.append(self.parseTypedefType())
                 identifier = self.parseIdentifier()
                 statements.append(self.parseAssignment(identifier))
                 self.accept('SEMI')
@@ -262,6 +295,7 @@ class Parser:
         self.accept('SEMI')
 
         return Node('DoWhileLoop', children, leaf)
+
     def parseIdentifier(self):
         n = Node('Identifier', [], self.currentToken.value)
         self.accept('IDENTIFIER')
@@ -323,7 +357,27 @@ class Parser:
                 return Node('TypeConstBool')
             else:
                 return Node('TypeBool')
+        elif self.currentToken.type == 'IDENTIFIER' and not isConst:
+            return self.parseTypedefType(self.currentToken.value)
+        self.error('Not a type')
 
+    def parseTypedefType(self, str):
+        if self.isType(str):
+            self.accept('IDENTIFIER')
+            return self.getType(str)
+        else:
+            self.error('Not a typedef type:'+self.currentToken.value)
+
+
+    def isType(self, str):
+        if str in self.typedefDict:
+            return True
+        else:
+            return False
+
+    def getType(self, str):
+        return self.typedefDict[str]
+    
     def accept(self, expectedTokenType):
         if self.currentToken.type == expectedTokenType:
             self.currentToken = self.lexer.token()

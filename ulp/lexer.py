@@ -42,7 +42,8 @@ reserved = {
 'or' : 'OR',
 'imply' : 'IMPLY',
 'return' : 'RETURN',
-'do' : 'DO'
+'do' : 'DO',
+'typedef' : 'TYPEDEF'
 }
 #TODO add <? and ?>
 
