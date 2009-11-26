@@ -1,0 +1,10 @@
+typedef struct
+{
+int a;
+} myStructType;
+
+myStructType m;
+
+typedef int adr;
+
+adr n;

@@ -69,6 +69,12 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
         
+    def test_parse_typedef(self):
+        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_typedef.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        self.assertEqual(len(pars.AST.children), 4) #TODO add more asserts
+
     def test_parse_for_loop(self):
         test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_for_loop.txt'), "r")
         lex = lexer.lexer
