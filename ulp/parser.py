@@ -232,6 +232,14 @@ class Parser:
 
         return statements 
 
+    def parseVariableList(self):
+        children = []
+        while self.currentToken.type == 'COMMA':
+            self.accept('COMMA')
+            children.append(self.parseIdentifier())
+         
+        return children
+
     def parseExpression(self):
         return self.expressionParser.parse()
        
