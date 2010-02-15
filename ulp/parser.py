@@ -121,7 +121,7 @@ class Parser:
                 identifier = self.parseIdentifier()
                 varList.append(identifier)
             elif self.currentToken.type == 'EQUALS':
-                a = self.parseAssignment(identifier, plusplus=False)
+                a = self.parseAssignment(identifier, shorthand=False)
                 identifier.leaf = a
             elif self.currentToken.type == 'LBRACKET':
                 array = self.parseArray()
@@ -214,10 +214,12 @@ class Parser:
                 statements.append(self.parseWhileLoop())
             elif self.currentToken.type == 'DO':
                 statements.append(self.parseDoWhileLoop())
-            elif self.currentToken.type == 'IDENTIFIER':
+            elif self.currentToken.type in ('IDENTIFIER', 'PLUSPLUS', 'MINUSMINUS'):
                 if self.isType(self.currentToken.value):
                     statements.append(self.parseTypedefType())
-                identifier = self.parseIdentifier()
+                identifier = None
+                if self.currentToken.type == 'IDENTIFIER':
+                    identifier = self.parseIdentifier()
                 statements.append(self.parseAssignment(identifier))
                 self.accept('SEMI')
             elif self.currentToken.type == 'RETURN':
@@ -241,26 +243,40 @@ class Parser:
         return children
 
     def parseExpression(self):
-        return self.expressionParser.parse()
+        return Node('Expression', children=[self.expressionParser.parse()])
        
     def parseNumber(self):
         n = Node('Number', [], self.currentToken.value)
         self.accept('NUMBER')
         return n
 
-    def parseAssignment(self, identifier, plusplus = True):
+    #TODO add support for := *= %= += -= <<= >>= &= |=
+    def parseAssignment(self, identifier, shorthand = True):
         if self.currentToken.type == 'EQUALS':
             self.accept('EQUALS')
-            n = self.expressionParser.parse()
+            n = self.parseExpression()
             return Node('Assignment', [n], identifier) 
-        elif self.currentToken.type == 'PLUSPLUS':
-            self.accept('PLUSPLUS')
-            return Node('Assignment', [Node('PlusPlus', [identifier])])
-        else:
-            self.error('at assignment parsing, at token "%s" on line %d: Did not expect token type: "%s"' % (self.currentToken.value, self.currentToken.lineno, self.currentToken.type))
+        elif shorthand:  #add -- support
+            if self.currentToken.type == 'PLUSPLUS':
+                self.accept('PLUSPLUS')
+                if identifier == None:
+                    identifier = self.parseIdentifier()
+                    ppnode = Node('PlusPlusPre', [identifier])
+                else:
+                    ppnode = Node('PlusPlusPost', [identifier])         
+                return Node('Assignment', children=[Node('Expression', children=[ppnode])])
+            elif self.currentToken.type == 'MINUSMINUS':
+                self.accept('MINUSMINUS')
+                if identifier == None:
+                    identifier = self.parseIdentifier()
+                    mmnode = Node('MinusMinusPre', [identifier])
+                else:
+                    mmnode = Node('MinusMinusPost', [identifier])
+                return Node('Assignment', children=[Node('Expression', children=[mmnode])])
+        self.error('at assignment parsing, at token "%s" on line %d: Did not expect token type: "%s"' % (self.currentToken.value, self.currentToken.lineno, self.currentToken.type))
 
     def parseBooleanExpression(self):
-        return self.expressionParser.parse()
+        return Node('BooleanExpression', children=[self.expressionParser.parse()])
 
     def parseForLoop(self):
         leaf = []
