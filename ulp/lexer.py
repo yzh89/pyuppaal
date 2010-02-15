@@ -160,15 +160,19 @@ def t_NUMBER(t):
     return t
 
 # Ignore comments. 
-#TODO add c style comments
-def t_comment(t):
-    r'[//][^\n]*'
-    pass
+def t_COMMENT(t):
+    r'//.*\n'
+    t.lineno += t.value.count('\n')
+
+def t_MCOMMENT(t):
+    r'/\*(.|\n)*?\*/'
+    t.lineno += t.value.count('\n')
 
 # Track line numbers.
-def t_newline(t):
+def t_NEWLINE(t):
     r'\n+'
     t.lineno += len(t.value)
+
 # These are the things that should be ignored.
 t_ignore = ' \t'
 
