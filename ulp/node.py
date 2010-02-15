@@ -27,6 +27,8 @@ class Node:
         print "visit", "  "*self.level, self.type, 
         if self.leaf:
             print self.leaf
+            if self.leaf.__class__.__name__ == 'Node':
+                print "visit-node", "  "*(self.level+1), self.leaf.type
         else:
             print 
 
