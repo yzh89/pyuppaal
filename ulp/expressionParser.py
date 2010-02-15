@@ -24,6 +24,58 @@ from lexer import *
 from node import Node
 import operator
 
+def parse_expression(data):
+    """Helper function. Parses the string "data" and returns an AST of the
+    expression."""
+    class myToken:
+        type = None
+        def __init__(self, type):
+            self.type = type
+
+    class DummyHelperParser:
+        def __init__(self, lexer):
+            self.lex = lexer
+
+        def parse(self, str):
+            self.lex.input(str)
+            self.currentToken = self.lex.token()
+            exParser = ExpressionParser(self.lex, self)
+            return exParser.parse()
+
+        def parseNumber(self):
+            n = Node('Number', [], self.currentToken.value)
+            self.accept('NUMBER')
+            return n
+
+        def parseIdentifier(self):
+            n = Node('Identifier', [], self.currentToken.value)
+            self.accept('IDENTIFIER')
+         
+            p = n
+            while self.currentToken.type == 'DOT':
+                self.accept('DOT')
+                element = Node('Identifier', [], self.currentToken.value)
+                self.accept('IDENTIFIER')
+                p.children = [element]
+                p = element
+
+            return n
+
+        def accept(self, expectedTokenType):
+            if self.currentToken.type == expectedTokenType:
+                self.currentToken = self.lex.token()
+                if self.currentToken == None:
+                    t = myToken('UNKNOWN')
+                    self.currentToken = t
+            else:
+                self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
+
+        def error(self, msg):
+            print 'Error: Parser error', msg
+
+    helperParser = DummyHelperParser(lexer)
+    return helperParser.parse(data)
+
 class ExpressionParser:
 
     def __init__(self, lexer, parser):

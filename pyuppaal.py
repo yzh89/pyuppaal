@@ -169,13 +169,19 @@ class Label:
             return self.value
         return ""
 
-    def append(self, expr, auto_newline=True):
+    def append(self, expr, auto_newline=True, sep=","):
         nl = auto_newline and '\n' or ''
         if self.get_value():
-            self.value = self.get_value() + "," + nl + expr
+            self.value = self.get_value() + sep + nl + expr
         else:
             self.value = expr
             
+    def append_and(self, expr, auto_newline=True):
+        self.append(expr, auto_newline, sep=' && ')
+
+
+    def append_or(self, expr, auto_newline=True):
+        self.append(expr, auto_newline, sep=' || ')
 
     def move_relative(self, dx, dy):
         self.xpos += dx
@@ -401,7 +407,7 @@ class QueryFile:
         os.unlink(path)
 
 def verify(modelfilename, queryfilename, verifyta='verifyta',
-            searchorder='bfs', getoutput=False,
+            searchorder='bfs', statespacereduction='1', getoutput=False,
             remotehost=None, remotedir='/tmp/'):
     searchorder = { 'bfs': '0', #Breadth first
                     'dfs': '1', #Depth first
@@ -422,7 +428,8 @@ def verify(modelfilename, queryfilename, verifyta='verifyta',
 
         cmdline = 'ssh ' + remotehost + ' '
 
-    cmdline += verifyta + ' -o' + searchorder + ' -q ' + modelfilename + ' ' + queryfilename
+    cmdline += verifyta + ' -o' + searchorder + ' -S' + statespacereduction + \
+        ' -q ' + modelfilename + ' ' + queryfilename
 
     #print 'Executing', cmdline
     proc = subprocess.Popen(
