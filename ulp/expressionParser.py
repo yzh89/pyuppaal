@@ -108,7 +108,7 @@ class ExpressionParser:
         'LSHIFT':    Op('LeftShift', operator.lshift, 35),
         'RSHIFT':    Op('RightShift', operator.rshift, 35),
         'BITAND':    Op('BitAnd', operator.and_, 30),
-        'XOR':       Op('xor', operator.xor, 29),
+        'XOR':       Op('Xor', operator.xor, 29),
         'BITOR':     Op('BitOr', operator.or_, 28),
         'GREATER':   Op('Greater', operator.gt, 20),
         'GREATEREQ': Op('GreaterEqual', operator.ge, 20),
@@ -136,7 +136,7 @@ class ExpressionParser:
             operators.
         """
         self._infix_eval_atom()
- 
+
         while ( self.parser.currentToken.type in self._ops and 
                 self._ops[self.parser.currentToken.type].binary):
             self._push_op(self._ops[self.parser.currentToken.type])
@@ -154,6 +154,14 @@ class ExpressionParser:
         if self.parser.currentToken.type in ['IDENTIFIER', 'NUMBER']:
             if self.parser.currentToken.type == 'IDENTIFIER':
                 self.res_stack.append(self.parser.parseIdentifier())
+                if self.parser.currentToken.type == 'PLUSPLUS': 
+                    identifier = self.res_stack.pop()
+                    self.res_stack.append(Node('PlusPlusPost',[identifier]))
+                    self.parser.accept('PLUSPLUS')
+                elif self.parser.currentToken.type == 'MINUSMINUS':
+                    identifier = self.res_stack.pop()
+                    self.res_stack.append(Node('MinusMinusPost', [identifier]))
+                    self.parser.accept('MINUSMINUS')
             else:
                 self.res_stack.append(self.parser.parseNumber())
         elif self.parser.currentToken.type == 'LPAREN':
@@ -166,6 +174,12 @@ class ExpressionParser:
             self._push_op(self._ops['u' + self.parser.currentToken.type])
             self._get_next_token()
             self._infix_eval_atom()
+        elif self.parser.currentToken.type == 'PLUSPLUS':
+            self.parser.accept('PLUSPLUS')
+            self.res_stack.append(Node('PlusPlusPre', [self.parser.parseIdentifier()]))
+        elif self.parser.currentToken.type == 'MINUSMINUS':
+            self.parser.accept('MINUSMINUS')
+            self.res_stack.append(Node('MinusMinusPre', [self.parser.parseIdentifier()]))
     
     def _push_op(self, op):
         """ Pushes an operation onto the op stack. 
@@ -200,4 +214,3 @@ class ExpressionParser:
 
     def _get_next_token(self):
         self.parser.currentToken = self.lexer.token()
-  
