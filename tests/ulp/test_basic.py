@@ -2,10 +2,7 @@
 import sys
 import os
 import unittest
-import lexer
-import parser
-import expressionParser
-import node
+from pyuppaal.ulp import lexer, parser, expressionParser, node
 
 class TestBasicParsing(unittest.TestCase):
 
