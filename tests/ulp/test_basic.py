@@ -50,11 +50,11 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 6) #TODO add more asserts
         res = pars.AST.children
-        self.assertEqual(res[0].children[0].children[0].type, "IsArray") 
-        self.assertEqual(res[1].children[0].children[0].type, "IsArray") 
-        self.assertEqual(res[2].children[0].children[0].type, "IsArray") 
-        self.assertEqual(res[3].children[0].children[0].type, "IsArray") 
-        self.assertEqual(res[4].children[0].children[0].type, "IsArray") 
+        self.assertEqual(res[0].children[0].children[0].type, "Index") 
+        self.assertEqual(res[1].children[0].children[0].type, "Index") 
+        self.assertEqual(res[2].children[0].children[0].type, "Index") 
+        self.assertEqual(res[3].children[0].children[0].type, "Index") 
+        self.assertEqual(res[4].children[0].children[0].type, "Index") 
         myParser = testParser(lexer.lexer)
         res = myParser.parse("a[]")
         self.assertEqual(res.type, "Identifier") 
@@ -71,6 +71,11 @@ class TestBasicParsing(unittest.TestCase):
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 4) #TODO add more asserts
+
+    def test_parse_brackets(self):
+        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_brackets.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
 
     def test_comments(self):
         test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_comments.txt'), "r")

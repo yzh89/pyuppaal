@@ -220,7 +220,7 @@ class ExpressionParser:
             self._get_next_token()
             self.op_stack.append(self._sentinel)
             self._infix_eval_expr()
-            self._match('RPAREN')
+            self.parser.accept('RPAREN')
             self.op_stack.pop()
         elif self.parser.currentToken.type in self._unaries:
             self._push_op(self._ops['u' + self.parser.currentToken.type])
