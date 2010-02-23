@@ -47,7 +47,7 @@ def parse_expression(data):
             self.accept('NUMBER')
             return n
 
-        def parseIdentifier(self):
+        def parseIdentifierComplex(self):
             n = Node('Identifier', [], self.currentToken.value)
             self.accept('IDENTIFIER')
          
@@ -205,7 +205,7 @@ class ExpressionParser:
         """
         if self.parser.currentToken.type in ['IDENTIFIER', 'NUMBER']:
             if self.parser.currentToken.type == 'IDENTIFIER':
-                self.res_stack.append(self.parser.parseIdentifier())
+                self.res_stack.append(self.parser.parseIdentifierComplex())
                 if self.parser.currentToken.type == 'PLUSPLUS': 
                     identifier = self.res_stack.pop()
                     self.res_stack.append(Node('PlusPlusPost',[identifier]))
@@ -228,10 +228,10 @@ class ExpressionParser:
             self._infix_eval_atom()
         elif self.parser.currentToken.type == 'PLUSPLUS':
             self.parser.accept('PLUSPLUS')
-            self.res_stack.append(Node('PlusPlusPre', [self.parser.parseIdentifier()]))
+            self.res_stack.append(Node('PlusPlusPre', [self.parser.parseIdentifierComplex()]))
         elif self.parser.currentToken.type == 'MINUSMINUS':
             self.parser.accept('MINUSMINUS')
-            self.res_stack.append(Node('MinusMinusPre', [self.parser.parseIdentifier()]))
+            self.res_stack.append(Node('MinusMinusPre', [self.parser.parseIdentifierComplex()]))
     
     def _push_op(self, op):
         """ Pushes an operation onto the op stack. 

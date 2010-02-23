@@ -298,7 +298,7 @@ class testParser:
         self.accept('NUMBER')
         return n
 
-    def parseIdentifier(self):
+    def parseIdentifierComplex(self):
         n = node.Node('Identifier', [], self.currentToken.value)
         self.accept('IDENTIFIER')
      
