@@ -407,7 +407,7 @@ class QueryFile:
         os.unlink(path)
 
 def verify(modelfilename, queryfilename, verifyta='verifyta',
-            searchorder='bfs', statespacereduction='1', getoutput=False,
+            searchorder='bfs', statespacereduction='1', approximation='', getoutput=False,
             remotehost=None, remotedir='/tmp/'):
     searchorder = { 'bfs': '0', #Breadth first
                     'dfs': '1', #Depth first
@@ -427,8 +427,11 @@ def verify(modelfilename, queryfilename, verifyta='verifyta',
         queryfilename = os.path.join(remotedir, os.path.basename(queryfilename))
 
         cmdline = 'ssh ' + remotehost + ' '
+    if approximation == 'over':
+        approximation = ' -A '
 
     cmdline += verifyta + ' -o' + searchorder + ' -S' + statespacereduction + \
+        approximation + \
         ' -q ' + modelfilename + ' ' + queryfilename
 
     #print 'Executing', cmdline
@@ -451,6 +454,8 @@ def verify(modelfilename, queryfilename, verifyta='verifyta',
                 res += [True]
             elif line.endswith(' -- Property is NOT satisfied.'):
                 res += [False]
+            elif line.endswith(' -- Property MAY be satisfied.'):
+                res += ['maybe']
             else:
                 pass #Ignore garbage
             lastprop = None
