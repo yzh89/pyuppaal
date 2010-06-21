@@ -4,6 +4,6 @@ export PYTHONPATH=..
 
 cd `pwd`/`dirname $0`
 
-python test_api.py
-python test_import.py
-python ulp/test_basic.py
+for i in `ls test_*.py ulp/test_*.py`; do
+    python $i
+done

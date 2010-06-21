@@ -25,20 +25,6 @@ from node import Node
 identifiers = { }
 
 class Parser:
-#    currentToken = None
-#    lexer = None
-#
-#    def __init__(self, data, lexer):
-#        self.lexer = lexer
-#        self.lexer.input(data)
-#        self.currentToken = self.lexer.token()
-#        self.expressionParser = expression_parser.parser
-#        children = []
-#        if self.currentToken != None:
-#            children = self.parseStatements()
-#        self.AST = Node('RootNode', children)
-# 
-#class UPPAALCParser:
 
     currentToken = None
     lexer = None
@@ -122,7 +108,7 @@ class Parser:
                 varList.append(identifier)
             elif self.currentToken.type == 'EQUALS':
                 a = self.parseAssignment(identifier, shorthand=False)
-                identifier.leaf = a
+                identifier.children.append(a)
             elif self.currentToken.type == 'LBRACKET':
                 array = self.parseArray()
                 identifier.children.append(array)
@@ -167,7 +153,7 @@ class Parser:
         else:
             e = self.parseExpression()
         self.accept('RBRACKET')
-        return Node('IsArray', [], e)
+        return Node('IsArray', [e])
 
     def parseFunction(self, type, identifier):
         children = []
@@ -368,6 +354,14 @@ class Parser:
             if self.currentToken.type == 'BITAND' and not isConst:
                 self.accept('BITAND')
                 return Node('TypeIntPointer')
+            elif self.currentToken.type == 'LBRACKET':
+                self.accept('LBRACKET')
+                #range-constrained int
+                lower = self.parseExpression()
+                self.accept('COMMA')
+                upper = self.parseExpression()
+                self.accept('RBRACKET')
+                return Node('TypeInt', [lower, upper])
             elif isConst:
                 return Node('TypeConstInt')
             else:
@@ -411,4 +405,45 @@ class Parser:
     def error(self, msg):
             print 'Error: Parser error', msg
         
+class DeclVisitor:
+    def __init__(self, parser):
+        #calculate variables, clocks and channels
+        self.constants = {}
+        #variables: list of (identifier, type, array-dimensions)
+        self.variables = []
+        self.clocks = []
+        self.channels = []
+
+
+        last_type = None
+        def visit_identifiers(node):
+            global last_type
+            if node.type == 'VarDecl':
+                last_type = node.leaf.type
+            elif node.type == 'NodeTypedef':
+                last_type = 'TypeTypedef'
+            elif node.type == 'Identifier':
+                ident = node.leaf
+                #find array dimensions (if any)
+                array_dimensions = []
+                for child in [c for c in node.children if c.type == 'IsArray']:
+                    array_dimensions += [child.children[0]]
+
+                if last_type == 'TypeInt':
+                    #TODO ranges
+                    self.variables += [(ident, 'int', array_dimensions)]
+                elif last_type == 'TypeConstInt':
+                    self.constants[ident] = node.children[0].children[0].children[0]
+                elif last_type == 'TypeBool':
+                    self.variables += [(ident, 'bool', array_dimensions)]
+                elif last_type == 'TypeClock':
+                    #TODO calculate max constant
+                    self.clocks += [(node.leaf, 10)]
+                elif last_type == 'TypeChannel':
+                    self.channels += [node.leaf]
+                return False #don't recurse further
+            return True
+        parser.AST.visit(visit_identifiers)
+
+
 # vim:ts=4:sw=4:expandtab

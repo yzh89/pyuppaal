@@ -25,20 +25,23 @@ class Node:
 
     def print_node(self):
         print "visit", "  "*self.level, self.type, 
-        if self.leaf:
+        if self.leaf != []:
             print self.leaf
             if self.leaf.__class__.__name__ == 'Node':
                 print "visit-node", "  "*(self.level+1), self.leaf.type
         else:
             print 
+        return True
 
     def visit(self, visitor=None, level=0):
+        """Visit this node and subnodes.
+        visitor should be a function taking a node as parameter, and returning
+        True if children should be visited."""
         self.level = level
         if not visitor:
             visitor = Node.print_node
-        visitor(self)
-        
-        for v in self.children:
-            v.visit(visitor, self.level+1);
+        if visitor(self):
+            for v in self.children:
+                v.visit(visitor, self.level+1);
 
 

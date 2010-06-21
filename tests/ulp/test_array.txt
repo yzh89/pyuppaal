@@ -7,3 +7,5 @@ clock e[2+2];
 int foo(int a[50])
 {
 }
+
+int a[2][2];
