@@ -35,6 +35,28 @@ class TestAPI(unittest.TestCase):
         l.append('a==b')
         self.assertEqual(l.get_value(), "a==b")
 
+    def test_create_multi_nta(self):
+        nta1 = NTA()
+        nta2 = NTA()
+        temp1 = Template('temp1')
+        nta1.templates += [temp1]
+        self.assertEqual(nta2.templates, [])
+
+    def test_copy_trans(self):
+        l1 = Location()
+        l2 = Location()
+        t1 = Transition(l1, l2, guard="abemad")
+        import copy
+        t2 = copy.copy(t1)
+        #we should get different labels
+        self.assertNotEqual(t1.select, t2.select)
+        self.assertNotEqual(t1.guard, t2.guard)
+        self.assertNotEqual(t1.synchronisation, t2.synchronisation)
+        self.assertNotEqual(t1.assignment, t2.assignment)
+
+        self.assertEqual(t1.source, t2.source)
+        self.assertEqual(t1.target, t2.target)
+
     def test_verify(self):
         ntafilename = os.path.join(os.path.dirname(sys.argv[0]), 'small_verify.xml')
 

@@ -39,10 +39,10 @@ def require_keyword_args(num_unnamed):
 
 UPPAAL_LINEHEIGHT = 15
 class NTA:
-    def __init__(self, declaration="", system="", templates=[]):
+    def __init__(self, declaration="", system="", templates=None):
         self.declaration = declaration
         self.system = system
-        self.templates = templates
+        self.templates = templates or []
 
     def add_template(self, t):
         if not t in self.templates:
@@ -61,11 +61,11 @@ class NTA:
 </nta>""" % (cgi.escape(self.declaration), templatesxml, cgi.escape(self.system))
 
 class Template:
-    def __init__(self, name, declaration="", locations=[], initlocation=None, transitions=[], parameter=None):
+    def __init__(self, name, declaration="", locations=None, initlocation=None, transitions=None, parameter=None):
         self.name = name
         self.declaration = declaration
-        self.locations = locations
-        self.transitions = transitions
+        self.locations = locations or []
+        self.transitions = transitions or []
         self.initlocation = initlocation
         self.parameter = parameter
 
@@ -204,6 +204,9 @@ class Label:
                     (" ".join(attrs), cgi.escape(self.value))
         return ''
 
+    def __str__(self):
+        return self.get_value()
+
 class Location:
     @require_keyword_args(1)
     def __init__(self, invariant=None, committed=False, name=None, id = None,
@@ -260,6 +263,14 @@ class Transition:
         global last_transition_id
         self.id = 'Transition' + str(last_transition_id)
         last_transition_id = last_transition_id + 1
+
+    def __copy__(self):
+        newone = Transition(self.source, self.target, 
+            select=self.select.value, 
+            guard=self.guard.value,
+            synchronisation=self.synchronisation.value,
+            assignment=self.assignment.value)
+        return newone
 
     def to_xml(self):
         return """
