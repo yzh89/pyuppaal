@@ -35,7 +35,6 @@ class Parser:
         self.lexer = lexer
         self.lexer.input(data)
         self.currentToken = self.lexer.token()
-        self.expressionParser = expressionParser.ExpressionParser(self.lexer, self)
         children = []
         if self.currentToken != None:
             children = self.parseStatements()
@@ -56,13 +55,13 @@ class Parser:
                         type = self.parseStdType(True)
                     else:
                         type = self.parseDeclType()
-                    identifier = self.parseIdentifier()
+                    identifier = self.parseIdentifierComplex()
                     statements.append(self.parseDeclaration(type, identifier))
                 elif self.currentToken.type in ('INT', 'BOOL', 'IDENTIFIER'): #Function or declaration           
                     type = self.parseStdType(False)
-                    identifier = self.parseIdentifier()
+                    identifier = self.parseIdentifierComplex()
                     
-                    if self.currentToken.type == 'LPAREN':
+                    if self.currentToken.type == 'LPAREN':  #TODO check that it is not a complex identifier
                         statements.append(self.parseFunction(type, identifier))
                     else:
                         statements.append(self.parseDeclaration(type, identifier)) 
@@ -89,7 +88,7 @@ class Parser:
         self.accept('LCURLYPAREN')
         while self.currentToken.type in ('INT', 'BOOL'): 
             type = self.parseDeclType()
-            identifier = self.parseIdentifier()
+            identifier = self.parseIdentifierComplex()
             structDecl.append(self.parseDeclaration(type, identifier))
 
         self.accept('RCURLYPAREN')
@@ -101,17 +100,17 @@ class Parser:
         #TODO scalars
         #TODO typedef
         varList.append(identifier)
-        while self.currentToken.type in ('COMMA', 'EQUALS', 'LBRACKET'):
+        while self.currentToken.type in ('COMMA', 'EQUALS'):
             if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
-                identifier = self.parseIdentifier()
+                identifier = self.parseIdentifierComplex()
                 varList.append(identifier)
             elif self.currentToken.type == 'EQUALS':
                 a = self.parseAssignment(identifier, shorthand=False)
                 identifier.children.append(a)
-            elif self.currentToken.type == 'LBRACKET':
-                array = self.parseArray()
-                identifier.children.append(array)
+            else:
+                self.error('Did not expect token type' + self.currentToken.type)
+                return
     
         if self.currentToken.type == 'SEMI':           
             self.accept('SEMI')
@@ -145,7 +144,7 @@ class Parser:
             self.accept('SEMI')
             return n
 
-    def parseArray(self):
+    def parseIndex(self):
         self.accept('LBRACKET')
         if self.currentToken.type == 'RBRACKET':
             self.error('invalid expression')
@@ -153,7 +152,7 @@ class Parser:
         else:
             e = self.parseExpression()
         self.accept('RBRACKET')
-        return Node('IsArray', [e])
+        return Node('Index', [], e)
 
     def parseFunction(self, type, identifier):
         children = []
@@ -174,10 +173,7 @@ class Parser:
                 self.accept('CONST')
                 isConst = True
             type = self.parseStdType(isConst) 
-            identifier = self.parseIdentifier()
-            if self.currentToken.type == 'LBRACKET':
-                array = self.parseArray()
-                identifier.children.append(array)
+            identifier = self.parseIdentifierComplex()
             parameters.append( Node('Parameter', [], (type, identifier)) )
             if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
@@ -192,7 +188,7 @@ class Parser:
                     type = self.parseStdType(True)
                 else:
                     type = self.parseStdType(False)
-                identifier = self.parseIdentifier()
+                identifier = self.parseIdentifierComplex()
                 statements.append(self.parseDeclaration(type, identifier))
             elif self.currentToken.type == 'FOR':
                 statements.append(self.parseForLoop())
@@ -205,7 +201,7 @@ class Parser:
                     statements.append(self.parseTypedefType())
                 identifier = None
                 if self.currentToken.type == 'IDENTIFIER':
-                    identifier = self.parseIdentifier()
+                    identifier = self.parseIdentifierComplex()
                 statements.append(self.parseAssignment(identifier))
                 self.accept('SEMI')
             elif self.currentToken.type == 'RETURN':
@@ -229,7 +225,8 @@ class Parser:
         return children
 
     def parseExpression(self):
-        return Node('Expression', children=[self.expressionParser.parse()])
+        exprParser = expressionParser.ExpressionParser(self.lexer, self)
+        return Node('Expression', children=[exprParser.parse()])
        
     def parseNumber(self):
         n = Node('Number', [], self.currentToken.value)
@@ -246,7 +243,7 @@ class Parser:
             if self.currentToken.type == 'PLUSPLUS':
                 self.accept('PLUSPLUS')
                 if identifier == None:
-                    identifier = self.parseIdentifier()
+                    identifier = self.parseIdentifierComplex()
                     ppnode = Node('PlusPlusPre', [identifier])
                 else:
                     ppnode = Node('PlusPlusPost', [identifier])         
@@ -254,7 +251,7 @@ class Parser:
             elif self.currentToken.type == 'MINUSMINUS':
                 self.accept('MINUSMINUS')
                 if identifier == None:
-                    identifier = self.parseIdentifier()
+                    identifier = self.parseIdentifierComplex()
                     mmnode = Node('MinusMinusPre', [identifier])
                 else:
                     mmnode = Node('MinusMinusPost', [identifier])
@@ -262,17 +259,18 @@ class Parser:
         self.error('at assignment parsing, at token "%s" on line %d: Did not expect token type: "%s"' % (self.currentToken.value, self.currentToken.lineno, self.currentToken.type))
 
     def parseBooleanExpression(self):
-        return Node('BooleanExpression', children=[self.expressionParser.parse()])
+        exprParser = expressionParser.ExpressionParser(self.lexer, self)
+        return Node('BooleanExpression', children=[exprParser.parse()])
 
     def parseForLoop(self):
         leaf = []
         self.accept('FOR')
         self.accept('LPAREN')
-        leaf.append(self.parseAssignment(self.parseIdentifier()))
+        leaf.append(self.parseAssignment(self.parseIdentifierComplex()))
         self.accept('SEMI')
         leaf.append(self.parseBooleanExpression())
         self.accept('SEMI')
-        leaf.append(self.parseAssignment(self.parseIdentifier()))
+        leaf.append(self.parseAssignment(self.parseIdentifierComplex()))
         self.accept('RPAREN')
         self.accept('LCURLYPAREN')
         children = self.parseBodyStatements()
@@ -309,15 +307,24 @@ class Parser:
     def parseIdentifier(self):
         n = Node('Identifier', [], self.currentToken.value)
         self.accept('IDENTIFIER')
-     
+        return n
+
+    def parseIdentifierComplex(self):
+        n = self.parseIdentifier()
         p = n
-        while self.currentToken.type == 'DOT':
+
+        while self.currentToken.type == 'DOT':	#TODO should be possible to intermix DOT's and BRACKET's
             self.accept('DOT')
-            element = Node('Identifier', [], self.currentToken.value)
-            self.accept('IDENTIFIER')
+            element = self.parseIdentifier()
             p.children = [element]
             p = element
-
+        
+        p.children = p.children or []
+        while self.currentToken.type == 'LBRACKET':
+            index = self.parseIndex()
+            p.children += [index]
+            
+        
         return n
 
     def parseDeclType(self):
@@ -426,8 +433,8 @@ class DeclVisitor:
                 ident = node.leaf
                 #find array dimensions (if any)
                 array_dimensions = []
-                for child in [c for c in node.children if c.type == 'IsArray']:
-                    array_dimensions += [child.children[0]]
+                for child in [c for c in node.children if c.type == 'Index']:
+                    array_dimensions += [child.leaf]
 
                 if last_type == 'TypeInt':
                     #TODO ranges
