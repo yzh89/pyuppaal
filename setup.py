@@ -34,7 +34,7 @@ import os
 
 DistUtilsExtra.auto.setup(
     name='pyuppaal',
-    version='0.1',
+    version='0.2',
     license='GPL-3',
     author='Mads Chr. Olesen',
     author_email='mchro@cs.aau.dk',
