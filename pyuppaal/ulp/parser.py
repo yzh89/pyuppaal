@@ -447,7 +447,8 @@ class DeclVisitor:
                     #TODO calculate max constant
                     self.clocks += [(node.leaf, 10)]
                 elif last_type == 'TypeChannel':
-                    self.channels += [node.leaf]
+                    self.channels += [(ident, array_dimensions)]
+                    print 'abemad', ident, array_dimensions[0].children[0].leaf
                 return False #don't recurse further
             return True
         parser.AST.visit(visit_identifiers)
