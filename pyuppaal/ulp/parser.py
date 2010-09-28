@@ -72,6 +72,8 @@ class Parser:
                     statements.append(Node('Struct', structDecl, structIden))
                 elif self.currentToken.type == 'TYPEDEF':
                     statements.append(self.parseTypedef())
+                elif self.currentToken.type == 'EXTERN':
+                    statements.append(self.parseExtern())
                 else:
                     break 
             else:
@@ -143,6 +145,17 @@ class Parser:
             self.typedefDict[typeName] = n
             self.accept('SEMI')
             return n
+
+    def parseExtern(self):
+        self.accept('EXTERN')
+        identnode = self.parseIdentifier()
+        ident = identnode.leaf
+        n = Node('NodeExtern', [], ident)
+
+        self.typedefDict[ident] = n
+
+        self.accept('SEMI')
+        return n
 
     def parseIndex(self):
         self.accept('LBRACKET')
@@ -423,12 +436,16 @@ class DeclVisitor:
 
 
         last_type = None
+        last_type_node = None
         def visit_identifiers(node):
-            global last_type
+            global last_type, last_type_node
             if node.type == 'VarDecl':
                 last_type = node.leaf.type
+                last_type_node = node.leaf
             elif node.type == 'NodeTypedef':
                 last_type = 'TypeTypedef'
+            elif node.type == 'NodeExtern':
+                last_type = 'TypeExtern'
             elif node.type == 'Identifier':
                 ident = node.leaf
                 #find array dimensions (if any)
@@ -448,6 +465,10 @@ class DeclVisitor:
                     self.clocks += [(node.leaf, 10)]
                 elif last_type == 'TypeChannel':
                     self.channels += [(ident, array_dimensions)]
+                elif last_type == 'NodeTypedef' or last_type == 'NodeExtern':
+                    self.variables += [(ident, last_type_node.leaf, array_dimensions)]
+                else:
+                    print 'Unknown type: ' + last_type
                 return False #don't recurse further
             return True
         parser.AST.visit(visit_identifiers)

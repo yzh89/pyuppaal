@@ -38,7 +38,7 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(declvisitor.variables[1], ('lalala', 'int', []))
 
         self.assertEqual(declvisitor.clocks, [('time', 10), ('y1', 10), ('y2', 10), ('y3', 10), ('y4', 10)])
-        self.assertEqual(declvisitor.channels, ['take', 'release'])
+        self.assertEqual(declvisitor.channels, [('take', []), ('release', [])])
 
         
 
@@ -383,6 +383,21 @@ class TestBasicParsing(unittest.TestCase):
         #self.assertEqual(res.children[0].leaf, 'N')
         #self.assertEqual(res.children[1].type, "Number")
         #self.assertEqual(res.children[1].leaf, 1)
+
+    def test_parse_extern(self):
+        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_extern.txt'), "r")
+
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        res = pars.AST.children
+
+        #pars.AST.visit()
+
+        declvisitor = parser.DeclVisitor(pars)
+
+        self.assertEqual(declvisitor.variables, [('cache', 'AbstractCache', []), ('myid', 'id_t', []), ('lalala', 'int', [])])
+
+
 
 #TODO clean this up a bit
 class myToken:

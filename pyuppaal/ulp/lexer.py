@@ -43,7 +43,8 @@ reserved = {
 'imply' : 'IMPLY',
 'return' : 'RETURN',
 'do' : 'DO',
-'typedef' : 'TYPEDEF'
+'typedef' : 'TYPEDEF',
+'extern' : 'EXTERN'
 }
 #TODO add <? and ?>
 
