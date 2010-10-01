@@ -30,6 +30,7 @@ class Parser:
     lexer = None
     expressionParser = None
     typedefDict = {}
+    externList = []
     
     def __init__(self, data, lexer):
         self.lexer = lexer
@@ -153,6 +154,7 @@ class Parser:
         n = Node('NodeExtern', [], ident)
 
         self.typedefDict[ident] = n
+        self.externList += [ident]
 
         self.accept('SEMI')
         return n
@@ -467,8 +469,8 @@ class DeclVisitor:
                     self.channels += [(ident, array_dimensions)]
                 elif last_type == 'NodeTypedef' or last_type == 'NodeExtern':
                     self.variables += [(ident, last_type_node.leaf, array_dimensions)]
-                else:
-                    print 'Unknown type: ' + last_type
+                #else:
+                #    print 'Unknown type: ' + last_type
                 return False #don't recurse further
             return True
         parser.AST.visit(visit_identifiers)
