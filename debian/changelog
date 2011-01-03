@@ -1,3 +1,9 @@
+python-pyuppaal (0.3) maverick; urgency=low
+
+  * New release, support for parsing more of uppaal c-code
+
+ -- Mads Chr. Olesen <mads@mchro.dk>  Mon, 03 Jan 2011 15:39:58 +0100
+
 python-pyuppaal (0.2) lucid; urgency=low
 
   * New release.
