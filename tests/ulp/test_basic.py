@@ -376,6 +376,30 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 1)
 
+        res = parser.parse("f() == 2")
+        self.assertEqual(res.type, "Equal") 
+        self.assertEqual(res.children[0].type, "FunctionCall")
+        self.assertEqual(res.children[0].children[0].type, "Identifier")
+        self.assertEqual(res.children[0].children[0].leaf, "f")
+        self.assertEqual(res.children[1].type, "Number")
+        self.assertEqual(res.children[1].leaf, 2)
+
+    def test_parse_array_index_expression(self):
+        parser = testParser(lexer.lexer)
+        res = parser.parse("a[1] == 2")
+        #parser = testParser(lexer.lexer)
+        #res = pars.parse()
+        res.visit()
+        self.assertEqual(res.type, "Equal") 
+        self.assertEqual(res.children[0].type, "Identifier")
+        self.assertEqual(res.children[0].children[0].type, "Index")
+        self.assertEqual(res.children[0].children[0].leaf.type, "Expression")
+        self.assertEqual(len(res.children[0].children[0].leaf.children), 1)
+        self.assertEqual(res.children[0].children[0].leaf.children[0].type, "Number")
+        self.assertEqual(res.children[0].children[0].leaf.children[0].leaf, 1)
+        self.assertEqual(res.children[1].type, "Number")
+        self.assertEqual(res.children[1].leaf, 2)
+
         #TODO, this is misparsed
         #res = parser.parse("N-1")
         #self.assertEqual(res.type, "Minus") 

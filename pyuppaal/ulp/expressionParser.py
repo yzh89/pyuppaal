@@ -206,14 +206,37 @@ class ExpressionParser:
         if self.parser.currentToken.type in ['IDENTIFIER', 'NUMBER']:
             if self.parser.currentToken.type == 'IDENTIFIER':
                 self.res_stack.append(self.parser.parseIdentifierComplex())
-                if self.parser.currentToken.type == 'PLUSPLUS': 
+                if self.parser.currentToken.type == 'PLUSPLUS': #x++
                     identifier = self.res_stack.pop()
                     self.res_stack.append(Node('PlusPlusPost',[identifier]))
                     self.parser.accept('PLUSPLUS')
-                elif self.parser.currentToken.type == 'MINUSMINUS':
+                elif self.parser.currentToken.type == 'MINUSMINUS': #x--
                     identifier = self.res_stack.pop()
                     self.res_stack.append(Node('MinusMinusPost', [identifier]))
                     self.parser.accept('MINUSMINUS')
+                elif self.parser.currentToken.type == 'LPAREN':  #function call, f(..)
+                    self.parser.accept('LPAREN')
+                    #XXX assume no arguments
+                    assert self.parser.currentToken.type == 'RPAREN'
+                    self.parser.accept('RPAREN')
+                    
+                    identifier = self.res_stack.pop()
+                    self.res_stack.append(Node('FunctionCall', [identifier]))
+                elif self.parser.currentToken.type == 'LBRACKET':  #array index, a[..]
+                    identifier = self.res_stack.pop()
+                    n = Node('Identifier', [], identifier.leaf)
+                    while self.parser.currentToken.type == 'LBRACKET':
+                        self.parser.accept('LBRACKET')
+                        self._infix_eval_atom()
+                        expr = self.res_stack.pop()
+                        self.parser.accept('RBRACKET')
+                        n.children.append(Node('Index', [], expr))
+
+                    self.res_stack.append(n)
+                        
+                        
+
+
             else:
                 self.res_stack.append(self.parser.parseNumber())
         elif self.parser.currentToken.type == 'LPAREN':
