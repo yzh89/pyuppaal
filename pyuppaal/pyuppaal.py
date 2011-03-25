@@ -354,7 +354,7 @@ def from_xml(xmlsock):
                 locations[transitionxml.find('source').get('ref')],
                 locations[transitionxml.find('target').get('ref')],
                 )
-            transition.controllable = ('controllable', 'false') in transitionxml.items()
+            transition.controllable = ('controllable', 'true') in transitionxml.items()
             if 'action' in transitionxml.keys():
                 l = [s[1] for s in transitionxml.items() if s[0] == 'action']
                 transition.action = l[0]
