@@ -157,6 +157,12 @@ system Process;""")
         self.assertEqual(len(uncontrollable),  1)
         self.assertEqual(str(controllable[0].target.name), 'to_controllable')
         self.assertEqual(str(uncontrollable[0].target.name), 'to_uncontrollable')
+        # now test that XML created in non-TIGA version of UPPAAL contains only controllable transitions
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'small.xml'))
+        nta = pyuppaal.from_xml(file)
+        self.assertEqual(len(nta.templates), 1)
+        self.assertEqual(len(nta.templates[0].transitions), 1)
+        self.assertTrue(nta.templates[0].transitions[0].controllable)
 
 if __name__ == '__main__':
     unittest.main()
