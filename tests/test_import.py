@@ -139,7 +139,24 @@ system Process;""")
 
         lines = fh.read().split('\n')
         self.assertEqual(lines[-1], '//NO_QUERY')
-        
+
+    def test_tga(self):
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'tga.xml'))
+        nta = pyuppaal.from_xml(file)
+        self.assertEqual(len(nta.templates), 1)
+        self.assertEqual(len(nta.templates[0].transitions), 2)
+        controllable = []
+        uncontrollable = []
+        for transition in nta.templates[0].transitions:
+            self.assertEqual(type(transition.controllable), bool)
+            if transition.controllable:
+                controllable.append(transition)
+            else:
+                uncontrollable.append(transition)
+        self.assertEqual(len(controllable), 1)
+        self.assertEqual(len(uncontrollable),  1)
+        self.assertEqual(str(controllable[0].target.name), 'to_controllable')
+        self.assertEqual(str(uncontrollable[0].target.name), 'to_uncontrollable')
 
 if __name__ == '__main__':
     unittest.main()
