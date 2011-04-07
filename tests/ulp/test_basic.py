@@ -63,10 +63,12 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res[4].children[0].children[0].type, "Index") 
         self.assertEqual(res[6].children[0].children[0].type, "Index") 
         self.assertEqual(res[6].children[0].children[1].type, "Index") 
-        myParser = testParser(lexer.lexer)
-        res = myParser.parse("a[]")
-        self.assertEqual(res.type, "Identifier") 
-        self.assertEqual(len(res.children), 0)
+
+        #mchro 07-04-2011: don't allow empty brackets, it's not a valid expression
+        #myParser = testParser(lexer.lexer)
+        #res = myParser.parse("a[]")
+        #self.assertEqual(res.type, "Identifier") 
+        #self.assertEqual(len(res.children), 0)
 
     def test_struct(self):
         test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_struct.txt'), "r")
@@ -389,19 +391,18 @@ class TestBasicParsing(unittest.TestCase):
         res = parser.parse("a[1] == 2")
         #parser = testParser(lexer.lexer)
         #res = pars.parse()
-        res.visit()
+        #res.visit()
         self.assertEqual(res.type, "Equal") 
         self.assertEqual(res.children[0].type, "Identifier")
         self.assertEqual(res.children[0].children[0].type, "Index")
-        self.assertEqual(res.children[0].children[0].leaf.type, "Expression")
-        self.assertEqual(len(res.children[0].children[0].leaf.children), 1)
-        self.assertEqual(res.children[0].children[0].leaf.children[0].type, "Number")
-        self.assertEqual(res.children[0].children[0].leaf.children[0].leaf, 1)
+        self.assertEqual(res.children[0].children[0].leaf.type, "Number")
+        self.assertEqual(res.children[0].children[0].leaf.leaf, 1)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 2)
 
         #TODO, this is misparsed
         #res = parser.parse("N-1")
+        #res.visit()
         #self.assertEqual(res.type, "Minus") 
         #self.assertEqual(res.children[0].type, "Identifier")
         #self.assertEqual(res.children[0].leaf, 'N')

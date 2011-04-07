@@ -77,7 +77,7 @@ class Template:
             i = i + 1
 
     def dot2uppaalcoord(self, coord):
-        return int(-int(coord)*1.5)
+        return int(-float(coord)*1.5)
 
     def layout(self, auto_nails=False):
         self.assign_ids()
