@@ -353,7 +353,13 @@ def from_xml(xmlsock):
             transition = Transition(
                 locations[transitionxml.find('source').get('ref')],
                 locations[transitionxml.find('target').get('ref')],
-                )
+                )            
+            transition.controllable = ('controllable', 'false') not in transitionxml.items()
+            if 'action' in transitionxml.keys():
+                l = [s[1] for s in transitionxml.items() if s[0] == 'action']
+                transition.action = l[0]
+            else:
+                transition.action = None
             for labelxml in transitionxml.getiterator("label"):
                 if labelxml.get('kind') in ['select', 'guard', 'assignment', 
                                             'synchronisation']:
