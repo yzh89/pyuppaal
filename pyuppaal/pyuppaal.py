@@ -209,10 +209,11 @@ class Label:
 
 class Location:
     @require_keyword_args(1)
-    def __init__(self, invariant=None, committed=False, name=None, id = None,
+    def __init__(self, invariant=None, urgent=False, committed=False, name=None, id = None,
         xpos=0, ypos=0):
         self.invariant = Label("invariant", invariant)
         self.committed = committed
+	self.urgent = urgent
         self.name = Label("name", name)
         self.id = id
         self.xpos = xpos
@@ -232,8 +233,9 @@ class Location:
       %s
       %s
       %s
+      %s
     </location>""" % (self.id, self.xpos, self.ypos, namexml, invariantxml,
-        self.committed and '<committed />' or '')
+        self.committed and '<committed />' or '', self.urgent and '<urgent />' or '')
 
 class Branchpoint:
     @require_keyword_args(1)
@@ -335,6 +337,8 @@ def from_xml(xmlsock):
                     )
             if locationxml.find("committed") != None:
                 location.committed = True
+            if locationxml.find("urgent") != None:
+                location.urgent = True
             for labelxml in locationxml.getiterator("label"):
                 if labelxml.get('kind') == 'invariant':
                     location.invariant = Label("invariant", labelxml.text)
