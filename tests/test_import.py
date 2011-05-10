@@ -84,6 +84,11 @@ system Process;""")
         self.assertEqual(nta.templates[0].locations[0].xpos, 0)
         self.assertEqual(nta.templates[0].locations[0].ypos, 0)
 
+    def test_import_urgent(self):
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'urgent.xml'))
+        nta = pyuppaal.from_xml(file)
+        self.assertEqual(nta.templates[0].locations[0].urgent, True)
+
     def test_import_nocoords(self):
         file = open(os.path.join(os.path.dirname(sys.argv[0]), 'small_nocoords.xml'))
         nta = pyuppaal.from_xml(file)
