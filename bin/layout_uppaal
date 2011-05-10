@@ -1,15 +1,23 @@
 #!/usr/bin/python
 import pyuppaal
 import sys
+import argparse
+parser = argparse.ArgumentParser(description='layout_uppaal')
+parser.add_argument('--templates', '-T', action='store', type=lambda x: x.split(','), dest='templates', help='Set template list: template_1,...,template_n', default=[])
+parser.add_argument('--template',  '-t', action='append', default=[], dest='templates', help='Append to template list')
+parser.add_argument('infile', type=argparse.FileType('r'), help='input file or \'-\' for stdin')
+parser.add_argument('outfile', type=argparse.FileType('w'), help='output file or \'-\' for stdout')
+parser.add_argument('--version', action='version', version='%(prog)s 1.1')
 
-file = open(sys.argv[1])
+result = parser.parse_args()
 
-nta = pyuppaal.from_xml(file)
+nta = pyuppaal.from_xml(result.infile)
 
 for template in nta.templates:
-    template.layout(auto_nails=True)
+    if template.name in result.templates:
+        print >> sys.stderr,'updating template: ', template.name
+        template.layout(auto_nails=True)
 
-file = open(sys.argv[2], 'w')
-file.write(nta.to_xml())
+result.outfile.write(nta.to_xml())
 
 # vim:ts=4:sw=4:expandtab
