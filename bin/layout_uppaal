@@ -14,7 +14,7 @@ result = parser.parse_args()
 nta = pyuppaal.from_xml(result.infile)
 
 for template in nta.templates:
-    if template.name in result.templates:
+    if template.name in result.templates or not result.templates:
         print >> sys.stderr,'updating template: ', template.name
         template.layout(auto_nails=True)
 
