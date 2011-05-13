@@ -79,8 +79,12 @@ class Template:
 
     def dot2uppaalcoord(self, coord):
         return int(-float(coord)*1.5)
+    
+    def sharpenTransitions(self, nailAngleThreshold, nailInterDistanceThreshold):
+        for transition in self.transitions:
+            transition.sharpen(nailAngleThreshold, nailInterDistanceThreshold)
 
-    def layout(self, auto_nails=False):
+    def layout(self, auto_nails=False, nailAngleThreshold=110.0, nailInterDistanceThreshold=1.0):
         self.assign_ids()
 
         G = pygraphviz.AGraph(strict=False)
@@ -125,7 +129,6 @@ class Template:
                 for nailpos in edge.attr['pos'].split(" "):
                     xpos, ypos = map(self.dot2uppaalcoord, nailpos.split(","))
                     t.nails += [Nail(xpos, ypos)]
-            t.sharpen()
             ydelta = 0
             for a in ['select', 'guard', 'synchronisation', 'assignment']:
                 label = getattr(t, a)
@@ -134,7 +137,8 @@ class Template:
                     label.xpos = x
                     label.ypos = y+ydelta
                     ydelta += UPPAAL_LINEHEIGHT
-
+        self.sharpenTransitions(nailAngleThreshold, nailInterDistanceThreshold)
+ 
 
     def _parameter_to_xml(self):
         if self.parameter:
@@ -275,7 +279,7 @@ class Transition:
             assignment=self.assignment.value)
         return newone
 
-    def sharpen(self, angleThreshold=110.0, lengthThreshold=1.0):
+    def sharpen(self, angleThreshold, lengthThreshold):
         count = 0
         while True: # do while? 
             removed = False
