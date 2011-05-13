@@ -25,6 +25,7 @@ import xml.etree.cElementTree as ElementTree
 import subprocess
 import re
 import tempfile, os
+import math
 
 def require_keyword_args(num_unnamed):
     """Decorator s.t. a function's named arguments cannot be used unnamed"""
@@ -106,7 +107,6 @@ class Template:
                     edge.attr['label'] = label
                 curnode = nextnode
         G.layout(prog='dot')
-        G.write('/tmp/test1.dot')
 
         for l in self.locations:
             (l.xpos, l.ypos) = map(self.dot2uppaalcoord, G.get_node(l.id).attr['pos'].split(','))
@@ -125,7 +125,7 @@ class Template:
                 for nailpos in edge.attr['pos'].split(" "):
                     xpos, ypos = map(self.dot2uppaalcoord, nailpos.split(","))
                     t.nails += [Nail(xpos, ypos)]
-
+            t.sharpen()
             ydelta = 0
             for a in ['select', 'guard', 'synchronisation', 'assignment']:
                 label = getattr(t, a)
@@ -134,6 +134,7 @@ class Template:
                     label.xpos = x
                     label.ypos = y+ydelta
                     ydelta += UPPAAL_LINEHEIGHT
+
 
     def _parameter_to_xml(self):
         if self.parameter:
@@ -274,6 +275,40 @@ class Transition:
             assignment=self.assignment.value)
         return newone
 
+    def sharpen(self, angleThreshold=110.0, lengthThreshold=1.0):
+        count = 0
+        while True: # do while? 
+            removed = False
+            for nindex in xrange(len(self.nails)):
+                cur = (self.nails[nindex].xpos, self.nails[nindex].ypos)
+                if nindex > 0:
+                    prev = (self.nails[nindex-1].xpos, self.nails[nindex-1].ypos)
+                else:
+                    prev = (self.source.xpos, self.source.ypos)
+                if len(self.nails) > nindex+1:
+                    next = (self.nails[nindex+1].xpos, self.nails[nindex+1].ypos)
+                else:
+                    next = (self.target.xpos, self.target.ypos)
+                v1 = (prev[0]-cur[0], prev[1]-cur[1])
+                v2 = (next[0]-cur[0], next[1]-cur[1])
+                v1len = (math.sqrt((v1[0]*v1[0])+(v1[1]*v1[1])))
+                v2len = (math.sqrt((v2[0]*v2[0])+(v2[1]*v2[1])))
+                if v1len<lengthThreshold or v2len<lengthThreshold:
+                    self.nails.pop(nindex)
+                    count += 1
+                    removed=True
+                    break
+                dot = (v1[0] * v2[0] + v1[1] * v2[1])/(v1len*v2len)
+                radian = math.acos(dot)
+                angle  = (radian * (180.0/math.pi))
+                if angle > angleThreshold:
+                    self.nails.pop(nindex)
+                    count += 1
+                    removed=True
+                    break
+            if not removed:
+                break
+        return count
     def to_xml(self):
         return """
     <transition>
