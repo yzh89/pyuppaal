@@ -41,7 +41,7 @@ system Process;""")
         self.assertEqual(len(schedulerTemplate.locations), 4)
         self.assertEqual(len(schedulerTemplate.transitions), 6)
         for template in nta.templates:
-            print "Layouting ", template.name
+            #print "Layouting ", template.name
             template.layout()
 
     def test_import_petur_boegholm_minimal(self):
