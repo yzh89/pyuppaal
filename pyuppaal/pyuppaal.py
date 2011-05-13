@@ -279,30 +279,27 @@ class Transition:
         count = 0
         while True: # do while? 
             removed = False
-            for nindex in xrange(len(self.nails)):
-                cur = (self.nails[nindex].xpos, self.nails[nindex].ypos)
-                if nindex > 0:
-                    prev = (self.nails[nindex-1].xpos, self.nails[nindex-1].ypos)
-                else:
-                    prev = (self.source.xpos, self.source.ypos)
-                if len(self.nails) > nindex+1:
-                    next = (self.nails[nindex+1].xpos, self.nails[nindex+1].ypos)
-                else:
-                    next = (self.target.xpos, self.target.ypos)
+            nail_to_pos = lambda nail: (nail.xpos, nail.ypos)
+
+            for (prev, curnail, next) in zip(
+                    [(self.source.xpos, self.source.ypos)] + map(nail_to_pos, self.nails[:-1]), 
+                    self.nails, 
+                    map(nail_to_pos, self.nails[1:]) + [(self.target.xpos, self.target.ypos)]
+                    ):
+                cur = nail_to_pos(curnail)
                 v1 = (prev[0]-cur[0], prev[1]-cur[1])
                 v2 = (next[0]-cur[0], next[1]-cur[1])
                 v1len = (math.sqrt((v1[0]*v1[0])+(v1[1]*v1[1])))
                 v2len = (math.sqrt((v2[0]*v2[0])+(v2[1]*v2[1])))
                 if v1len<lengthThreshold or v2len<lengthThreshold:
-                    self.nails.pop(nindex)
+                    self.nails.remove(curnail)
                     count += 1
                     removed=True
                     break
                 dot = (v1[0] * v2[0] + v1[1] * v2[1])/(v1len*v2len)
-                radian = math.acos(dot)
-                angle  = (radian * (180.0/math.pi))
+                angle = math.degrees(math.acos(dot))
                 if angle > angleThreshold:
-                    self.nails.pop(nindex)
+                    self.nails.remove(curnail)
                     count += 1
                     removed=True
                     break
