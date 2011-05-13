@@ -32,18 +32,17 @@ system Process;""")
         self.assertEqual(len(nta.templates[0].transitions), 1)
         self.assertEqual(nta.templates[0].locations[1].committed, True)
 
-#    def test_import_petur_boegholm(self):
-#        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'petur_boegholm_testcase.xml'))
-#        nta = pyuppaal.from_xml(file)
-#        self.assertEqual(len(nta.templates), 20)
-#        schedulerTemplate = nta.templates[0]
-#        self.assertEqual(schedulerTemplate.name, 'Scheduler')
-#        self.assertEqual(len(schedulerTemplate.locations), 4)
-#        self.assertEqual(len(schedulerTemplate.transitions), 6)
-#        schedulerTemplate.layout()
-#        for template in nta.templates:
-#            print "Layouting ", template.name
-#            template.layout()
+    def test_import_petur_boegholm(self):
+        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'petur_boegholm_testcase.xml'))
+        nta = pyuppaal.from_xml(file)
+        self.assertEqual(len(nta.templates), 20)
+        schedulerTemplate = nta.templates[0]
+        self.assertEqual(schedulerTemplate.name, 'Scheduler')
+        self.assertEqual(len(schedulerTemplate.locations), 4)
+        self.assertEqual(len(schedulerTemplate.transitions), 6)
+        for template in nta.templates:
+            print "Layouting ", template.name
+            template.layout()
 
     def test_import_petur_boegholm_minimal(self):
         file = open(os.path.join(os.path.dirname(sys.argv[0]), 'petur_boegholm_testcase_minimal.xml'))

@@ -88,8 +88,8 @@ class Template:
         self.assign_ids()
 
         G = pygraphviz.AGraph(strict=False)
-        for l in self.locations:
-            #TODO: initial node should be the first (dot will place it at the top then)
+        #initial node should be the first (dot will place it at the top then)
+        for l in [self.initlocation] + self.locations:
             G.add_node(l.id)
             node = G.get_node(l.id)
             node.attr['label'] = l.invariant.get_value().replace('\n', '\\n')
@@ -301,6 +301,8 @@ class Transition:
                     removed=True
                     break
                 dot = (v1[0] * v2[0] + v1[1] * v2[1])/(v1len*v2len)
+                #clamp input to between 1...-1
+                dot = max(-1.0, min(dot, 1.0))
                 angle = math.degrees(math.acos(dot))
                 if angle > angleThreshold:
                     self.nails.remove(curnail)
