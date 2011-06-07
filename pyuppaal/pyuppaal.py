@@ -258,7 +258,7 @@ last_transition_id = 0
 class Transition:
     @require_keyword_args(3)
     def __init__(self, source, target, select='', guard='', synchronisation='',
-                    assignment=''):
+                    assignment='', action = None):
         self.source = source
         self.target = target
         self.select = Label("select", select)
@@ -266,6 +266,7 @@ class Transition:
         self.synchronisation = Label("synchronisation", synchronisation)
         self.assignment = Label("assignment", assignment)
         self.nails = []
+        self.action = action
 
         global last_transition_id
         self.id = 'Transition' + str(last_transition_id)
@@ -313,8 +314,12 @@ class Transition:
                 break
         return count
     def to_xml(self):
+        if self.action is None:
+            action_str = ''
+        else:
+            action_str = ' action="' + str(self.action) + '"'
         return """
-    <transition>
+    <transition%s>
       <source ref="%s" />
       <target ref="%s" />
       %s
@@ -322,7 +327,7 @@ class Transition:
       %s
       %s
       %s
-    </transition>""" % (self.source.id, self.target.id,
+    </transition>""" % (action_str, self.source.id, self.target.id,
         self.select.to_xml(), self.guard.to_xml(),
         self.synchronisation.to_xml(), self.assignment.to_xml(),
         "\n".join(map(lambda x: x.to_xml(), self.nails))
