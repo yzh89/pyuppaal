@@ -258,7 +258,7 @@ last_transition_id = 0
 class Transition:
     @require_keyword_args(3)
     def __init__(self, source, target, select='', guard='', synchronisation='',
-                    assignment='', action = None):
+                    assignment='', action = None, controllable=True):
         self.source = source
         self.target = target
         self.select = Label("select", select)
@@ -267,6 +267,7 @@ class Transition:
         self.assignment = Label("assignment", assignment)
         self.nails = []
         self.action = action
+        self.controllable = controllable
 
         global last_transition_id
         self.id = 'Transition' + str(last_transition_id)
@@ -318,8 +319,12 @@ class Transition:
             action_str = ''
         else:
             action_str = ' action="' + str(self.action) + '"'
+        if self.controllable is False:
+            controllable_str = ' controllable="false"'
+        else:
+            controllable_str = ''
         return """
-    <transition%s>
+    <transition%s%s>
       <source ref="%s" />
       <target ref="%s" />
       %s
@@ -327,7 +332,7 @@ class Transition:
       %s
       %s
       %s
-    </transition>""" % (action_str, self.source.id, self.target.id,
+    </transition>""" % (action_str,controllable_str,self.source.id, self.target.id,
         self.select.to_xml(), self.guard.to_xml(),
         self.synchronisation.to_xml(), self.assignment.to_xml(),
         "\n".join(map(lambda x: x.to_xml(), self.nails))
