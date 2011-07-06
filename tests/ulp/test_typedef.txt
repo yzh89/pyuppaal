@@ -8,3 +8,7 @@ myStructType m;
 typedef int adr;
 
 adr n;
+
+extern DBMClock;
+typedef DBMClock clock;
+clock c;

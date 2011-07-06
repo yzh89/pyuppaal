@@ -29,13 +29,15 @@ class Parser:
     currentToken = None
     lexer = None
     expressionParser = None
-    typedefDict = {}
-    externList = []
     
     def __init__(self, data, lexer):
         self.lexer = lexer
         self.lexer.input(data)
         self.currentToken = self.lexer.token()
+
+        self.typedefDict = {}
+        self.externList = []
+
         children = []
         if self.currentToken != None:
             children = self.parseStatements()
@@ -139,6 +141,10 @@ class Parser:
             if self.currentToken.type == 'IDENTIFIER':
                 typeName = self.currentToken.value
                 self.accept('IDENTIFIER')
+            elif self.currentToken.type == 'CLOCK':
+                #allow redefining clock
+                typeName = self.currentToken.value
+                self.accept('CLOCK')
             else:
                 typeName = 'ErrorName'
                 self.error('Expected identifier')
@@ -450,9 +456,17 @@ class DeclVisitor:
                 last_type = 'TypeExtern'
             elif node.type == 'Identifier':
                 ident = node.leaf
+                
+                #parse out entire name (follow dots)
+                curnode = node
+                while len(curnode.children) > 0 and curnode.children[0].type == 'Identifier':
+                    assert len(curnode.children) == 1
+                    curnode = curnode.children[0]
+                    ident += '.' + curnode.leaf
+
                 #find array dimensions (if any)
                 array_dimensions = []
-                for child in [c for c in node.children if c.type == 'Index']:
+                for child in [c for c in curnode.children if c.type == 'Index']:
                     array_dimensions += [child.leaf]
 
                 if last_type == 'TypeInt':
@@ -463,8 +477,15 @@ class DeclVisitor:
                 elif last_type == 'TypeBool':
                     self.variables += [(ident, 'bool', array_dimensions)]
                 elif last_type == 'TypeClock':
+                    #'clock' may have been typedef'ed
+                    clocktypedef = parser.typedefDict.get('clock', None)
                     #TODO calculate max constant
-                    self.clocks += [(node.leaf, 10)]
+                    if clocktypedef:
+                        #treat clock as normal variable
+                        clocktype = clocktypedef.children[0].leaf
+                        self.variables += [(ident, clocktype, array_dimensions)]
+                    else:
+                        self.clocks += [(node.leaf, 10)]
                 elif last_type == 'TypeChannel':
                     self.channels += [(ident, array_dimensions)]
                 elif last_type == 'NodeTypedef' or last_type == 'NodeExtern':
