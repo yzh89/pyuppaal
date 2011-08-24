@@ -60,6 +60,94 @@ class NTA:
   %s
   <system>%s</system>
 </nta>""" % (cgi.escape(self.declaration), templatesxml, cgi.escape(self.system))
+    @classmethod
+    def from_xml(cls, xmlsock):
+        nta = cls()
+        nta._from_xml(xmlsock)
+        return nta
+
+    def _from_xml(self, xmlsock):
+        xmldoc = ElementTree.ElementTree(file=xmlsock).getroot()
+
+        def int_or_none(text):
+            if text != None:
+                return int(text)
+            return None
+
+        #ntaxml = xmldoc.getElementsByTagName("nta")[0]
+        ntaxml = xmldoc
+        self.declaration = ntaxml.findtext('declaration') or ""
+        self.system = ntaxml.findtext('system') or ""
+        self.templates = []
+        for templatexml in ntaxml.getiterator("template"):
+            locations = {}
+            for locationxml in templatexml.getiterator("location"):
+                name = locationxml.findtext("name")
+                location = Location(id=locationxml.get('id'),
+                    xpos=int(locationxml.get('x', 0)),
+                    ypos=int(locationxml.get('y', 0)), name=name)
+                namexml = locationxml.find('name')
+                if namexml != None:
+                    (location.name.xpos, location.name.ypos) = \
+                        (int_or_none(namexml.get('x', None)),
+                        int_or_none(namexml.get('y', None))
+                        )
+                if locationxml.find("committed") != None:
+                    location.committed = True
+                if locationxml.find("urgent") != None:
+                    location.urgent = True
+                for labelxml in locationxml.getiterator("label"):
+                    if labelxml.get('kind') == 'invariant':
+                        location.invariant = Label("invariant", labelxml.text)
+                        location.invariant.xpos = int_or_none(labelxml.get('x', None))
+                        location.invariant.ypos = int_or_none(labelxml.get('y', None))
+
+                    #TODO other labels
+                locations[location.id] = location
+            for branchpointxml in templatexml.getiterator("branchpoint"):
+                branchpoint = Branchpoint(id=branchpointxml.get('id'),
+                    xpos=int_or_none(branchpointxml.get('x', None)),
+                    ypos=int_or_none(branchpointxml.get('y', None)))
+                locations[branchpoint.id] = branchpoint
+            transitions = []
+            for transitionxml in templatexml.getiterator("transition"):
+                transition = Transition(
+                    locations[transitionxml.find('source').get('ref')],
+                    locations[transitionxml.find('target').get('ref')],
+                    )            
+                transition.controllable = ('controllable', 'false') not in transitionxml.items()
+                if 'action' in transitionxml.keys():
+                    l = [s[1] for s in transitionxml.items() if s[0] == 'action']
+                    transition.action = l[0]
+                else:
+                    transition.action = None
+                for labelxml in transitionxml.getiterator("label"):
+                    if labelxml.get('kind') in ['select', 'guard', 'assignment', 
+                                                'synchronisation']:
+                        label = getattr(transition, labelxml.get('kind'))
+                        label.value = labelxml.text
+                        label.xpos = int_or_none(labelxml.get('x', None))
+                        label.ypos = int_or_none(labelxml.get('y', None))
+                for nailxml in transitionxml.getiterator("nail"):
+                    transition.nails += [
+                        Nail(int_or_none(nailxml.get('x', None)), 
+                            int_or_none(nailxml.get('y', None)))]
+                transitions += [transition]
+
+            declaration = templatexml.findtext("declaration") or ""
+            parameter = templatexml.findtext("parameter") or ""
+
+            if templatexml.find("init") != None:
+                initlocation=locations[templatexml.find("init").get('ref')]
+            else:
+                initlocation = None
+            template = Template(templatexml.find("name").text,
+                declaration,
+                locations.values(),
+                initlocation=initlocation,
+                transitions=transitions,
+                parameter=parameter)
+            self.templates += [template]    
 
 class Template:
     def __init__(self, name, declaration="", locations=None, initlocation=None, transitions=None, parameter=None):
@@ -356,92 +444,6 @@ class Nail:
         return """
     <nail x="%s" y="%s" />""" % \
             (self.xpos, self.ypos)
-
-def from_xml(xmlsock):
-    xmldoc = ElementTree.ElementTree(file=xmlsock).getroot()
-
-    def int_or_none(text):
-        if text != None:
-            return int(text)
-        return None
-
-    #ntaxml = xmldoc.getElementsByTagName("nta")[0]
-    ntaxml = xmldoc
-    system_declaration = ntaxml.findtext('declaration') or ""
-    system = ntaxml.findtext('system') or ""
-    templates = []
-    for templatexml in ntaxml.getiterator("template"):
-        locations = {}
-        for locationxml in templatexml.getiterator("location"):
-            name = locationxml.findtext("name")
-            location = Location(id=locationxml.get('id'),
-                xpos=int(locationxml.get('x', 0)),
-                ypos=int(locationxml.get('y', 0)), name=name)
-            namexml = locationxml.find('name')
-            if namexml != None:
-                (location.name.xpos, location.name.ypos) = \
-                    (int_or_none(namexml.get('x', None)),
-                    int_or_none(namexml.get('y', None))
-                    )
-            if locationxml.find("committed") != None:
-                location.committed = True
-            if locationxml.find("urgent") != None:
-                location.urgent = True
-            for labelxml in locationxml.getiterator("label"):
-                if labelxml.get('kind') == 'invariant':
-                    location.invariant = Label("invariant", labelxml.text)
-                    location.invariant.xpos = int_or_none(labelxml.get('x', None))
-                    location.invariant.ypos = int_or_none(labelxml.get('y', None))
-
-                #TODO other labels
-            locations[location.id] = location
-        for branchpointxml in templatexml.getiterator("branchpoint"):
-            branchpoint = Branchpoint(id=branchpointxml.get('id'),
-                xpos=int_or_none(branchpointxml.get('x', None)),
-                ypos=int_or_none(branchpointxml.get('y', None)))
-            locations[branchpoint.id] = branchpoint
-        transitions = []
-        for transitionxml in templatexml.getiterator("transition"):
-            transition = Transition(
-                locations[transitionxml.find('source').get('ref')],
-                locations[transitionxml.find('target').get('ref')],
-                )            
-            transition.controllable = ('controllable', 'false') not in transitionxml.items()
-            if 'action' in transitionxml.keys():
-                l = [s[1] for s in transitionxml.items() if s[0] == 'action']
-                transition.action = l[0]
-            else:
-                transition.action = None
-            for labelxml in transitionxml.getiterator("label"):
-                if labelxml.get('kind') in ['select', 'guard', 'assignment', 
-                                            'synchronisation']:
-                    label = getattr(transition, labelxml.get('kind'))
-                    label.value = labelxml.text
-                    label.xpos = int_or_none(labelxml.get('x', None))
-                    label.ypos = int_or_none(labelxml.get('y', None))
-            for nailxml in transitionxml.getiterator("nail"):
-                transition.nails += [
-                    Nail(int_or_none(nailxml.get('x', None)), 
-                        int_or_none(nailxml.get('y', None)))]
-            transitions += [transition]
-
-        declaration = templatexml.findtext("declaration") or ""
-        parameter = templatexml.findtext("parameter") or ""
-
-        if templatexml.find("init") != None:
-            initlocation=locations[templatexml.find("init").get('ref')]
-        else:
-            initlocation = None
-        template = Template(templatexml.find("name").text,
-            declaration,
-            locations.values(),
-            initlocation=initlocation,
-            transitions=transitions,
-            parameter=parameter)
-        templates += [template]    
-        
-    nta = NTA(system_declaration, system, templates)
-    return nta
 
 class QueryFile:
     def __init__(self, q = '', comment = ''):
