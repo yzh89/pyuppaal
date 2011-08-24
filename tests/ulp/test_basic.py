@@ -307,6 +307,14 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[0].leaf, 5)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 5)
+
+        res = parser.parse("5 != 5")
+        #res.visit()
+        self.assertEqual(res.type, "NotEqual") 
+        self.assertEqual(res.children[0].type, "Number")
+        self.assertEqual(res.children[0].leaf, 5)
+        self.assertEqual(res.children[1].type, "Number")
+        self.assertEqual(res.children[1].leaf, 5)
   
         res = parser.parse("5 and 4")
         self.assertEqual(res.type, "And")

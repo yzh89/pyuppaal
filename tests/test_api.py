@@ -64,7 +64,7 @@ class TestAPI(unittest.TestCase):
         (qfh, qfname) = qf.getTempFile()
 
         res = verify(ntafilename, qfname)
-        self.assertEqual(res, [True])
+        self.assertEqual(res, [True], "There was a problem calling 'verifyta', maybe its not on your PATH, or the output format has changed?")
 
         qf.deleteTempFile(qfh)
 
