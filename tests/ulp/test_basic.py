@@ -6,7 +6,28 @@ from pyuppaal.ulp import lexer, parser, expressionParser, node
 
 class TestBasicParsing(unittest.TestCase):
 
-    def test_parse_declaration(self):
+    def test_parse_declarations(self):
+        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_simple_declarations.txt'), "r")
+
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        res = pars.AST.children
+
+        #pars.AST.visit()
+
+        declvisitor = parser.DeclVisitor(pars)
+
+        self.assertEqual(declvisitor.variables, [('a', 'int', []), ('b', 'bool', []), ('b1', 'bool', []), ('b2', 'bool', [])])
+
+        self.assertEqual(len(declvisitor.clocks), 1)
+        self.assertEqual(declvisitor.clocks[0][0], 'c')
+
+        self.assertEqual(declvisitor.channels, [('d', [])])
+        self.assertEqual(declvisitor.urgent_channels, [('e', [])])
+        self.assertEqual(declvisitor.broadcast_channels, [('f', [])])
+        self.assertEqual(declvisitor.urgent_broadcast_channels, [('g', [])])
+
+    def test_parse_declarations2(self):
         test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_simple_declarations2.txt'), "r")
 
         lex = lexer.lexer

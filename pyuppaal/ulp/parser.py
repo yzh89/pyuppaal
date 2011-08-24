@@ -441,7 +441,9 @@ class DeclVisitor:
         self.variables = []
         self.clocks = []
         self.channels = []
-
+        self.urgent_channels = []
+        self.broadcast_channels = []
+        self.urgent_broadcast_channels = []
 
         last_type = None
         last_type_node = None
@@ -488,6 +490,12 @@ class DeclVisitor:
                         self.clocks += [(node.leaf, 10)]
                 elif last_type == 'TypeChannel':
                     self.channels += [(ident, array_dimensions)]
+                elif last_type == 'TypeUrgentChannel':
+                    self.urgent_channels += [(ident, array_dimensions)]
+                elif last_type == 'TypeBroadcastChannel':
+                    self.broadcast_channels += [(ident, array_dimensions)]
+                elif last_type == 'TypeUrgentBroadcastChannel':
+                    self.urgent_broadcast_channels += [(ident, array_dimensions)]
                 elif last_type == 'NodeTypedef' or last_type == 'NodeExtern':
                     self.variables += [(ident, last_type_node.leaf, array_dimensions)]
                 #else:

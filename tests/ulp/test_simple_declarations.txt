@@ -6,15 +6,4 @@ chan d;
 urgent chan e;
 broadcast chan f;
 urgent broadcast chan g;
-//meta int h;
-//meta bool i;
-const int j;
-const int k;
-//struct
-//{
-//  int a;
-//  int b;
-//} s;
-// TODO scalars
-// Array tests should go in array test file
 
