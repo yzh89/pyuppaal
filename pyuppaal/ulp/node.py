@@ -33,6 +33,9 @@ class Node:
             print 
         return True
 
+    def __repr__(self):
+        return "Node(%s, %s, %s)" % (self.type, self.children, self.leaf)
+
     def visit(self, visitor=None, level=0):
         """Visit this node and subnodes.
         visitor should be a function taking a node as parameter, and returning

@@ -37,6 +37,8 @@ reserved = {
 'struct' : 'STRUCT',
 'true' : 'TRUE',
 'false' : 'FALSE',
+'True' : 'TRUE',
+'False' : 'FALSE',
 'not' : 'NOT',
 'and' : 'AND',
 'or' : 'OR',
@@ -156,7 +158,7 @@ def t_IDENTIFIER(t):
 
 # Read in an int.
 def t_NUMBER(t):
-    r'-?\d+'
+    r'\d+'
     t.value = int(t.value)
     return t
 

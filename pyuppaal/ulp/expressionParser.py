@@ -23,6 +23,11 @@
 from lexer import *
 from node import Node
 import operator
+import logging
+logger = logging.getLogger('expressionParser')
+#no debug output by default
+#logger.setLevel(logging.INFO)
+
 
 class IllegalExpressionException(Exception):
     pass
@@ -151,11 +156,13 @@ class ExpressionParser:
 
         def __repr__(self):
             return '<%s(%s)>' % (self.name, self.prec)
-
+    
     # The operators recognized by the evaluator.
     #
     _ops = {
         'uMINUS':    Op('UnaryMinus', operator.neg, 90, unary=True),
+        'uLNOT':     Op('UnaryNot', operator.not_, 90, unary=True),
+        'uNOT':      Op('UnaryNot', operator.not_, 90, unary=True),
         'TIMES':     Op('Times', operator.mul, 50),
         'DIVIDE':    Op('Divide', operator.div, 50),
         'PLUS':      Op('Plus', operator.add, 40),
@@ -171,15 +178,20 @@ class ExpressionParser:
         'LESSEQ':    Op('LessEqual', operator.le, 20),
         'EQUAL':     Op('Equal', operator.eq, 15),
         'NOTEQUAL':  Op('NotEqual', operator.ne, 15),
-        'AND':       Op('And', operator.and_, 15),
-        'OR':        Op('Or', operator.and_, 15),
+        'LAND':      Op('And', operator.and_, 10), # &&
+        'AND':       Op('And', operator.and_, 10), # and
+        'LOR':       Op('Or', operator.or_, 10),   # ||
+        'OR':        Op('Or', operator.or_, 10),   # or
+        #XXX, we treat the logical ops the same as their names, e.g.
+        # "&&" ~ "and", "!" ~ "not", this is not the same as the uppaal
+        #documentation prescribes.
     }          
     
     # A set of operators that can be unary. If such an operator
     # is found, 'u' is prepended to its symbol for finding it in
     # the _ops table
     #
-    _unaries = set(['MINUS'])
+    _unaries = set(['MINUS', 'LNOT', 'NOT'])
     
     # Dummy operator with the lowest possible precedence (the 
     # Sentinel value in the Shunting Yard algorithm)
@@ -194,6 +206,7 @@ class ExpressionParser:
 
         while ( self.parser.currentToken.type in self._ops and 
                 self._ops[self.parser.currentToken.type].binary):
+            #logger.debug("%s, %s" % (str(self.res_stack), str(self.op_stack)))
             self._push_op(self._ops[self.parser.currentToken.type])
             self._get_next_token()
             self._infix_eval_atom()
@@ -206,7 +219,13 @@ class ExpressionParser:
             an atom prefixed by a unary operation, or a full
             expression inside parentheses.
         """
-        if self.parser.currentToken.type in ['IDENTIFIER', 'NUMBER']:
+        if self.parser.currentToken.type == 'TRUE':
+            self.res_stack.append(Node('True'))
+            self.parser.accept('TRUE')
+        if self.parser.currentToken.type == 'FALSE':
+            self.res_stack.append(Node('False'))
+            self.parser.accept('FALSE')
+        elif self.parser.currentToken.type in ['IDENTIFIER', 'NUMBER']:
             if self.parser.currentToken.type == 'IDENTIFIER':
                 self.res_stack.append(self.parser.parseIdentifierComplex())
                 if self.parser.currentToken.type == 'PLUSPLUS': #x++
@@ -219,12 +238,20 @@ class ExpressionParser:
                     self.parser.accept('MINUSMINUS')
                 elif self.parser.currentToken.type == 'LPAREN':  #function call, f(..)
                     self.parser.accept('LPAREN')
-                    #XXX assume no arguments
-                    assert self.parser.currentToken.type == 'RPAREN'
+                    #assert self.parser.currentToken.type == 'RPAREN'
+                    parameters = []
+                    while self.parser.currentToken.type != 'RPAREN':
+                        self.op_stack.append(self._sentinel)
+                        self._infix_eval_expr()
+                        if self.parser.currentToken.type == 'COMMA':
+                            self.parser.accept('COMMA')
+                        self.op_stack.pop()
+                        expr = self.res_stack.pop()
+                        parameters += [expr]
                     self.parser.accept('RPAREN')
                     
                     identifier = self.res_stack.pop()
-                    self.res_stack.append(Node('FunctionCall', [identifier]))
+                    self.res_stack.append(Node('FunctionCall', [identifier], parameters))
                 elif self.parser.currentToken.type == 'LBRACKET':  #array index, a[..]
                     identifier = self.res_stack.pop()
                     #import pdb;pdb.set_trace()
@@ -273,19 +300,18 @@ class ExpressionParser:
             But first computes and removes all higher-precedence 
             operators from it.
         """
-        #~ print 'push_op: stack =', self.op_stack
-        #~ print '    ...', op
+        logger.debug('push_op: op_stack = %s + %s' , str(self.op_stack), str(op))
         while self.op_stack[-1].precedes(op):
             self._pop_op()
         self.op_stack.append(op)
-        #~ print '    ... =>', self.op_stack
+        logger.debug('     ... op_stack = %s', str(self.op_stack))
     
     def _pop_op(self):
         """ Pops an operation from the op stack, computing its
             result and storing it on the result stack.
         """
-        #~ print 'pop_op: op_stack =', self.op_stack
-        #~ print '    ... res_stack =', self.res_stack
+        logger.debug('pop_op: op_stack = %s', str(self.op_stack))
+        logger.debug('    ... res_stack = %s', str(self.res_stack))
         top_op = self.op_stack.pop()
         
         if top_op.unary:
@@ -297,7 +323,7 @@ class ExpressionParser:
             t1 = self.res_stack.pop()
             t0 = self.res_stack.pop()
             self.res_stack.append(top_op.apply(t0, t1))
-        #~ print '    ... => res_stack =', self.res_stack
+        logger.debug('    ... res_stack = %s', str(self.res_stack))
 
     def _get_next_token(self):
         self.parser.currentToken = self.lexer.token()
