@@ -7,7 +7,7 @@ from pyuppaal.ulp import lexer, parser, expressionParser, node
 class TestBasicParsing(unittest.TestCase):
 
     def test_parse_declarations(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_simple_declarations.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_simple_declarations.txt'), "r")
 
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
@@ -28,7 +28,7 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(declvisitor.urgent_broadcast_channels, [('g', [])])
 
     def test_parse_declarations2(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_simple_declarations2.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_simple_declarations2.txt'), "r")
 
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
@@ -71,7 +71,7 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(len(pars.AST.children), 0)
 
     def test_parse_array(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_array.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_array.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 7) #TODO add more asserts
@@ -92,13 +92,13 @@ class TestBasicParsing(unittest.TestCase):
         #self.assertEqual(len(res.children), 0)
 
     def test_struct(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_struct.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_struct.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
         
     def test_parse_typedef_simple(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_typedef_simple.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_typedef_simple.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         #pars.AST.visit()
@@ -134,7 +134,7 @@ class TestBasicParsing(unittest.TestCase):
 
 
     def test_parse_typedef(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_typedef.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_typedef.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         #pars.AST.visit()
@@ -168,12 +168,12 @@ class TestBasicParsing(unittest.TestCase):
         #self.assertFalse('a' in varnames)
 
     def test_parse_brackets(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_brackets.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_brackets.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
 
     def test_comments(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_comments.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_comments.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(pars.AST.type, "RootNode")
@@ -185,7 +185,7 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(len(pars.AST.children), 2) 
 
     def test_operators(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_operators.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_operators.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(pars.AST.type, "RootNode")
@@ -240,7 +240,7 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(len(pars.AST.children), 2)   
 
     def test_parse_assignments(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_assignments.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_assignments.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(pars.AST.type, "RootNode")
@@ -272,25 +272,25 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(len(pars.AST.children), 3) 
 
     def test_parse_for_loop(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_for_loop.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_for_loop.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
 
     def test_parse_while_loop(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_while_loop.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_while_loop.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
 
     def test_parse_do_while_loop(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_do_while_loop.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_do_while_loop.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
 
     def test_parse_simple_function(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_simple_function.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_simple_function.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 3) #TODO add more asserts
@@ -391,6 +391,33 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 2)
 
+        res = parser.parse("dbm.isEmpty()")
+        self.assertEqual(res.type, "FunctionCall") 
+        self.assertEqual(res.children[0].type, "Identifier")
+        self.assertEqual(res.children[0].leaf, "dbm")
+        self.assertEqual(res.children[0].children[0].type, "Identifier")
+        self.assertEqual(res.children[0].children[0].leaf, "isEmpty")
+
+        #res = parser.parse("(N - 0 - 1)")
+        #res.visit()
+
+        #res = parser.parse("(x == 5 && y == 4)")
+        #res.visit()
+
+        #res = parser.parse("True")
+        #res.visit()
+
+        #res = parser.parse("x[ 0 ][ 1 ] == True")
+        #res.visit()
+
+        res = parser.parse("msg[ 0 ][ N - 0 - 1 ] == True")
+        res.visit()
+
+        #res = parser.parse("msg[0][N-0-1] == true")
+        #res.visit()
+
+
+
     def test_parse_array_index_expression(self):
         parser = testParser(lexer.lexer)
         res = parser.parse("a[1] == 2")
@@ -415,7 +442,7 @@ class TestBasicParsing(unittest.TestCase):
         #self.assertEqual(res.children[1].leaf, 1)
 
     def test_parse_extern(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_extern.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern.txt'), "r")
 
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
@@ -426,7 +453,7 @@ class TestBasicParsing(unittest.TestCase):
         declvisitor = parser.DeclVisitor(pars)
 
     def test_parse_extern_dbm(self):
-        test_file = open(os.path.join(os.path.dirname(sys.argv[0]), 'test_extern_dbm.txt'), "r")
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern_dbm.txt'), "r")
 
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)

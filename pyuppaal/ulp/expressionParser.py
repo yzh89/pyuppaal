@@ -24,6 +24,9 @@ from lexer import *
 from node import Node
 import operator
 
+class IllegalExpressionException(Exception):
+    pass
+
 def parse_expression(data):
     """Helper function. Parses the string "data" and returns an AST of the
     expression."""
@@ -71,7 +74,7 @@ def parse_expression(data):
                 self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
 
         def error(self, msg):
-            print 'Error: Parser error', msg
+            raise IllegalExpressionException('Illegal expression: ' + msg)
 
     helperParser = DummyHelperParser(lexer)
     return helperParser.parse(data)
@@ -224,12 +227,21 @@ class ExpressionParser:
                     self.res_stack.append(Node('FunctionCall', [identifier]))
                 elif self.parser.currentToken.type == 'LBRACKET':  #array index, a[..]
                     identifier = self.res_stack.pop()
+                    #import pdb;pdb.set_trace()
                     n = Node('Identifier', [], identifier.leaf)
                     while self.parser.currentToken.type == 'LBRACKET':
                         self.parser.accept('LBRACKET')
-                        self._infix_eval_atom()
-                        expr = self.res_stack.pop()
+
+                        self.op_stack.append(self._sentinel)
+                        self._infix_eval_expr()
                         self.parser.accept('RBRACKET')
+                        self.op_stack.pop()
+                        expr = self.res_stack.pop()
+
+                        #self._infix_eval_atom()
+                        #expr = self.res_stack.pop()
+                        #self.parser.accept('RBRACKET')
+                        
                         n.children.append(Node('Index', [], expr))
 
                     self.res_stack.append(n)

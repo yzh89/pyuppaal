@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys
 import os.path
-projdir = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
+projdir = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path = [projdir] + sys.path
 from pyuppaal import *
 import unittest
@@ -58,7 +58,7 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(t1.target, t2.target)
 
     def test_verify(self):
-        ntafilename = os.path.join(os.path.dirname(sys.argv[0]), 'small_verify.xml')
+        ntafilename = os.path.join(os.path.dirname(__file__), 'small_verify.xml')
 
         qf = QueryFile('E<> Process.done')
         (qfh, qfname) = qf.getTempFile()
@@ -70,7 +70,7 @@ class TestAPI(unittest.TestCase):
 
     
     def DISABLED_test_verify_remote(self):
-        ntafilename = os.path.join(os.path.dirname(sys.argv[0]), 'small_verify.xml')
+        ntafilename = os.path.join(os.path.dirname(__file__), 'small_verify.xml')
 
         qf = QueryFile('E<> Process.done')
         (qfh, qfname) = qf.getTempFile()

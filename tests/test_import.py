@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys
 import os.path
-projdir = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
+projdir = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path = [projdir] + sys.path
 import pyuppaal
 import unittest
@@ -9,7 +9,7 @@ import os
 
 class TestMinimalImport(unittest.TestCase):
     def test_import_minimal(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'minimal.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'minimal.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(len(nta.templates), 1)
         self.assertEqual(len(nta.templates[0].locations), 1)
@@ -25,7 +25,7 @@ Process = Template();
 system Process;""")
 
     def test_import_small(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'small.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'small.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(len(nta.templates), 1)
         self.assertEqual(len(nta.templates[0].locations), 2)
@@ -33,7 +33,7 @@ system Process;""")
         self.assertEqual(nta.templates[0].locations[1].committed, True)
 
     def test_import_petur_boegholm(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'petur_boegholm_testcase.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'petur_boegholm_testcase.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(len(nta.templates), 20)
         schedulerTemplate = nta.templates[0]
@@ -45,7 +45,7 @@ system Process;""")
             template.layout()
 
     def test_import_petur_boegholm_minimal(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'petur_boegholm_testcase_minimal.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'petur_boegholm_testcase_minimal.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(len(nta.templates), 1)
         schedulerTemplate = nta.templates[0]
@@ -55,41 +55,41 @@ system Process;""")
         schedulerTemplate.layout(auto_nails=True)
 
     def test_import_template_parameter_minimal(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'parameter_minimal.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'parameter_minimal.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(len(nta.templates), 1)
         self.assertEqual(nta.templates[0].parameter, 'int id')
 
     def test_import_minimal_noinitlocation(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'noinit_minimal.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'noinit_minimal.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(nta.templates[0].initlocation, None)
 
     def test_import_minimal_name(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'minimal_name.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'minimal_name.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(nta.templates[0].initlocation.name.value, "abemad")
 
     def test_import_strangeguard(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'strangeguard.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'strangeguard.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(nta.templates[0].transitions[0].guard.get_value(), "")
         self.assertEqual(nta.templates[0].transitions[0].guard.xpos, -44)
         self.assertEqual(nta.templates[0].transitions[0].guard.ypos, -10)
 
     def test_import_noxypos(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'location_no_xypos.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'location_no_xypos.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(nta.templates[0].locations[0].xpos, 0)
         self.assertEqual(nta.templates[0].locations[0].ypos, 0)
 
     def test_import_urgent(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'urgent.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'urgent.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(nta.templates[0].locations[0].urgent, True)
 
     def test_import_nocoords(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'small_nocoords.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'small_nocoords.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         for l in nta.templates[0].locations:
             self.assertEqual(l.invariant.xpos, None)
@@ -102,7 +102,7 @@ system Process;""")
             self.assertEqual(a.ypos, None)
 
     def test_import_all_labels(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'small_all_labels.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'small_all_labels.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         temp = nta.templates[0]
         l1 = temp.locations[1]
@@ -120,7 +120,7 @@ system Process;""")
         self.assertEqual(t1.assignment.get_value(), "update")
 
     def test_import_minimal_0coord(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'minimal_0coord.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'minimal_0coord.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(len(nta.templates), 1)
         self.assertEqual(nta.templates[0].locations[0].xpos, 0)
@@ -145,7 +145,7 @@ system Process;""")
         self.assertEqual(lines[-1], '//NO_QUERY')
 
     def test_tga(self):
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'tga.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'tga.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(len(nta.templates), 1)
         self.assertEqual(len(nta.templates[0].transitions), 2)
@@ -162,7 +162,7 @@ system Process;""")
         self.assertEqual(str(controllable[0].target.name), 'to_controllable')
         self.assertEqual(str(uncontrollable[0].target.name), 'to_uncontrollable')
         # now test that XML created in non-TIGA version of UPPAAL contains only controllable transitions
-        file = open(os.path.join(os.path.dirname(sys.argv[0]), 'small.xml'))
+        file = open(os.path.join(os.path.dirname(__file__), 'small.xml'))
         nta = pyuppaal.NTA.from_xml(file)
         self.assertEqual(len(nta.templates), 1)
         self.assertEqual(len(nta.templates[0].transitions), 1)
