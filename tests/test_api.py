@@ -57,6 +57,19 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(t1.source, t2.source)
         self.assertEqual(t1.target, t2.target)
 
+    def test_get_location_by_name(self):
+        nta1 = NTA()
+        temp1 = Template('temp1')
+        nta1.templates += [temp1]
+        l1 = Location(name='a')
+        l2 = Location(name='b')
+        temp1.locations += [l1, l2]
+
+        self.assertEqual(len(temp1.locations), 2)
+        self.assertEqual(temp1.get_location_by_name('a'), l1)
+        self.assertEqual(temp1.get_location_by_name('b'), l2)
+
+
     def test_verify(self):
         ntafilename = os.path.join(os.path.dirname(__file__), 'small_verify.xml')
 

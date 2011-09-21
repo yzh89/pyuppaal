@@ -167,6 +167,11 @@ class Template:
 
     def dot2uppaalcoord(self, coord):
         return int(-float(coord)*1.5)
+
+    def get_location_by_name(self, name):
+        locs = [l for l in self.locations if l.name.value == name]
+        assert len(locs) == 1
+        return locs[0]
     
     def sharpenTransitions(self, nailAngleThreshold, nailInterDistanceThreshold):
         for transition in self.transitions:
@@ -306,7 +311,7 @@ class Location:
         xpos=0, ypos=0):
         self.invariant = Label("invariant", invariant)
         self.committed = committed
-	self.urgent = urgent
+        self.urgent = urgent
         self.name = Label("name", name)
         self.id = id
         self.xpos = xpos

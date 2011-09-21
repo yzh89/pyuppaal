@@ -26,7 +26,7 @@ import operator
 import logging
 logger = logging.getLogger('expressionParser')
 #no debug output by default
-#logger.setLevel(logging.INFO)
+logger.setLevel(logging.INFO)
 
 
 class IllegalExpressionException(Exception):
