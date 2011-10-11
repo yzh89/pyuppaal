@@ -45,8 +45,9 @@ reserved = {
 'imply' : 'IMPLY',
 'return' : 'RETURN',
 'do' : 'DO',
+'system' : 'SYSTEM',
 'typedef' : 'TYPEDEF',
-'extern' : 'EXTERN'
+'extern' : 'EXTERN', #opaal specific!
 }
 #TODO add <? and ?>
 
