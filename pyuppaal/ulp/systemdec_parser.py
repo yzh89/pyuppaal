@@ -21,6 +21,7 @@ import expressionParser
 from node import Node
 
 import ply.yacc as yacc
+import os
 
 class SystemDeclarationParser:
     def __init__(self, data, lex_optimize=True,
@@ -37,7 +38,9 @@ class SystemDeclarationParser:
             start='systemdec',
             debug=yacc_debug,
             optimize=yacc_optimize,
-            tabmodule=yacctab)
+            tabmodule=yacctab,
+            #generate parsertab next to this file
+            outputdir=os.path.dirname(__file__))
 
     def parse(self):
         return self.systemdec_parser.parse(self.data)
