@@ -40,4 +40,4 @@ systemdec_parser.SystemDeclarationParser('',
 # Load to compile into .pyc
 #
 #import lextab
-import yacctab
+import systemdec_parser_yacctab

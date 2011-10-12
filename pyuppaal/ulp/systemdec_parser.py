@@ -24,9 +24,9 @@ import ply.yacc as yacc
 
 class SystemDeclarationParser:
     def __init__(self, data, lex_optimize=True,
-            lextab='pyuppaal_systemdec_parser.lextab',
+            lextab='pyuppaal.ulp.systemdec_parser_lextab',
             yacc_optimize=False,
-            yacctab='pyuppaal_systemdec_parser.yacctab',
+            yacctab='pyuppaal.ulp.systemdec_parser_yacctab',
             yacc_debug=False):
         
         self.data = data

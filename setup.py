@@ -32,6 +32,28 @@ import os
 ###################### YOU SHOULD MODIFY ONLY WHAT IS BELOW ######################
 ##################################################################################
 
+from distutils.command.install_lib import install_lib
+#command to build parser tables after installation
+class install_lib_build_parser_tables(install_lib):
+    def run(self):
+        # Call parent 
+        install_lib.run(self)
+        # Execute commands
+        #import pdb; pdb.set_trace()
+
+        print "Would build parser tables"
+        self.execute(self.build_tables, [])
+
+    def build_tables(self):
+        prevdir = os.path.abspath(os.curdir)
+        try:
+            os.chdir(os.path.join(self.install_dir, 'pyuppaal', 'ulp'))
+
+            print "Building parser tables"
+            os.system("python _build_tables.py")
+        finally:
+            os.chdir(prevdir)
+
 DistUtilsExtra.auto.setup(
     name='pyuppaal',
     version='0.2',
@@ -40,6 +62,7 @@ DistUtilsExtra.auto.setup(
     author_email='mchro@cs.aau.dk',
     description='Python library for manipulating UPPAAL xml files',
     #long_description='Here a longer description',
-    url='https://launchpad.net/pyuppaal'
+    url='https://launchpad.net/pyuppaal',
+    cmdclass={"install_data": install_lib_build_parser_tables},
     )
 
