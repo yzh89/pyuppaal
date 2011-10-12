@@ -101,7 +101,10 @@ class NTA:
                         location.invariant = Label("invariant", labelxml.text)
                         location.invariant.xpos = int_or_none(labelxml.get('x', None))
                         location.invariant.ypos = int_or_none(labelxml.get('y', None))
-
+                    elif labelxml.get('kind') == 'exponentialrate':
+                        location.exprate = Label("exponentialrate", labelxml.text)
+                        location.exprate.xpos = int_or_none(labelxml.get('x', None))
+                        location.exprate.ypos = int_or_none(labelxml.get('y', None))
                     #TODO other labels
                 locations[location.id] = location
             for branchpointxml in templatexml.getiterator("branchpoint"):
@@ -310,6 +313,7 @@ class Location:
     def __init__(self, invariant=None, urgent=False, committed=False, name=None, id = None,
         xpos=0, ypos=0):
         self.invariant = Label("invariant", invariant)
+        self.exprate = None
         self.committed = committed
         self.urgent = urgent
         self.name = Label("name", name)
@@ -326,13 +330,18 @@ class Location:
     def to_xml(self):
         namexml = self.name.to_xml()
         invariantxml = self.invariant.to_xml()
+        if not (self.exprate is None):
+            expratexml = self.exprate.to_xml()
+        else:
+            expratexml = ""
         return """
     <location id="%s" x="%s" y="%s">
       %s
       %s
       %s
       %s
-    </location>""" % (self.id, self.xpos, self.ypos, namexml, invariantxml,
+      %s
+    </location>""" % (self.id, self.xpos, self.ypos, namexml, invariantxml, expratexml,
         self.committed and '<committed />' or '', self.urgent and '<urgent />' or '')
 
 class Branchpoint:
