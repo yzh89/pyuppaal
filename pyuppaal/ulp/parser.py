@@ -30,12 +30,12 @@ class Parser:
     lexer = None
     expressionParser = None
     
-    def __init__(self, data, lexer):
+    def __init__(self, data, lexer, typedefDict=None):
         self.lexer = lexer
         self.lexer.input(data)
         self.currentToken = self.lexer.token()
 
-        self.typedefDict = {}
+        self.typedefDict = typedefDict or {}
         self.externList = []
 
         children = []
@@ -105,12 +105,12 @@ class Parser:
         #TODO scalars
         #TODO typedef
         varList.append(identifier)
-        while self.currentToken.type in ('COMMA', 'EQUALS'):
+        while self.currentToken.type in ('COMMA', 'EQUALS', 'ASSIGN'):
             if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
                 identifier = self.parseIdentifierComplex()
                 varList.append(identifier)
-            elif self.currentToken.type == 'EQUALS':
+            elif self.currentToken.type in ['EQUALS', 'ASSIGN']:
                 a = self.parseAssignment(identifier, shorthand=False)
                 identifier.children.append(a)
             else:
@@ -254,10 +254,10 @@ class Parser:
         self.accept('NUMBER')
         return n
 
-    #TODO add support for := *= %= += -= <<= >>= &= |=
+    #TODO add support for *= %= += -= <<= >>= &= |=
     def parseAssignment(self, identifier, shorthand = True):
-        if self.currentToken.type == 'EQUALS':
-            self.accept('EQUALS')
+        if self.currentToken.type in ['EQUALS', 'ASSIGN']:
+            self.accept(self.currentToken.type)
             n = self.parseExpression()
             return Node('Assignment', [n], identifier) 
         elif shorthand:  #add -- support
@@ -503,6 +503,30 @@ class DeclVisitor:
                 return False #don't recurse further
             return True
         parser.AST.visit(visit_identifiers)
+
+    def get_type(self, ident):
+        """Return the type of ident"""
+        if ident in [n for (n, _, _) in self.variables]:
+            (n, t) = [(n, t) for (n, t, _) in self.variables][0]
+            if t == 'int':
+                return "TypeInt"
+            elif t == 'bool':
+                return "TypeBool"
+            else:
+                assert False
+        elif ident in [c for (c, _) in self.clocks]:
+            return "TypeClock"
+        elif ident in self.constants.keys():
+            return "TypeConstInt"
+        elif ident in [n for (n, _) in self.channels]:
+            return "TypeChannel"
+        elif ident in [n for (n, _) in self.urgent_channels]:
+            return "TypeUrgenChannel"
+        elif ident in [n for (n, _) in self.broadcast_channels]:
+            return "TypeBroadcastChannel"
+        elif ident in [n for (n, _) in self.urgent_broadcast_channels]:
+            return "TypeUrgentBroadcastChannel"
+        return None
 
 
 # vim:ts=4:sw=4:expandtab
