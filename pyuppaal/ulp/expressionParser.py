@@ -91,6 +91,8 @@ class ExpressionParser:
         self.parser = parser
 
     def parse(self):
+        if not self.parser.currentToken: #eof?
+            return None
         o = self._infix_eval()
         return o
     ##
@@ -222,7 +224,7 @@ class ExpressionParser:
         if self.parser.currentToken.type == 'TRUE':
             self.res_stack.append(Node('True'))
             self.parser.accept('TRUE')
-        if self.parser.currentToken.type == 'FALSE':
+        elif self.parser.currentToken.type == 'FALSE':
             self.res_stack.append(Node('False'))
             self.parser.accept('FALSE')
         elif self.parser.currentToken.type in ['IDENTIFIER', 'NUMBER']:

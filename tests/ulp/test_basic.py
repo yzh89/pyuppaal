@@ -298,6 +298,14 @@ class TestBasicParsing(unittest.TestCase):
     def test_parse_expression(self):
         parser = testParser(lexer.lexer)
 
+        res = parser.parse("")
+        #should not fail
+        self.assertFalse(res)
+
+        res = parser.parse(" ")
+        #should not fail
+        self.assertFalse(res)
+
         res = parser.parse("5")
         self.assertEqual(res.type, "Number")
         self.assertEqual(res.leaf, 5)
