@@ -13,7 +13,7 @@ parser.add_argument('--version', action='version', version='%(prog)s 1.1')
 
 result = parser.parse_args()
 
-nta = pyuppaal.from_xml(result.infile)
+nta = pyuppaal.NTA.from_xml(result.infile)
 
 for template in nta.templates:
     if template.name in result.templates or not result.templates:
