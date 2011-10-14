@@ -155,8 +155,9 @@ class TestBasicParsing(unittest.TestCase):
         declvisitor = parser.DeclVisitor(pars)
         #XXX parses to deeply into structs!
         self.assertEqual(len(declvisitor.variables), 4)
-        #print declvisitor.variables
-
+        
+        pars.AST.visit()
+        print declvisitor.variables
         varnames = [x for (x, _, _) in declvisitor.variables]
         self.assertTrue('m' in varnames)
         self.assertTrue(('m', 'myStructType', []) in declvisitor.variables)
@@ -671,6 +672,21 @@ class TestBasicParsing(unittest.TestCase):
         #pars.AST.visit()
 
         declvisitor = parser.DeclVisitor(pars)
+
+    def test_parse_extern2(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern2.txt'), "r")
+
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        res = pars.AST.children
+
+        pars.AST.visit()
+
+        declvisitor = parser.DeclVisitor(pars)
+
+        self.assertTrue('TestExternalLattice' in pars.externList)
+
+        self.assertEqual(declvisitor.get_type('mylat'), 'TestExternalLattice')
 
     def test_parse_extern_dbm(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern_dbm.txt'), "r")

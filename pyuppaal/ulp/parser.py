@@ -21,6 +21,19 @@ from lexer import *
 import expressionParser
 from node import Node
 
+def get_class_name_from_complex_identifier(n):
+    """Follow the children of a complex identifier node, i.e.
+    "a.b.c.d" to just return "d"
+    """
+    #parse out the actual class name
+    classnamenode = n
+    while len(classnamenode.children) == 1 and \
+            classnamenode.children[0].type == 'Identifier':
+        classnamenode = classnamenode.children[0]
+    ident = classnamenode.leaf
+    return ident
+
+
 # dictionary of names
 identifiers = { }
 
@@ -155,9 +168,16 @@ class Parser:
 
     def parseExtern(self):
         self.accept('EXTERN')
-        identnode = self.parseIdentifier()
-        ident = identnode.leaf
-        n = Node('NodeExtern', [], ident)
+        #has the form "extern somelib.somelib.ClassName"
+        identnode = self.parseIdentifierComplex()
+        n = Node('NodeExtern', [], identnode)
+
+        #parse out the actual class name
+        classnamenode = identnode
+        while len(classnamenode.children) == 1 and \
+                classnamenode.children[0].type == 'Identifier':
+            classnamenode = classnamenode.children[0]
+        ident = classnamenode.leaf
 
         self.typedefDict[ident] = n
         self.externList += [ident]
@@ -435,6 +455,8 @@ class Parser:
         
 class DeclVisitor:
     def __init__(self, parser):
+        self.parser = parser
+
         #calculate variables, clocks and channels
         self.constants = {}
         #variables: list of (identifier, type, array-dimensions)
@@ -481,10 +503,9 @@ class DeclVisitor:
                 elif last_type == 'TypeClock':
                     #'clock' may have been typedef'ed
                     clocktypedef = parser.typedefDict.get('clock', None)
-                    #TODO calculate max constant
                     if clocktypedef:
                         #treat clock as normal variable
-                        clocktype = clocktypedef.children[0].leaf
+                        clocktype = clocktypedef.children[0].leaf.leaf
                         self.variables += [(ident, clocktype, array_dimensions)]
                     else:
                         self.clocks += [(node.leaf, 10)]
@@ -496,7 +517,12 @@ class DeclVisitor:
                     self.broadcast_channels += [(ident, array_dimensions)]
                 elif last_type == 'TypeUrgentBroadcastChannel':
                     self.urgent_broadcast_channels += [(ident, array_dimensions)]
-                elif last_type == 'NodeTypedef' or last_type == 'NodeExtern':
+                elif last_type == 'NodeExtern':
+                    classident = get_class_name_from_complex_identifier(last_type_node.leaf)
+                    #last_type_node.visit()
+                    #print "classident: %s" % (classident,)
+                    self.variables += [(ident, classident, array_dimensions)]
+                elif last_type == 'NodeTypedef':
                     self.variables += [(ident, last_type_node.leaf, array_dimensions)]
                 #else:
                 #    print 'Unknown type: ' + last_type
@@ -512,6 +538,9 @@ class DeclVisitor:
                 return "TypeInt"
             elif t == 'bool':
                 return "TypeBool"
+            elif isinstance(t, str):
+                #some extern type
+                return t
             else:
                 assert False
         elif ident in [c for (c, _) in self.clocks]:
