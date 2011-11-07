@@ -17,7 +17,7 @@ class TestBasicParsing(unittest.TestCase):
 
         declvisitor = parser.DeclVisitor(pars)
 
-        self.assertEqual(declvisitor.variables, [('a', 'int', []), ('b', 'bool', []), ('b1', 'bool', []), ('b2', 'bool', [])])
+        self.assertEqual(declvisitor.variables, [('a', 'int', [], 0), ('b', 'bool', [], False), ('b1', 'bool', [], False), ('b2', 'bool', [], False)])
 
         self.assertEqual(len(declvisitor.clocks), 1)
         self.assertEqual(declvisitor.clocks[0][0], 'c')
@@ -34,7 +34,7 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         res = pars.AST.children
 
-        #pars.AST.visit()
+        pars.AST.visit()
 
         declvisitor = parser.DeclVisitor(pars)
 
@@ -55,8 +55,17 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res[12].children[0].children[1].type, 'Index')
 
 
-        self.assertEqual(declvisitor.variables[0], ('L', 'int', []))
-        self.assertEqual(declvisitor.variables[1], ('lalala', 'int', []))
+        self.assertEqual(declvisitor.variables[0], ('L', 'int', [], 0))
+
+        #self.assertEqual(declvisitor.variables[1], ('lalala', 'int', [], _))
+        self.assertEqual(declvisitor.variables[1][0], 'lalala')
+        self.assertEqual(declvisitor.variables[1][1], 'int')
+        self.assertEqual(declvisitor.variables[1][2], [])
+        self.assertEqual(declvisitor.variables[1][3].type, 'Expression')
+        self.assertEqual(declvisitor.variables[1][3].children[0].type, 'Number')
+        self.assertEqual(declvisitor.variables[1][3].children[0].leaf, 3)
+
+
 
         self.assertEqual(declvisitor.clocks, [('time', 10), ('y1', 10), ('y2', 10), ('y3', 10), ('y4', 10)])
         self.assertEqual(declvisitor.channels, [('take', []), ('release', [])])
@@ -101,7 +110,7 @@ class TestBasicParsing(unittest.TestCase):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_typedef_simple.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
-        #pars.AST.visit()
+        pars.AST.visit()
 
 
         self.assertEqual(len(pars.AST.children), 4)
@@ -137,8 +146,8 @@ class TestBasicParsing(unittest.TestCase):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_typedef.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
-        #pars.AST.visit()
-        self.assertEqual(len(pars.AST.children), 7)
+        pars.AST.visit()
+        self.assertEqual(len(pars.AST.children), 8)
 
         self.assertEqual(len(pars.typedefDict), 4)
         self.assertTrue('myStructType' in pars.typedefDict)
@@ -154,17 +163,25 @@ class TestBasicParsing(unittest.TestCase):
 
         declvisitor = parser.DeclVisitor(pars)
         #XXX parses to deeply into structs!
-        self.assertEqual(len(declvisitor.variables), 4)
+        self.assertEqual(len(declvisitor.variables), 5)
         
         pars.AST.visit()
         print declvisitor.variables
-        varnames = [x for (x, _, _) in declvisitor.variables]
+        varnames = [x for (x, _, _, _) in declvisitor.variables]
         self.assertTrue('m' in varnames)
-        self.assertTrue(('m', 'myStructType', []) in declvisitor.variables)
+        self.assertTrue(('m', 'myStructType', [], None) in declvisitor.variables)
         self.assertTrue('n' in varnames)
-        self.assertTrue(('n', 'adr', []) in declvisitor.variables)
+        self.assertTrue(('n', 'adr', [], None) in declvisitor.variables)
+        self.assertTrue('n2' in varnames)
+
+        for (x, _, _, initval) in declvisitor.variables:
+            if x == "n2":
+                self.assertEqual(initval.type, "Expression")
+                self.assertEqual(initval.children[0].type, "Number")
+                self.assertEqual(initval.children[0].leaf, 3)
+
         self.assertTrue('c' in varnames)
-        self.assertTrue(('c', 'DBMClock', []) in declvisitor.variables)
+        self.assertTrue(('c', 'DBMClock', [], None) in declvisitor.variables)
         #XXX parses to deeply into structs!
         #self.assertFalse('a' in varnames)
 
@@ -709,9 +726,9 @@ class TestBasicParsing(unittest.TestCase):
 
         self.assertEqual(len(declvisitor.variables), 5)
 
-        self.assertEqual(declvisitor.variables[0], ('dbm', 'DBMFederation', []))
-        self.assertEqual(declvisitor.variables[1], ('dbm.x', 'DBMClock', []))
-        self.assertEqual(declvisitor.variables[2], ('dbm.c', 'DBMClock', []))
+        self.assertEqual(declvisitor.variables[0], ('dbm', 'DBMFederation', [], None))
+        self.assertEqual(declvisitor.variables[1], ('dbm.x', 'DBMClock', [], None))
+        self.assertEqual(declvisitor.variables[2], ('dbm.c', 'DBMClock', [], None))
         self.assertEqual(declvisitor.variables[3][0], 'dbm.y') #('dbm.y', 'DBMClock', [10])
         self.assertEqual(declvisitor.variables[3][1], 'DBMClock')
         self.assertEqual(len(declvisitor.variables[3][2]), 1)

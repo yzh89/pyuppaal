@@ -9,6 +9,8 @@ typedef int adr;
 
 adr n;
 
+adr n2 = 3;
+
 extern DBMClock;
 typedef DBMClock clock;
 clock c;

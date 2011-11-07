@@ -495,18 +495,28 @@ class DeclVisitor:
 
                 if last_type == 'TypeInt':
                     #TODO ranges
-                    self.variables += [(ident, 'int', array_dimensions)]
+                    if len(node.children) > 0 and \
+                            node.children[0].type == "Assignment":
+                        initval = node.children[0].children[0]
+                        self.variables += [(ident, 'int', array_dimensions, initval)]
+                    else:
+                        self.variables += [(ident, 'int', array_dimensions, 0)]
                 elif last_type == 'TypeConstInt':
                     self.constants[ident] = node.children[0].children[0].children[0]
                 elif last_type == 'TypeBool':
-                    self.variables += [(ident, 'bool', array_dimensions)]
+                    if len(node.children) > 0 and \
+                            node.children[0].type == "Assignment":
+                        #TODO parse initial value
+                        self.variables += [(ident, 'bool', array_dimensions, True)]
+                    else:
+                        self.variables += [(ident, 'bool', array_dimensions, False)]
                 elif last_type == 'TypeClock':
                     #'clock' may have been typedef'ed
                     clocktypedef = parser.typedefDict.get('clock', None)
                     if clocktypedef:
                         #treat clock as normal variable
                         clocktype = clocktypedef.children[0].leaf.leaf
-                        self.variables += [(ident, clocktype, array_dimensions)]
+                        self.variables += [(ident, clocktype, array_dimensions, None)]
                     else:
                         self.clocks += [(node.leaf, 10)]
                 elif last_type == 'TypeChannel':
@@ -521,9 +531,15 @@ class DeclVisitor:
                     classident = get_class_name_from_complex_identifier(last_type_node.leaf)
                     #last_type_node.visit()
                     #print "classident: %s" % (classident,)
-                    self.variables += [(ident, classident, array_dimensions)]
+                    self.variables += [(ident, classident, array_dimensions, None)]
                 elif last_type == 'NodeTypedef':
-                    self.variables += [(ident, last_type_node.leaf, array_dimensions)]
+                    if len(node.children) > 0 and \
+                            node.children[0].type == "Assignment":
+                        initval = node.children[0].children[0]
+                        self.variables += [(ident, last_type_node.leaf, array_dimensions, initval)]
+                    else:
+                        self.variables += [(ident, last_type_node.leaf, array_dimensions, None)]
+
                 #else:
                 #    print 'Unknown type: ' + last_type
                 return False #don't recurse further
@@ -532,8 +548,8 @@ class DeclVisitor:
 
     def get_type(self, ident):
         """Return the type of ident"""
-        if ident in [n for (n, _, _) in self.variables]:
-            (n, t) = [(n, t) for (n, t, _) in self.variables][0]
+        if ident in [n for (n, _, _, _) in self.variables]:
+            (n, t) = [(n, t) for (n, t, _, _) in self.variables][0]
             if t == 'int':
                 return "TypeInt"
             elif t == 'bool':
