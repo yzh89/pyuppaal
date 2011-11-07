@@ -237,6 +237,13 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(pars.AST.children[1].children[14].type, "Assignment")
         self.assertEqual(pars.AST.children[1].children[14].children[0].children[0].type, "Plus")
         self.assertEqual(pars.AST.children[1].children[14].children[0].children[0].children[0].type, "MinusMinusPre")
+        self.assertEqual(pars.AST.children[1].children[15].type, "Assignment")
+        self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].type, "Modulo")
+        self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].children[0].type, "Identifier")
+        self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].children[0].leaf, "a")
+        self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].children[1].type, "Identifier")
+        self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].children[1].leaf, "a")
+
         #TODO add more operators pars.AST.visit() 
         self.assertEqual(len(pars.AST.children), 2)   
 

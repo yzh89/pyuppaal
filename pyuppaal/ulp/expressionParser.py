@@ -167,6 +167,7 @@ class ExpressionParser:
         'uNOT':      Op('UnaryNot', operator.not_, 90, unary=True),
         'TIMES':     Op('Times', operator.mul, 50),
         'DIVIDE':    Op('Divide', operator.div, 50),
+        'MODULO':    Op('Modulo', operator.mod, 50),
         'PLUS':      Op('Plus', operator.add, 40),
         'MINUS':     Op('Minus', operator.sub, 40),
         'LSHIFT':    Op('LeftShift', operator.lshift, 35),
