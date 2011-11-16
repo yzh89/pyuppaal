@@ -179,6 +179,15 @@ class Parser:
             classnamenode = classnamenode.children[0]
         ident = classnamenode.leaf
 
+        #do we have constructor parameters?
+        if self.currentToken.type == 'EQUALS':
+            self.accept('EQUALS')
+            constructor_call_expr = self.parseExpression()
+            assert len(constructor_call_expr.children) == 1
+            assert constructor_call_expr.children[0].type == 'FunctionCall'
+            constructor_call = constructor_call_expr.children[0]
+            n.children = [constructor_call]
+
         self.typedefDict[ident] = n
         self.externList += [ident]
 

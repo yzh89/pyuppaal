@@ -712,6 +712,42 @@ class TestBasicParsing(unittest.TestCase):
 
         self.assertEqual(declvisitor.get_type('mylat'), 'TestExternalLattice')
 
+    def test_parse_extern3(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern3.txt'), "r")
+
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        res = pars.AST.children
+
+        pars.AST.visit()
+
+        declvisitor = parser.DeclVisitor(pars)
+
+        self.assertTrue('WideningIntRange' in pars.externList)
+
+        self.assertEqual(declvisitor.get_type('x'), 'WideningIntRange')
+
+        wideningIntRangeTypeNode = pars.typedefDict['WideningIntRange']
+
+        print "typedefdict:"
+        wideningIntRangeTypeNode.visit()
+
+        self.assertEqual(wideningIntRangeTypeNode.leaf.type, "Identifier")
+        self.assertEqual(wideningIntRangeTypeNode.leaf.leaf, "WideningIntRange")
+        
+        self.assertEqual(len(wideningIntRangeTypeNode.children), 1)
+        self.assertEqual(wideningIntRangeTypeNode.children[0].type, 'FunctionCall')
+        parameters = wideningIntRangeTypeNode.children[0].leaf
+        self.assertEqual(len(parameters), 4)
+        self.assertEqual(parameters[0].leaf, 1)
+        self.assertEqual(parameters[1].leaf, 2)
+        self.assertEqual(parameters[2].leaf, 3)
+        self.assertEqual(parameters[3].leaf, 9)
+
+        #self.assertTrue(False)
+
+
+
     def test_parse_extern_dbm(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern_dbm.txt'), "r")
 

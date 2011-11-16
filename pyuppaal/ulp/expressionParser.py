@@ -207,7 +207,8 @@ class ExpressionParser:
         """
         self._infix_eval_atom()
 
-        while ( self.parser.currentToken.type in self._ops and 
+        while ( self.parser.currentToken and
+                self.parser.currentToken.type in self._ops and 
                 self._ops[self.parser.currentToken.type].binary):
             #logger.debug("%s, %s" % (str(self.res_stack), str(self.op_stack)))
             self._push_op(self._ops[self.parser.currentToken.type])
