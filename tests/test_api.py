@@ -6,6 +6,7 @@ sys.path = [projdir] + sys.path
 from pyuppaal import *
 import unittest
 import os
+from nose.tools import nottest
 
 class TestAPI(unittest.TestCase):
     def test_transition_create(self):
@@ -82,6 +83,7 @@ class TestAPI(unittest.TestCase):
         qf.deleteTempFile(qfh)
 
     
+    @nottest
     def DISABLED_test_verify_remote(self):
         ntafilename = os.path.join(os.path.dirname(__file__), 'small_verify.xml')
 
