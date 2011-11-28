@@ -25,10 +25,16 @@ from node import Node
 
 class updateStatementParser(parser.Parser):
 
-    def __init__(self, data, lexer, typedefDict=None):
-        parser.Parser.__init__(self, data+";", lexer, typedefDict)
+    def __init__(self, data, lexerArg=None, typedefDict=None):
+        if lexerArg is None:
+            lexerArg = lexer
 
-    def parseStatements(self):
+        self.lexer = lexerArg
+        self.lexer.input(data+";")
+        self.currentToken = self.lexer.token()
+
+
+    def parseUpdateStatements(self):
         statements = []
 
         while 1:
@@ -41,6 +47,8 @@ class updateStatementParser(parser.Parser):
                         self.accept('SEMI')
                     elif self.currentToken.type == 'COMMA':
                         self.accept('COMMA')
+                elif self.currentToken.type == 'SEMI':
+                        self.accept('SEMI')
                 else:
                     self.error("failed to parse updateStatements") 
                     break
@@ -50,6 +58,6 @@ class updateStatementParser(parser.Parser):
         if self.currentToken != None:
             self.error('at token "%s" on line %d: Did not expect any token, but found token of type %s' % (self.currentToken.value, self.currentToken.lineno, self.currentToken.type))
 
-        return statements
+        return Node('RootNode', statements)
 
 # vim:ts=4:sw=4:expandtab
