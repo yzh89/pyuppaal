@@ -515,8 +515,9 @@ class DeclVisitor:
                 elif last_type == 'TypeBool':
                     if len(node.children) > 0 and \
                             node.children[0].type == "Assignment":
-                        #TODO parse initial value
-                        self.variables += [(ident, 'bool', array_dimensions, True)]
+                        #parse initial value
+                        initval = node.children[0].children[0]
+                        self.variables += [(ident, 'bool', array_dimensions, initval)]
                     else:
                         self.variables += [(ident, 'bool', array_dimensions, False)]
                 elif last_type == 'TypeClock':

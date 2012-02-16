@@ -17,5 +17,8 @@ const int slowest = 25;
 
 bool msg[N][N];
 
+bool lock = false;
+bool lock2 = true;
+
 
 //system Viking1, Viking2, Viking3, Viking4, Torch;

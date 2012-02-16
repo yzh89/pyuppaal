@@ -65,7 +65,16 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(declvisitor.variables[1][3].children[0].type, 'Number')
         self.assertEqual(declvisitor.variables[1][3].children[0].leaf, 3)
 
+        self.assertEqual(declvisitor.variables[3][0], 'lock')
+        self.assertEqual(declvisitor.variables[3][1], 'bool')
+        self.assertEqual(declvisitor.variables[3][2], [])
+        self.assertEqual(declvisitor.variables[3][3].type, 'Expression')
+        self.assertEqual(declvisitor.variables[3][3].children[0].type, 'False')
 
+        self.assertEqual(declvisitor.variables[4][0], 'lock2')
+        self.assertEqual(declvisitor.variables[4][1], 'bool')
+        self.assertEqual(declvisitor.variables[4][2], [])
+        self.assertEqual(declvisitor.variables[4][3].children[0].type, 'True')
 
         self.assertEqual(declvisitor.clocks, [('time', 10), ('y1', 10), ('y2', 10), ('y3', 10), ('y4', 10)])
         self.assertEqual(declvisitor.channels, [('take', []), ('release', [])])
