@@ -135,7 +135,6 @@ system Process;""")
         self.assertTrue(nta.templates[0].locations[0].name.ypos != None)
 
     def test_export_queryfile(self):
-        import tempfile
         qf = pyuppaal.QueryFile()
         qf.addQuery('')
 
@@ -167,6 +166,21 @@ system Process;""")
         self.assertEqual(len(nta.templates), 1)
         self.assertEqual(len(nta.templates[0].transitions), 1)
         self.assertTrue(nta.templates[0].transitions[0].controllable)
+
+    def test_import_tapall_simple(self):
+        file = open(os.path.join(os.path.dirname(__file__), 'tapaal-simple.xml'))
+        nta = pyuppaal.NTA.from_xml(file)
+        self.assertEqual(len(nta.templates), 1)
+        lock = nta.templates[0]
+
+        self.assertEqual(len(lock.locations), 1)
+        loc = lock.locations[0]
+        self.assertEqual(len(lock.transitions), 1)
+        trans = lock.transitions[0]
+
+        self.assertEqual(trans.assignment.value, None)
+        self.assertEqual(trans.assignment.get_value(), "")
+
 
 if __name__ == '__main__':
     unittest.main()
