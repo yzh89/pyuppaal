@@ -103,6 +103,50 @@ system N0, N1, N2, N3, N4, N5;"""
             self.assertEqual(systemnode.children[i].type, 'Identifier')
             self.assertEqual(systemnode.children[i].leaf, 'N' + str(i))
 
+    def test_parse_priorities1(self):
+        sysdec = """system B < A;"""
+
+        #lex = lexer.lexer
+        pars = SystemDeclarationParser(sysdec)
+        res = pars.parse()
+        #res = pars.AST.children
+        res.visit()
+
+        self.assertEqual(res.type, 'SystemDec')
+        self.assertEqual(len(res.children), 1)
+        self.assertEqual(res.children[0].type, 'System')
+        systemnode = res.children[0]
+        self.assertEqual(len(systemnode.children), 2)
+        self.assertEqual(systemnode.children[0].type, 'Identifier')
+        self.assertEqual(systemnode.children[0].leaf, 'B')
+        self.assertEqual(systemnode.children[0].priority, 1)
+        self.assertEqual(systemnode.children[1].type, 'Identifier')
+        self.assertEqual(systemnode.children[1].leaf, 'A')
+        self.assertEqual(systemnode.children[1].priority, 0)
+
+    def test_parse_priorities2(self):
+        sysdec = """system C < B < A;"""
+
+        #lex = lexer.lexer
+        pars = SystemDeclarationParser(sysdec)
+        res = pars.parse()
+        #res = pars.AST.children
+        res.visit()
+
+        self.assertEqual(res.type, 'SystemDec')
+        self.assertEqual(len(res.children), 1)
+        self.assertEqual(res.children[0].type, 'System')
+        systemnode = res.children[0]
+        self.assertEqual(len(systemnode.children), 3)
+        self.assertEqual(systemnode.children[0].type, 'Identifier')
+        self.assertEqual(systemnode.children[0].leaf, 'C')
+        self.assertEqual(systemnode.children[0].priority, 2)
+        self.assertEqual(systemnode.children[1].type, 'Identifier')
+        self.assertEqual(systemnode.children[1].leaf, 'B')
+        self.assertEqual(systemnode.children[1].priority, 1)
+        self.assertEqual(systemnode.children[2].type, 'Identifier')
+        self.assertEqual(systemnode.children[2].leaf, 'A')
+        self.assertEqual(systemnode.children[2].priority, 0)
 
 
 if __name__ == '__main__':

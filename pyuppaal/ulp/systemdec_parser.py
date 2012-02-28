@@ -32,6 +32,9 @@ class SystemDeclarationParser:
         
         self.data = data
 
+        #priority counter for system decs, lower number == higher priority
+        self.prioritycounter = 0
+
         self.tokens = lexer.tokens
         # Build the parser
         self.systemdec_parser = yacc.yacc(module=self, 
@@ -100,13 +103,18 @@ class SystemDeclarationParser:
 
     def p_systemslist(self, p):
         '''systemslist : IDENTIFIER COMMA systemslist
+                    | IDENTIFIER LESS systemslist
                     | IDENTIFIER
         '''
         if len(p) == 2: #one identifier
             ident = Node('Identifier', [], p[1])
+            ident.priority = self.prioritycounter
             p[0] = [ident]
         else:
             ident = Node('Identifier', [], p[1])
+            if p[2] == lexer.t_LESS:
+                self.prioritycounter += 1
+            ident.priority = self.prioritycounter
             p[0] = [ident] + p[3]
 
 
