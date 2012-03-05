@@ -475,6 +475,7 @@ class DeclVisitor:
         self.urgent_channels = []
         self.broadcast_channels = []
         self.urgent_broadcast_channels = []
+        self.functions = []
 
         last_type = None
         last_type_node = None
@@ -553,6 +554,11 @@ class DeclVisitor:
                 #else:
                 #    print 'Unknown type: ' + last_type
                 return False #don't recurse further
+            elif node.type == 'Function':
+                self.functions.append(node)
+                last_type == 'Function'
+                last_type_node = node
+
             return True
         parser.AST.visit(visit_identifiers)
 
