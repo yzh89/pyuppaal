@@ -41,7 +41,10 @@ class updateStatementParser(parser.Parser):
             if self.currentToken:
                 if self.currentToken.type == 'IDENTIFIER':
                     identifier = self.parseIdentifierComplex()
-                    statements.append(self.parseAssignment(identifier))
+                    if self.currentToken.type != 'LPAREN':
+                        statements.append(self.parseAssignment(identifier))
+                    else:
+                        statements.append(self.parseFunctionCall(identifier))
                     
                     if self.currentToken.type == 'SEMI':
                         self.accept('SEMI')
@@ -59,5 +62,24 @@ class updateStatementParser(parser.Parser):
             self.error('at token "%s" on line %d: Did not expect any token, but found token of type %s' % (self.currentToken.value, self.currentToken.lineno, self.currentToken.type))
 
         return Node('RootNode', statements)
+    
+    ### 
+    ### FIXME: Notice similar functionalty exist in expressionParser, 
+    ### however not posible to reuse as identifier must be parsed first
+    ### should probably be refactored.
+    ###
+    def parseFunctionCall(self, identifier): 
+        self.accept('LPAREN')
+        parameters = []
+        
+        while self.currentToken.type != 'RPAREN':
+            expr = self.parseExpression()
+            if self.currentToken.type == 'COMMA':
+                self.accept('COMMA')
+            parameters += [expr]
+            
+        self.accept('RPAREN')
+        return Node('FunctionCall', [identifier], parameters)
+
 
 # vim:ts=4:sw=4:expandtab
