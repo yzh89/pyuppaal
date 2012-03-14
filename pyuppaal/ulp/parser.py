@@ -252,7 +252,11 @@ class Parser:
                 identifier = None
                 if self.currentToken.type == 'IDENTIFIER':
                     identifier = self.parseIdentifierComplex()
-                statements.append(self.parseAssignment(identifier))
+
+                if self.currentToken.type == 'LPAREN':
+                    self.parseFunctionCall(identifier)
+                else:
+                    statements.append(self.parseAssignment(identifier))
                 self.accept('SEMI')
             elif self.currentToken.type == 'IF':
                 statements.append(self.parseIf())
@@ -285,12 +289,16 @@ class Parser:
         self.accept('NUMBER')
         return n
 
-    #TODO add support for *= %= += -= <<= >>= &= |=
     def parseAssignment(self, identifier, shorthand = True):
         if self.currentToken.type in ['EQUALS', 'ASSIGN']:
             self.accept(self.currentToken.type)
             n = self.parseExpression()
             return Node('Assignment', [n], identifier) 
+        elif self.currentToken.type in ['ANDEQUAL', 'TIMESEQUAL', 'DIVEQUAL', \
+                        'MODEQUAL', 'PLUSEQUAL', 'MINUSEQUAL', 'LSHIFTEQUAL', \
+                        'RSHIFTEQUAL', 'ANDEQUAL', 'OREQUAL', 'XOREQUAL']:
+            return self.transformXEqual(identifier)
+
         elif shorthand:  #add -- support
             if self.currentToken.type == 'PLUSPLUS':
                 self.accept('PLUSPLUS')
@@ -419,6 +427,50 @@ class Parser:
             
         
         return n
+   
+    ### 
+    ### FIXME: Notice similar functionalty exist in expressionParser, 
+    ### however not posible to reuse as identifier must be parsed first
+    ### should probably be refactored.
+    ###
+    def parseFunctionCall(self, identifier): 
+        self.accept('LPAREN')
+        parameters = []
+        
+        while self.currentToken.type != 'RPAREN':
+            expr = self.parseExpression()
+            if self.currentToken.type == 'COMMA':
+                self.accept('COMMA')
+            parameters += [expr]
+            
+        self.accept('RPAREN')
+        return Node('FunctionCall', [identifier], parameters)
+    
+    def transformXEqual(self, identifier):
+
+        if self.currentToken.type == 'ANDEQUAL':
+            self.accept(self.currentToken.type)
+            n = self.parseExpression()
+            expr = [Node('Expression', [Node('Equal', [identifier, n.children[0]], [])], [])]
+            return Node('Assignment', expr, identifier) 
+        elif self.currentToken.type == 'PLUSEQUAL':
+            self.accept(self.currentToken.type)
+            n = self.parseExpression()
+            expr = [Node('Expression', [Node('Plus', [identifier, n.children[0]], [])], [])]
+            return Node('Assignment', expr, identifier) 
+        #elif self.currentToken.type == 'TIMESEQUAL':
+        #elif self.currentToken.type == 'DIVEQUAL':
+        #elif self.currentToken.type == 'MODEQUAL':
+        #elif self.currentToken.type == 'PLUSEQUAL':
+        #elif self.currentToken.type == 'MINUSEQUAL':
+        #elif self.currentToken.type == 'LSHIFTEQUAL':
+        #elif self.currentToken.type == 'RSHIFTEQUAL':
+        #elif self.currentToken.type == 'ANDEQUAL':
+        #elif self.currentToken.type == 'OREQUAL':
+        #elif self.currentToken.type == 'XOREQUAL':
+
+        return None
+
 
     def parseDeclType(self):
         if self.currentToken.type == 'URGENT':
