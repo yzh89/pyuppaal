@@ -51,7 +51,7 @@ class Parser:
         self.typedefDict = typedefDict or {}
         self.externList = []
 
-        children = []
+        children = []        
         if self.currentToken != None:
             children = self.parseStatements()
         self.AST = Node('RootNode', children)
@@ -232,7 +232,7 @@ class Parser:
    
     def parseBodyStatements(self):
         statements = []
-        while self.currentToken.type != 'RCURLYPAREN':
+        while self.currentToken.type not in ('RCURLYPAREN', 'ELSE'):
             if self.currentToken.type in ('INT', 'BOOL', 'CONST'):
                 if self.currentToken.type == 'CONST':
                     type = self.parseStdType(True)
@@ -248,12 +248,14 @@ class Parser:
                 statements.append(self.parseDoWhileLoop())
             elif self.currentToken.type in ('IDENTIFIER', 'PLUSPLUS', 'MINUSMINUS'):
                 if self.isType(self.currentToken.value):
-                    statements.append(self.parseTypedefType())
+                    statements.append(self.parseTypedefType(self.currentToken.value))
                 identifier = None
                 if self.currentToken.type == 'IDENTIFIER':
                     identifier = self.parseIdentifierComplex()
                 statements.append(self.parseAssignment(identifier))
                 self.accept('SEMI')
+            elif self.currentToken.type == 'IF':
+                statements.append(self.parseIf())
             elif self.currentToken.type == 'RETURN':
                 self.accept('RETURN')
                 expression = self.parseExpression()
@@ -354,6 +356,47 @@ class Parser:
 
         return Node('DoWhileLoop', children, leaf)
 
+    def parseIf(self):
+        leaf = []
+        children = []
+        self.accept('IF')
+        self.accept('LPAREN')
+        leaf.append(self.parseBooleanExpression())
+        self.accept('RPAREN')
+        if self.currentToken.type == 'LCURLYPAREN':
+            self.accept('LCURLYPAREN')
+            children.append(Node('IfBodyStatements', self.parseBodyStatements(), leaf))
+            self.accept('RCURLYPAREN')
+        else:
+            children.append(Node('IfBodyStatements', self.parseBodyStatements(), leaf))
+
+        elseCase = False
+        while self.currentToken.type == 'ELSE' and elseCase == False:
+            self.accept('ELSE')
+            if self.currentToken.type == 'IF':
+                self.accept('IF')
+                leaf = []
+                self.accept('LPAREN')
+                leaf.append(self.parseBooleanExpression())
+                self.accept('RPAREN')
+
+                if self.currentToken.type == 'LCURLYPAREN':
+                    self.accept('LCURLYPAREN')
+                    children.append(Node('ElseIfBodyStatements', self.parseBodyStatements(), None))
+                    self.accept('RCURLYPAREN')
+                else:
+                    children.append(Node('ElseIfBodyStatements', self.parseBodyStatements(), None))                
+            else:
+                elseCase = True
+                if self.currentToken.type == 'LCURLYPAREN':
+                    self.accept('LCURLYPAREN')
+                    children.append(Node('ElseBodyStatements', self.parseBodyStatements(), None))
+                    self.accept('RCURLYPAREN')
+                else:
+                    children.append(Node('ElseBodyStatements', self.parseBodyStatements(), None))
+
+        return Node('If', children, None)
+
     def parseIdentifier(self):
         n = Node('Identifier', [], self.currentToken.value)
         self.accept('IDENTIFIER')
@@ -432,7 +475,7 @@ class Parser:
                 return Node('TypeConstBool')
             else:
                 return Node('TypeBool')
-        elif self.currentToken.type == 'IDENTIFIER' and not isConst:
+        elif self.currentToken.type == 'IDENTIFIER': # and not isConst:
             return self.parseTypedefType(self.currentToken.value)
         self.error('Not a type')
 
