@@ -390,10 +390,10 @@ class Parser:
 
                 if self.currentToken.type == 'LCURLYPAREN':
                     self.accept('LCURLYPAREN')
-                    children.append(Node('ElseIfBodyStatements', self.parseBodyStatements(), None))
+                    children.append(Node('ElseIfBodyStatements', self.parseBodyStatements(), leaf))
                     self.accept('RCURLYPAREN')
                 else:
-                    children.append(Node('ElseIfBodyStatements', self.parseBodyStatements(), None))                
+                    children.append(Node('ElseIfBodyStatements', self.parseBodyStatements(), leaf))                
             else:
                 elseCase = True
                 if self.currentToken.type == 'LCURLYPAREN':
