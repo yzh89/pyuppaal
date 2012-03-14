@@ -558,7 +558,7 @@ class Parser:
             self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
 
     def error(self, msg):
-            print 'Error: Parser error', msg
+            raise Exception('Error: Parser error '+ msg)
         
 class DeclVisitor:
     def __init__(self, parser):
@@ -577,10 +577,12 @@ class DeclVisitor:
 
         last_type = None
         last_type_node = None
-        self.begin_functions = False
+        self.function_end = None
+        self.in_function = False
         def visit_identifiers(node):
             global last_type, last_type_node
-            if not self.begin_functions:
+            
+            if not self.in_function:
                 if node.type == 'VarDecl':
                     last_type = node.leaf.type
                     last_type_node = node.leaf
@@ -603,9 +605,6 @@ class DeclVisitor:
                     for child in [c for c in curnode.children if c.type == 'Index']:
                         array_dimensions += [child.leaf]
                     
-                    if len(array_dimensions) > 0:
-                        print array_dimensions
-
                     if last_type == 'TypeInt':
                         #TODO ranges
                         if len(node.children) > 0 and \
@@ -658,13 +657,27 @@ class DeclVisitor:
                     #    print 'Unknown type: ' + last_type
                     return False #don't recurse further
             if node.type == 'Function':
-                self.begin_functions = True
+                self.function_end = self.__get_last_func_obj__(node)
+                self.in_function = True
                 self.functions.append(node)
                 last_type == 'Function'
                 last_type_node = node
+            elif self.function_end != None and node == self.function_end:
+                self.in_function = False
+                self.function_end == None
 
             return True
         parser.AST.visit(visit_identifiers)
+
+    def __get_last_func_obj__(self, node):
+        length = len(node.children)
+
+        if length == 0:
+            return node
+        else:
+            return self.__get_last_func_obj__(node.children[len(node.children)-1])
+        
+
 
     def get_type(self, ident):
         """Return the type of ident"""
