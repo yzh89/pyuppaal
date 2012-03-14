@@ -63,23 +63,4 @@ class updateStatementParser(parser.Parser):
 
         return Node('RootNode', statements)
     
-    ### 
-    ### FIXME: Notice similar functionalty exist in expressionParser, 
-    ### however not posible to reuse as identifier must be parsed first
-    ### should probably be refactored.
-    ###
-   # def parseFunctionCall(self, identifier): 
-   #     self.accept('LPAREN')
-   #     parameters = []
-   #     
-   #     while self.currentToken.type != 'RPAREN':
-   #         expr = self.parseExpression()
-   #         if self.currentToken.type == 'COMMA':
-   #             self.accept('COMMA')
-   #         parameters += [expr]
-   #         
-   #     self.accept('RPAREN')
-   #     return Node('FunctionCall', [identifier], parameters)
-
-
 # vim:ts=4:sw=4:expandtab
