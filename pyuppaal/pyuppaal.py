@@ -19,7 +19,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. """
 
-import pygraphviz
 import cgi
 import xml.etree.cElementTree as ElementTree
 import subprocess
@@ -181,6 +180,7 @@ class Template:
             transition.sharpen(nailAngleThreshold, nailInterDistanceThreshold)
 
     def layout(self, auto_nails=False, nailAngleThreshold=110.0, nailInterDistanceThreshold=1.0):
+        import pygraphviz
         self.assign_ids()
 
         G = pygraphviz.AGraph(strict=False)
