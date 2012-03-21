@@ -577,106 +577,91 @@ class DeclVisitor:
 
         last_type = None
         last_type_node = None
-        self.function_end = None
-        self.in_function = False
         def visit_identifiers(node):
             global last_type, last_type_node
             
-            if not self.in_function:
-                if node.type == 'VarDecl':
-                    last_type = node.leaf.type
-                    last_type_node = node.leaf
-                elif node.type == 'NodeTypedef':
-                    last_type = 'TypeTypedef'
-                elif node.type == 'NodeExtern':
-                    last_type = 'TypeExtern'
-                elif node.type == 'Identifier':
-                    ident = node.leaf
-                    
-                    #parse out entire name (follow dots)
-                    curnode = node
-                    while len(curnode.children) > 0 and curnode.children[0].type == 'Identifier':
-                        assert len(curnode.children) == 1
-                        curnode = curnode.children[0]
-                        ident += '.' + curnode.leaf
+            if node.type == 'VarDecl':
+                last_type = node.leaf.type
+                last_type_node = node.leaf
+            elif node.type == 'NodeTypedef':
+                last_type = 'TypeTypedef'
+            elif node.type == 'NodeExtern':
+                last_type = 'TypeExtern'
+            elif node.type == 'Identifier':
+                ident = node.leaf
+                
+                #parse out entire name (follow dots)
+                curnode = node
+                while len(curnode.children) > 0 and curnode.children[0].type == 'Identifier':
+                    assert len(curnode.children) == 1
+                    curnode = curnode.children[0]
+                    ident += '.' + curnode.leaf
 
-                    #find array dimensions (if any)
-                    array_dimensions = []
-                    for child in [c for c in curnode.children if c.type == 'Index']:
-                        array_dimensions += [child.leaf]
-                    
-                    if last_type == 'TypeInt':
-                        #TODO ranges
-                        if len(node.children) > 0 and \
-                                node.children[0].type == "Assignment":
-                            initval = node.children[0].children[0]
-                            self.variables += [(ident, 'int', array_dimensions, initval)]
-                        else:
-                            self.variables += [(ident, 'int', array_dimensions, 0)]
-                    elif last_type == 'TypeConstInt':
-                        self.constants[ident] = node.children[0].children[0].children[0]
-                    elif last_type == 'TypeBool':
-                        if len(node.children) > 0 and \
-                                node.children[0].type == "Assignment":
-                            #parse initial value
-                            initval = node.children[0].children[0]
-                            self.variables += [(ident, 'bool', array_dimensions, initval)]
-                        else:
-                            self.variables += [(ident, 'bool', array_dimensions, False)]
-                    elif last_type == 'TypeClock':
-                        #'clock' may have been typedef'ed
-                        clocktypedef = parser.typedefDict.get('clock', None)
-                        if clocktypedef:
-                            #treat clock as normal variable
-                            clocktype = clocktypedef.children[0].leaf.leaf
-                            self.variables += [(ident, clocktype, array_dimensions, None)]
-                        else:
-                            self.clocks += [(node.leaf, 10)]
-                    elif last_type == 'TypeChannel':
-                        self.channels += [(ident, array_dimensions)]
-                    elif last_type == 'TypeUrgentChannel':
-                        self.urgent_channels += [(ident, array_dimensions)]
-                    elif last_type == 'TypeBroadcastChannel':
-                        self.broadcast_channels += [(ident, array_dimensions)]
-                    elif last_type == 'TypeUrgentBroadcastChannel':
-                        self.urgent_broadcast_channels += [(ident, array_dimensions)]
-                    elif last_type == 'NodeExtern':
-                        classident = get_class_name_from_complex_identifier(last_type_node.leaf)
-                        #last_type_node.visit()
-                        #print "classident: %s" % (classident,)
-                        self.variables += [(ident, classident, array_dimensions, None)]
-                    elif last_type == 'NodeTypedef':
-                        if len(node.children) > 0 and \
-                                node.children[0].type == "Assignment":
-                            initval = node.children[0].children[0]
-                            self.variables += [(ident, last_type_node.leaf, array_dimensions, initval)]
-                        else:
-                            self.variables += [(ident, last_type_node.leaf, array_dimensions, None)]
+                #find array dimensions (if any)
+                array_dimensions = []
+                for child in [c for c in curnode.children if c.type == 'Index']:
+                    array_dimensions += [child.leaf]
+                
+                if last_type == 'TypeInt':
+                    #TODO ranges
+                    if len(node.children) > 0 and \
+                            node.children[0].type == "Assignment":
+                        initval = node.children[0].children[0]
+                        self.variables += [(ident, 'int', array_dimensions, initval)]
+                    else:
+                        self.variables += [(ident, 'int', array_dimensions, 0)]
+                elif last_type == 'TypeConstInt':
+                    self.constants[ident] = node.children[0].children[0].children[0]
+                elif last_type == 'TypeBool':
+                    if len(node.children) > 0 and \
+                            node.children[0].type == "Assignment":
+                        #parse initial value
+                        initval = node.children[0].children[0]
+                        self.variables += [(ident, 'bool', array_dimensions, initval)]
+                    else:
+                        self.variables += [(ident, 'bool', array_dimensions, False)]
+                elif last_type == 'TypeClock':
+                    #'clock' may have been typedef'ed
+                    clocktypedef = parser.typedefDict.get('clock', None)
+                    if clocktypedef:
+                        #treat clock as normal variable
+                        clocktype = clocktypedef.children[0].leaf.leaf
+                        self.variables += [(ident, clocktype, array_dimensions, None)]
+                    else:
+                        self.clocks += [(node.leaf, 10)]
+                elif last_type == 'TypeChannel':
+                    self.channels += [(ident, array_dimensions)]
+                elif last_type == 'TypeUrgentChannel':
+                    self.urgent_channels += [(ident, array_dimensions)]
+                elif last_type == 'TypeBroadcastChannel':
+                    self.broadcast_channels += [(ident, array_dimensions)]
+                elif last_type == 'TypeUrgentBroadcastChannel':
+                    self.urgent_broadcast_channels += [(ident, array_dimensions)]
+                elif last_type == 'NodeExtern':
+                    classident = get_class_name_from_complex_identifier(last_type_node.leaf)
+                    #last_type_node.visit()
+                    #print "classident: %s" % (classident,)
+                    self.variables += [(ident, classident, array_dimensions, None)]
+                elif last_type == 'NodeTypedef':
+                    if len(node.children) > 0 and \
+                            node.children[0].type == "Assignment":
+                        initval = node.children[0].children[0]
+                        self.variables += [(ident, last_type_node.leaf, array_dimensions, initval)]
+                    else:
+                        self.variables += [(ident, last_type_node.leaf, array_dimensions, None)]
 
-                    #else:
-                    #    print 'Unknown type: ' + last_type
-                    return False #don't recurse further
+                #else:
+                #    print 'Unknown type: ' + last_type
+                return False #don't recurse further
             if node.type == 'Function':
-                self.function_end = self.__get_last_func_obj__(node)
-                self.in_function = True
                 self.functions.append(node)
                 last_type == 'Function'
                 last_type_node = node
-            elif self.function_end != None and node == self.function_end:
-                self.in_function = False
-                self.function_end == None
+                return False
 
             return True
         parser.AST.visit(visit_identifiers)
 
-    def __get_last_func_obj__(self, node):
-        length = len(node.children)
-
-        if length == 0:
-            return node
-        else:
-            return self.__get_last_func_obj__(node.children[len(node.children)-1])
-        
 
 
     def get_type(self, ident):
