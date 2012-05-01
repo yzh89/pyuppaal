@@ -649,10 +649,12 @@ class DeclVisitor:
                         self.variables += [(ident, last_type_node.leaf, array_dimensions, initval)]
                     else:
                         self.variables += [(ident, last_type_node.leaf, array_dimensions, None)]
-
+                
                 #else:
                 #    print 'Unknown type: ' + last_type
                 return False #don't recurse further
+            else:
+                last_type = node.type
             if node.type == 'Function':
                 self.functions.append(node)
                 last_type == 'Function'
