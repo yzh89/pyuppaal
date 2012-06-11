@@ -230,7 +230,7 @@ class Parser:
 
         return parameters
    
-    def parseBodyStatements(self):
+    def parseBodyStatements(self, single = False):
         statements = []
         while self.currentToken.type not in ('RCURLYPAREN', 'ELSE'):
             if self.currentToken.type in ('INT', 'BOOL', 'CONST'):
@@ -248,16 +248,18 @@ class Parser:
                 statements.append(self.parseDoWhileLoop())
             elif self.currentToken.type in ('IDENTIFIER', 'PLUSPLUS', 'MINUSMINUS'):
                 if self.isType(self.currentToken.value):
-                    statements.append(self.parseTypedefType(self.currentToken.value))
-                identifier = None
-                if self.currentToken.type == 'IDENTIFIER':
+                    utype = self.parseTypedefType(self.currentToken.value)
                     identifier = self.parseIdentifierComplex()
-
-                if self.currentToken.type == 'LPAREN':
-                    self.parseFunctionCall(identifier)
+                    statements.append(self.parseDeclaration(utype, identifier))
                 else:
-                    statements.append(self.parseAssignment(identifier))
-                self.accept('SEMI')
+                    if self.currentToken.type == 'IDENTIFIER':
+                        identifier = self.parseIdentifierComplex()
+
+                    if self.currentToken.type == 'LPAREN':
+                        self.parseFunctionCall(identifier)
+                    else:
+                        statements.append(self.parseAssignment(identifier))
+                    self.accept('SEMI')
             elif self.currentToken.type == 'IF':
                 statements.append(self.parseIf())
             elif self.currentToken.type == 'RETURN':
@@ -268,6 +270,9 @@ class Parser:
                 self.accept('SEMI')
             else:
                 self.error('parseBodyStatement unknown token: %s' % self.currentToken.type)
+                break
+
+            if single:
                 break
 
         return statements 
@@ -376,7 +381,7 @@ class Parser:
             children.append(Node('IfBodyStatements', self.parseBodyStatements(), leaf))
             self.accept('RCURLYPAREN')
         else:
-            children.append(Node('IfBodyStatements', self.parseBodyStatements(), leaf))
+            children.append(Node('IfBodyStatements', self.parseBodyStatements(single=True), leaf))
 
         elseCase = False
         while self.currentToken.type == 'ELSE' and elseCase == False:
@@ -393,7 +398,7 @@ class Parser:
                     children.append(Node('ElseIfBodyStatements', self.parseBodyStatements(), leaf))
                     self.accept('RCURLYPAREN')
                 else:
-                    children.append(Node('ElseIfBodyStatements', self.parseBodyStatements(), leaf))                
+                    children.append(Node('ElseIfBodyStatements', self.parseBodyStatements(single=True), leaf))                
             else:
                 elseCase = True
                 if self.currentToken.type == 'LCURLYPAREN':
@@ -401,9 +406,9 @@ class Parser:
                     children.append(Node('ElseBodyStatements', self.parseBodyStatements(), None))
                     self.accept('RCURLYPAREN')
                 else:
-                    children.append(Node('ElseBodyStatements', self.parseBodyStatements(), None))
+                    children.append(Node('ElseBodyStatements', self.parseBodyStatements(single=True), None))
 
-        return Node('If', children, None)
+        return Node('If', children, leaf)
 
     def parseIdentifier(self):
         n = Node('Identifier', [], self.currentToken.value)
@@ -607,19 +612,21 @@ class DeclVisitor:
                     if len(node.children) > 0 and \
                             node.children[0].type == "Assignment":
                         initval = node.children[0].children[0]
-                        self.variables += [(ident, 'int', array_dimensions, initval)]
+                        self.variables += [(ident, last_type, array_dimensions, initval)]
                     else:
-                        self.variables += [(ident, 'int', array_dimensions, 0)]
+                        self.variables += [(ident, last_type, array_dimensions, 0)]
                 elif last_type == 'TypeConstInt':
+                    self.constants[ident] = node.children[0].children[0].children[0]
+                elif last_type == 'TypeConstBool':
                     self.constants[ident] = node.children[0].children[0].children[0]
                 elif last_type == 'TypeBool':
                     if len(node.children) > 0 and \
                             node.children[0].type == "Assignment":
                         #parse initial value
                         initval = node.children[0].children[0]
-                        self.variables += [(ident, 'bool', array_dimensions, initval)]
+                        self.variables += [(ident, last_type, array_dimensions, initval)]
                     else:
-                        self.variables += [(ident, 'bool', array_dimensions, False)]
+                        self.variables += [(ident, last_type, array_dimensions, False)]
                 elif last_type == 'TypeClock':
                     #'clock' may have been typedef'ed
                     clocktypedef = parser.typedefDict.get('clock', None)
@@ -653,6 +660,13 @@ class DeclVisitor:
                 #else:
                 #    print 'Unknown type: ' + last_type
                 return False #don't recurse further
+            elif node.type == 'Parameter':
+                (t,iden) = node.leaf
+                t.visit(visit_identifiers)
+                if t.type == 'NodeTypedef':
+                    last_type_node = t
+                    last_type = 'NodeTypedef'
+                iden.visit(visit_identifiers) 
             else:
                 last_type = node.type
             if node.type == 'Function':
@@ -670,9 +684,9 @@ class DeclVisitor:
         """Return the type of ident"""
         if ident in [n for (n, _, _, _) in self.variables]:
             (n, t) = [(n, t) for (n, t, _, _) in self.variables][0]
-            if t == 'int':
+            if t == 'TypeInt':
                 return "TypeInt"
-            elif t == 'bool':
+            elif t == 'TypeBool':
                 return "TypeBool"
             elif isinstance(t, str):
                 #some extern type
