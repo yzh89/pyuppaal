@@ -618,6 +618,33 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].children[1].children[1].type, 'Number')
         self.assertEqual(res.children[1].children[1].children[1].leaf, 1)
 
+    def test_parse_expression4(self):
+        parser = testParser(lexer.lexer)
+
+        res = parser.parse("x' == 0")
+        res.visit()
+        self.assertEqual(res.type, 'Equal')
+        self.assertEqual(res.children[0].type, 'ClockRate')
+        self.assertEqual(res.children[0].leaf, 'x')
+        self.assertEqual(res.children[1].type, 'Number')
+        self.assertEqual(res.children[1].leaf, 0)
+
+        res = parser.parse("y >= 5 && x' == 0")
+        res.visit()
+        self.assertEqual(res.type, 'And')
+        self.assertEqual(len(res.children), 2)
+        self.assertEqual(res.children[0].type, 'GreaterEqual')
+        self.assertEqual(res.children[0].children[0].type, 'Identifier')
+        self.assertEqual(res.children[0].children[0].leaf, 'y')
+        self.assertEqual(res.children[0].children[1].type, 'Number')
+        self.assertEqual(res.children[0].children[1].leaf, 5)
+
+        self.assertEqual(res.children[1].type, 'Equal')
+        self.assertEqual(res.children[1].children[0].type, 'ClockRate')
+        self.assertEqual(res.children[1].children[0].leaf, 'x')
+        self.assertEqual(res.children[1].children[1].type, 'Number')
+        self.assertEqual(res.children[1].children[1].leaf, 0)
+
     def test_parse_func_with_params(self):
         parser = testParser(lexer.lexer)
 

@@ -210,7 +210,7 @@ class ExpressionParser:
         while ( self.parser.currentToken and
                 self.parser.currentToken.type in self._ops and 
                 self._ops[self.parser.currentToken.type].binary):
-            #logger.debug("%s, %s" % (str(self.res_stack), str(self.op_stack)))
+            logger.debug("%s, %s" % (str(self.res_stack), str(self.op_stack)))
             self._push_op(self._ops[self.parser.currentToken.type])
             self._get_next_token()
             self._infix_eval_atom()
@@ -276,10 +276,10 @@ class ExpressionParser:
                         n.children.append(Node('Index', [], expr))
 
                     self.res_stack.append(n)
-                        
-                        
-
-
+                elif self.parser.currentToken.type == 'APOSTROPHE': #x' (used for clock rate "assignment")
+                    identifier = self.res_stack.pop()
+                    self.res_stack.append(Node('ClockRate', [], identifier.leaf))
+                    self.parser.accept('APOSTROPHE')
             else:
                 self.res_stack.append(self.parser.parseNumber())
         elif self.parser.currentToken.type == 'LPAREN':

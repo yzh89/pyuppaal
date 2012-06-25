@@ -100,7 +100,10 @@ tokens = [
     'LCURLYPAREN',
     'RCURLYPAREN',
     'LBRACKET',
-    'RBRACKET' ] +list(reserved.values())
+    'RBRACKET',
+#Miscellaneous
+    'APOSTROPHE',
+    ] +list(reserved.values())
  
 # These are regular expression rules for simple tokens.
 # Operators (The following sections is inspired by c_lexer.py)
@@ -151,6 +154,10 @@ t_LCURLYPAREN = r'\{'
 t_RCURLYPAREN = r'\}'
 t_LBRACKET    = r'\['
 t_RBRACKET    = r'\]'
+
+#Miscellaneous
+t_APOSTROPHE  = r"'"
+
 
 def t_IDENTIFIER(t):
     r'[a-zA-Z_][a-zA-Z_0-9]*'
