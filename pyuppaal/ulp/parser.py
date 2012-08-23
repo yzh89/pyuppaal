@@ -233,6 +233,8 @@ class Parser:
     def parseBodyStatements(self, single = False):
         statements = []
         while self.currentToken.type not in ('RCURLYPAREN', 'ELSE'):
+            identifier = None
+
             if self.currentToken.type in ('INT', 'BOOL', 'CONST'):
                 if self.currentToken.type == 'CONST':
                     type = self.parseStdType(True)

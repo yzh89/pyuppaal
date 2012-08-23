@@ -17,7 +17,7 @@ class TestBasicParsing(unittest.TestCase):
 
         declvisitor = parser.DeclVisitor(pars)
 
-        self.assertEqual(declvisitor.variables, [('a', 'int', [], 0), ('b', 'bool', [], False), ('b1', 'bool', [], False), ('b2', 'bool', [], False)])
+        self.assertEqual(declvisitor.variables, [('a', 'TypeInt', [], 0), ('b', 'TypeBool', [], False), ('b1', 'TypeBool', [], False), ('b2', 'TypeBool', [], False)])
 
         self.assertEqual(len(declvisitor.clocks), 1)
         self.assertEqual(declvisitor.clocks[0][0], 'c')
@@ -55,24 +55,24 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res[12].children[0].children[1].type, 'Index')
 
 
-        self.assertEqual(declvisitor.variables[0], ('L', 'int', [], 0))
+        self.assertEqual(declvisitor.variables[0], ('L', 'TypeInt', [], 0))
 
         #self.assertEqual(declvisitor.variables[1], ('lalala', 'int', [], _))
         self.assertEqual(declvisitor.variables[1][0], 'lalala')
-        self.assertEqual(declvisitor.variables[1][1], 'int')
+        self.assertEqual(declvisitor.variables[1][1], 'TypeInt')
         self.assertEqual(declvisitor.variables[1][2], [])
         self.assertEqual(declvisitor.variables[1][3].type, 'Expression')
         self.assertEqual(declvisitor.variables[1][3].children[0].type, 'Number')
         self.assertEqual(declvisitor.variables[1][3].children[0].leaf, 3)
 
         self.assertEqual(declvisitor.variables[3][0], 'lock')
-        self.assertEqual(declvisitor.variables[3][1], 'bool')
+        self.assertEqual(declvisitor.variables[3][1], 'TypeBool')
         self.assertEqual(declvisitor.variables[3][2], [])
         self.assertEqual(declvisitor.variables[3][3].type, 'Expression')
         self.assertEqual(declvisitor.variables[3][3].children[0].type, 'False')
 
         self.assertEqual(declvisitor.variables[4][0], 'lock2')
-        self.assertEqual(declvisitor.variables[4][1], 'bool')
+        self.assertEqual(declvisitor.variables[4][1], 'TypeBool')
         self.assertEqual(declvisitor.variables[4][2], [])
         self.assertEqual(declvisitor.variables[4][3].children[0].type, 'True')
 
