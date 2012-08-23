@@ -552,7 +552,7 @@ class MainWindow:
             
     def open_file(self, filename):
         filesock = open(filename, "r")
-        self.nta = pyuppaal.from_xml(filesock)
+        self.nta = pyuppaal.NTA.from_xml(filesock)
         setup_canvas(self.canvas, self.nta)
         filesock.close()
 
