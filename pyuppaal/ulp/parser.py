@@ -258,7 +258,7 @@ class Parser:
                         identifier = self.parseIdentifierComplex()
 
                     if self.currentToken.type == 'LPAREN':
-                        self.parseFunctionCall(identifier)
+                        statements.append(self.parseFunctionCall(identifier))
                     else:
                         statements.append(self.parseAssignment(identifier))
                     self.accept('SEMI')
