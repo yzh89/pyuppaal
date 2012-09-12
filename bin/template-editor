@@ -32,7 +32,8 @@ class MainWindow:
     def __init__(self):
 
         #Set the Glade file
-        self.gladefile = os.path.join("data", "tedit.glade")
+        path = os.path.realpath(__file__).split('/')[:-2]
+        self.gladefile = os.path.join('/'.join(path), "data", "tedit.glade")
         self.wTree = gtk.glade.XML(self.gladefile)
 
         self.mainWin = self.wTree.get_widget("mainWindow")
