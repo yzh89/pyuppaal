@@ -17,6 +17,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. """
 
+from collections import OrderedDict
+
 from lexer import *
 import expressionParser
 from node import Node
@@ -572,7 +574,7 @@ class DeclVisitor:
         self.parser = parser
 
         #calculate variables, clocks and channels
-        self.constants = {}
+        self.constants = OrderedDict()
         #variables: list of (identifier, type, array-dimensions)
         self.variables = []
         self.clocks = []

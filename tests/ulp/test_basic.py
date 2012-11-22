@@ -811,6 +811,20 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(declvisitor.variables[4][2][0].children[0].leaf, 10)
         self.assertEqual(declvisitor.variables[4][2][1].children[0].leaf, 20)
 
+    def test_parse_constants(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_parse_constants.txt'), "r")
+
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        res = pars.AST.children
+
+        pars.AST.visit()
+
+        declvisitor = parser.DeclVisitor(pars)
+
+        inorder = ["a", "b", "c", "d"]
+        #should return the constants in file order
+        self.assertEqual(declvisitor.constants.keys(), inorder)
 
 
 
