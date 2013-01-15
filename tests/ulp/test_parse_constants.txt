@@ -1,0 +1,4 @@
+const int a = 42;
+const int b = a + 1;
+const int c = b + 1;
+const int d = c + 1;
