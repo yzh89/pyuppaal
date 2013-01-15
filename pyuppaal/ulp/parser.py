@@ -104,7 +104,7 @@ class Parser:
         structDecl = []
         self.accept('STRUCT')
         self.accept('LCURLYPAREN')
-        while self.currentToken.type in ('INT', 'BOOL'): 
+        while self.currentToken.type in ('INT', 'BOOL', 'IDENTIFIER'): 
             type = self.parseDeclType()
             identifier = self.parseIdentifierComplex()
             structDecl.append(self.parseDeclaration(type, identifier))
