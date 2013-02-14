@@ -527,6 +527,12 @@ def verify(modelfilename, queryfilename, verifyta='verifyta',
     (stdoutdata, stderrdata) = proc.communicate()
 
     lines = stdoutdata.split('\n')
+    errlines = stderrdata.split('\n')
+
+    #Look for tell-tale signs that something went wrong
+    for line in errlines:
+        if "Internet connection is required for activation." in line:
+            raise Exception("UPPAAL verifyta error: " + line)
 
     regex = re.compile('^Verifying property ([0-9]+) at line ')
     res = []
