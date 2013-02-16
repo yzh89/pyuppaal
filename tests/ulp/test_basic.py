@@ -811,6 +811,29 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(declvisitor.variables[4][2][0].children[0].leaf, 10)
         self.assertEqual(declvisitor.variables[4][2][1].children[0].leaf, 20)
 
+    def test_parse_extern_octagon(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern_octagon.txt'), "r")
+
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        res = pars.AST.children
+
+        pars.AST.visit()
+
+        declvisitor = parser.DeclVisitor(pars)
+
+        self.assertTrue('ApronOctagon' in pars.externList)
+
+        self.assertEqual(declvisitor.get_type('oct'), 'ApronOctagon')
+
+        octTypeNode = pars.typedefDict['ApronOctagon']
+
+        self.assertEqual(octTypeNode.leaf.type, "Identifier")
+        self.assertEqual(octTypeNode.leaf.leaf, "ApronOctagon")
+        
+        self.assertEqual(declvisitor.get_type('i'), ['oct', 'intvar'])
+        self.assertEqual(declvisitor.get_type('f'), ['oct', 'floatvar'])
+
     def test_parse_constants(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_parse_constants.txt'), "r")
 

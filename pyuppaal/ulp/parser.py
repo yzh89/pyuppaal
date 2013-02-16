@@ -35,9 +35,17 @@ def get_class_name_from_complex_identifier(n):
     ident = classnamenode.leaf
     return ident
 
-
-# dictionary of names
-identifiers = { }
+def get_full_name_from_complex_identifier(n):
+    """Follow the children of a complex identifier node, i.e.
+    "a.b.c.d" to return the full name "a.b.c.d"
+    """
+    names = [n.leaf]
+    cur = n
+    while len(cur.children) == 1 and \
+            cur.children[0].type == 'Identifier':
+        cur = cur.children[0]
+        names.append(cur.leaf)
+    return names
 
 class Parser:
 
@@ -52,6 +60,7 @@ class Parser:
 
         self.typedefDict = typedefDict or {}
         self.externList = []
+        self.identifierTypeDict = {}
 
         children = []        
         if self.currentToken != None:
@@ -74,7 +83,7 @@ class Parser:
                     else:
                         type = self.parseDeclType()
                     identifier = self.parseIdentifierComplex()
-                    statements.append(self.parseDeclaration(type, identifier))
+                    statements.append(self.parseDeclaration(type, identifier, isglobal=True))
                 elif self.currentToken.type in ('INT', 'BOOL', 'IDENTIFIER'): #Function or declaration           
                     type = self.parseStdType(False)
                     identifier = self.parseIdentifierComplex()
@@ -114,7 +123,7 @@ class Parser:
         self.accept('RCURLYPAREN')
         return structDecl
 
-    def parseDeclaration(self, type, identifier):
+    def parseDeclaration(self, type, identifier, isglobal=False):
         varList = []
         
         #TODO scalars
@@ -134,6 +143,9 @@ class Parser:
     
         if self.currentToken.type == 'SEMI':           
             self.accept('SEMI')
+
+        for var in varList:
+            self.identifierTypeDict[var.leaf] = type
 
         return Node('VarDecl', varList, type)
 
@@ -540,7 +552,15 @@ class Parser:
             else:
                 return Node('TypeBool')
         elif self.currentToken.type == 'IDENTIFIER': # and not isConst:
-            return self.parseTypedefType(self.currentToken.value)
+            identn = self.parseIdentifierComplex()
+            identn.visit()
+
+            # typedef vardecl, e.g. myint i;
+            if len(identn.children) == 0 and self.isType(identn.leaf):
+                return self.getType(identn.leaf)
+            # extern vardecl child, e.g. oct.intvar x
+            elif self.identifierTypeDict[identn.leaf].type == "NodeExtern":
+                return Node('TypeExternChild', [identn])
         self.error('Not a type')
 
     def parseTypedefType(self, str):
@@ -650,8 +670,9 @@ class DeclVisitor:
                     self.urgent_broadcast_channels += [(ident, array_dimensions)]
                 elif last_type == 'NodeExtern':
                     classident = get_class_name_from_complex_identifier(last_type_node.leaf)
-                    #last_type_node.visit()
-                    #print "classident: %s" % (classident,)
+                    self.variables += [(ident, classident, array_dimensions, None)]
+                elif last_type == "TypeExternChild":
+                    classident = get_full_name_from_complex_identifier(last_type_node.children[0])
                     self.variables += [(ident, classident, array_dimensions, None)]
                 elif last_type == 'NodeTypedef':
                     if len(node.children) > 0 and \
@@ -687,13 +708,16 @@ class DeclVisitor:
     def get_type(self, ident):
         """Return the type of ident"""
         if ident in [n for (n, _, _, _) in self.variables]:
-            (n, t) = [(n, t) for (n, t, _, _) in self.variables][0]
+            (n, t) = [(n, t) for (n, t, _, _) in self.variables if n == ident][0]
             if t == 'TypeInt':
                 return "TypeInt"
             elif t == 'TypeBool':
                 return "TypeBool"
             elif isinstance(t, str):
                 #some extern type
+                return t
+            elif isinstance(t, list):
+                #some extern child type
                 return t
             else:
                 assert False
