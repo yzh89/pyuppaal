@@ -450,8 +450,8 @@ class MainWindow:
         self.canvas.connect("scroll-event", self.on_canvas_scroll_event)
 
         #Set the Glade file
-        #TODO, find real path
-        self.gladefile = os.path.join("data", "pyuppaal.glade")
+        path = os.path.realpath(__file__).split('/')[:-2]
+        self.gladefile = os.path.join('/'.join(path), "data", "pyuppaal.glade")
         self.wTree = gtk.glade.XML(self.gladefile)
 
         self.mainWin = self.wTree.get_widget("mainWindow")
