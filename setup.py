@@ -56,7 +56,7 @@ class install_lib_build_parser_tables(install_lib):
 
 DistUtilsExtra.auto.setup(
     name='pyuppaal',
-    version='0.2',
+    version='0.4',
     license='GPL-3',
     author='Mads Chr. Olesen',
     author_email='mchro@cs.aau.dk',

@@ -14,8 +14,11 @@ Package: python-pyuppaal
 Architecture: all
 XB-Python-Version: ${python:Versions}
 Depends: ${misc:Depends},
- ${python:Depends}${misc:Depends},
  ${python:Depends},
+ python-gobject-2,
+ python-ply,
+ python-pygraphviz,
+ python-cairo,
  python-gtk2
 Description: Python library for manipulating UPPAAL xml files
  Can currently import, export and layout models.
