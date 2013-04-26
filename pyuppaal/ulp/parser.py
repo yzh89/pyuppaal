@@ -588,14 +588,39 @@ class Parser:
 
     def error(self, msg):
             raise Exception('Error: Parser error '+ msg)
-        
+
+class VarDecl:
+    """
+    A nicer representation of a VarDecl node.
+    """
+    def __init__(self, identifier, type, array_dimensions=None, initval=None):
+        self.identifier = identifier
+        self.type = type
+        self.array_dimensions = array_dimensions or []
+        self.initval = initval
+        #Default ranges
+        if self.type in ("TypeInt", "TypeConstInt"):
+            self.range_min = Node("Number", [], -32767)
+            self.range_max = Node("Number", [], 32767)
+        elif self.type in ("TypeBool", "TypeConstBool"):
+            self.range_min = Node("Number", [], 0)
+            self.range_max = Node("Number", [], 1)
+        else:
+            self.range_min = None
+            self.range_max = None
+
+    def __iter__(self):
+        "For backwards compatibility."
+        for x in (self.identifier, self.type, self.array_dimensions, self.initval):
+            yield x
+
 class DeclVisitor:
     def __init__(self, parser):
         self.parser = parser
 
         #calculate variables, clocks and channels
         self.constants = OrderedDict()
-        #variables: list of (identifier, type, array-dimensions)
+        #variables: list of VarDecl objects
         self.variables = []
         self.clocks = []
         self.channels = []
@@ -632,13 +657,18 @@ class DeclVisitor:
                     array_dimensions += [child.leaf]
                 
                 if last_type == 'TypeInt':
-                    #TODO ranges
                     if len(node.children) > 0 and \
                             node.children[0].type == "Assignment":
                         initval = node.children[0].children[0]
-                        self.variables += [(ident, last_type, array_dimensions, initval)]
+                        vdecl = VarDecl(ident, last_type, array_dimensions, initval)
                     else:
-                        self.variables += [(ident, last_type, array_dimensions, 0)]
+                        vdecl = VarDecl(ident, last_type, array_dimensions, 0)
+                    #ranges
+                    if len(last_type_node.children) == 2:
+                        vdecl.range_min = last_type_node.children[0]
+                        vdecl.range_max = last_type_node.children[1]
+
+                    self.variables += [vdecl]
                 elif last_type == 'TypeConstInt':
                     self.constants[ident] = node.children[0].children[0].children[0]
                 elif last_type == 'TypeConstBool':
@@ -648,16 +678,16 @@ class DeclVisitor:
                             node.children[0].type == "Assignment":
                         #parse initial value
                         initval = node.children[0].children[0]
-                        self.variables += [(ident, last_type, array_dimensions, initval)]
+                        self.variables += [VarDecl(ident, last_type, array_dimensions, initval)]
                     else:
-                        self.variables += [(ident, last_type, array_dimensions, False)]
+                        self.variables += [VarDecl(ident, last_type, array_dimensions, False)]
                 elif last_type == 'TypeClock':
                     #'clock' may have been typedef'ed
                     clocktypedef = parser.typedefDict.get('clock', None)
                     if clocktypedef:
                         #treat clock as normal variable
                         clocktype = clocktypedef.children[0].leaf.leaf
-                        self.variables += [(ident, clocktype, array_dimensions, None)]
+                        self.variables += [VarDecl(ident, clocktype, array_dimensions, None)]
                     else:
                         self.clocks += [(node.leaf, 10)]
                 elif last_type == 'TypeChannel':
@@ -670,17 +700,17 @@ class DeclVisitor:
                     self.urgent_broadcast_channels += [(ident, array_dimensions)]
                 elif last_type == 'NodeExtern':
                     classident = get_class_name_from_complex_identifier(last_type_node.leaf)
-                    self.variables += [(ident, classident, array_dimensions, None)]
+                    self.variables += [VarDecl(ident, classident, array_dimensions, None)]
                 elif last_type == "TypeExternChild":
                     classident = get_full_name_from_complex_identifier(last_type_node.children[0])
-                    self.variables += [(ident, classident, array_dimensions, None)]
+                    self.variables += [VarDecl(ident, classident, array_dimensions, None)]
                 elif last_type == 'NodeTypedef':
                     if len(node.children) > 0 and \
                             node.children[0].type == "Assignment":
                         initval = node.children[0].children[0]
-                        self.variables += [(ident, last_type_node.leaf, array_dimensions, initval)]
+                        self.variables += [VarDecl(ident, last_type_node.leaf, array_dimensions, initval)]
                     else:
-                        self.variables += [(ident, last_type_node.leaf, array_dimensions, None)]
+                        self.variables += [VarDecl(ident, last_type_node.leaf, array_dimensions, None)]
                 
                 #else:
                 #    print 'Unknown type: ' + last_type
@@ -703,7 +733,12 @@ class DeclVisitor:
             return True
         parser.AST.visit(visit_identifiers)
 
-
+    def get_vardecl(self, ident):
+        """Return the VarDecl object for ident, assumes the type of ident is a
+           variable type."""
+        for x in self.variables:
+            if x.identifier == ident:
+                return x
 
     def get_type(self, ident):
         """Return the type of ident"""

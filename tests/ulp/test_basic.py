@@ -17,7 +17,7 @@ class TestBasicParsing(unittest.TestCase):
 
         declvisitor = parser.DeclVisitor(pars)
 
-        self.assertEqual(declvisitor.variables, [('a', 'TypeInt', [], 0), ('b', 'TypeBool', [], False), ('b1', 'TypeBool', [], False), ('b2', 'TypeBool', [], False)])
+        self.assertEqual(map(tuple, declvisitor.variables), [('a', 'TypeInt', [], 0), ('b', 'TypeBool', [], False), ('b1', 'TypeBool', [], False), ('b2', 'TypeBool', [], False)])
 
         self.assertEqual(len(declvisitor.clocks), 1)
         self.assertEqual(declvisitor.clocks[0][0], 'c')
@@ -55,26 +55,26 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res[12].children[0].children[1].type, 'Index')
 
 
-        self.assertEqual(declvisitor.variables[0], ('L', 'TypeInt', [], 0))
+        self.assertEqual(tuple(declvisitor.variables[0]), ('L', 'TypeInt', [], 0))
 
         #self.assertEqual(declvisitor.variables[1], ('lalala', 'int', [], _))
-        self.assertEqual(declvisitor.variables[1][0], 'lalala')
-        self.assertEqual(declvisitor.variables[1][1], 'TypeInt')
-        self.assertEqual(declvisitor.variables[1][2], [])
-        self.assertEqual(declvisitor.variables[1][3].type, 'Expression')
-        self.assertEqual(declvisitor.variables[1][3].children[0].type, 'Number')
-        self.assertEqual(declvisitor.variables[1][3].children[0].leaf, 3)
+        self.assertEqual(tuple(declvisitor.variables[1])[0], 'lalala')
+        self.assertEqual(tuple(declvisitor.variables[1])[1], 'TypeInt')
+        self.assertEqual(tuple(declvisitor.variables[1])[2], [])
+        self.assertEqual(tuple(declvisitor.variables[1])[3].type, 'Expression')
+        self.assertEqual(tuple(declvisitor.variables[1])[3].children[0].type, 'Number')
+        self.assertEqual(tuple(declvisitor.variables[1])[3].children[0].leaf, 3)
 
-        self.assertEqual(declvisitor.variables[3][0], 'lock')
-        self.assertEqual(declvisitor.variables[3][1], 'TypeBool')
-        self.assertEqual(declvisitor.variables[3][2], [])
-        self.assertEqual(declvisitor.variables[3][3].type, 'Expression')
-        self.assertEqual(declvisitor.variables[3][3].children[0].type, 'False')
+        self.assertEqual(tuple(declvisitor.variables[3])[0], 'lock')
+        self.assertEqual(tuple(declvisitor.variables[3])[1], 'TypeBool')
+        self.assertEqual(tuple(declvisitor.variables[3])[2], [])
+        self.assertEqual(tuple(declvisitor.variables[3])[3].type, 'Expression')
+        self.assertEqual(tuple(declvisitor.variables[3])[3].children[0].type, 'False')
 
-        self.assertEqual(declvisitor.variables[4][0], 'lock2')
-        self.assertEqual(declvisitor.variables[4][1], 'TypeBool')
-        self.assertEqual(declvisitor.variables[4][2], [])
-        self.assertEqual(declvisitor.variables[4][3].children[0].type, 'True')
+        self.assertEqual(tuple(declvisitor.variables[4])[0], 'lock2')
+        self.assertEqual(tuple(declvisitor.variables[4])[1], 'TypeBool')
+        self.assertEqual(tuple(declvisitor.variables[4])[2], [])
+        self.assertEqual(tuple(declvisitor.variables[4])[3].children[0].type, 'True')
 
         self.assertEqual(declvisitor.clocks, [('time', 10), ('y1', 10), ('y2', 10), ('y3', 10), ('y4', 10)])
         self.assertEqual(declvisitor.channels, [('take', []), ('release', [])])
@@ -178,9 +178,9 @@ class TestBasicParsing(unittest.TestCase):
         print declvisitor.variables
         varnames = [x for (x, _, _, _) in declvisitor.variables]
         self.assertTrue('m' in varnames)
-        self.assertTrue(('m', 'myStructType', [], None) in declvisitor.variables)
+        self.assertTrue(('m', 'myStructType', [], None) in map(tuple, declvisitor.variables))
         self.assertTrue('n' in varnames)
-        self.assertTrue(('n', 'adr', [], None) in declvisitor.variables)
+        self.assertTrue(('n', 'adr', [], None) in map(tuple, declvisitor.variables))
         self.assertTrue('n2' in varnames)
 
         for (x, _, _, initval) in declvisitor.variables:
@@ -190,7 +190,7 @@ class TestBasicParsing(unittest.TestCase):
                 self.assertEqual(initval.children[0].leaf, 3)
 
         self.assertTrue('c' in varnames)
-        self.assertTrue(('c', 'DBMClock', [], None) in declvisitor.variables)
+        self.assertTrue(('c', 'DBMClock', [], None) in map(tuple, declvisitor.variables))
         #XXX parses to deeply into structs!
         #self.assertFalse('a' in varnames)
 
@@ -798,18 +798,18 @@ class TestBasicParsing(unittest.TestCase):
 
         self.assertEqual(len(declvisitor.variables), 5)
 
-        self.assertEqual(declvisitor.variables[0], ('dbm', 'DBMFederation', [], None))
-        self.assertEqual(declvisitor.variables[1], ('dbm.x', 'DBMClock', [], None))
-        self.assertEqual(declvisitor.variables[2], ('dbm.c', 'DBMClock', [], None))
-        self.assertEqual(declvisitor.variables[3][0], 'dbm.y') #('dbm.y', 'DBMClock', [10])
-        self.assertEqual(declvisitor.variables[3][1], 'DBMClock')
-        self.assertEqual(len(declvisitor.variables[3][2]), 1)
-        self.assertEqual(declvisitor.variables[3][2][0].children[0].leaf, 10)
-        self.assertEqual(declvisitor.variables[4][0], 'dbm.z') #('dbm.z', 'DBMClock', [10, 20])
-        self.assertEqual(declvisitor.variables[4][1], 'DBMClock')
-        self.assertEqual(len(declvisitor.variables[4][2]), 2)
-        self.assertEqual(declvisitor.variables[4][2][0].children[0].leaf, 10)
-        self.assertEqual(declvisitor.variables[4][2][1].children[0].leaf, 20)
+        self.assertEqual(tuple(declvisitor.variables[0]), ('dbm', 'DBMFederation', [], None))
+        self.assertEqual(tuple(declvisitor.variables[1]), ('dbm.x', 'DBMClock', [], None))
+        self.assertEqual(tuple(declvisitor.variables[2]), ('dbm.c', 'DBMClock', [], None))
+        self.assertEqual(declvisitor.variables[3].identifier, 'dbm.y') #('dbm.y', 'DBMClock', [10])
+        self.assertEqual(declvisitor.variables[3].type, 'DBMClock')
+        self.assertEqual(len(declvisitor.variables[3].array_dimensions), 1)
+        self.assertEqual(declvisitor.variables[3].array_dimensions[0].children[0].leaf, 10)
+        self.assertEqual(declvisitor.variables[4].identifier, 'dbm.z') #('dbm.z', 'DBMClock', [10, 20])
+        self.assertEqual(declvisitor.variables[4].type, 'DBMClock')
+        self.assertEqual(len(declvisitor.variables[4].array_dimensions), 2)
+        self.assertEqual(declvisitor.variables[4].array_dimensions[0].children[0].leaf, 10)
+        self.assertEqual(declvisitor.variables[4].array_dimensions[1].children[0].leaf, 20)
 
     def test_parse_extern_octagon(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern_octagon.txt'), "r")
@@ -849,7 +849,34 @@ class TestBasicParsing(unittest.TestCase):
         #should return the constants in file order
         self.assertEqual(declvisitor.constants.keys(), inorder)
 
+    def test_parse_declare_intrange(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_declare_intrange.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        pars.AST.visit()
 
+        self.assertEqual(pars.AST.children[0].type, "VarDecl") 
+        self.assertEqual(pars.AST.children[0].leaf.type, 'TypeInt')
+        self.assertEqual(pars.AST.children[0].children[0].leaf, "i") 
+        
+        self.assertEqual(pars.AST.children[0].leaf.children[0].type, "Expression")
+        self.assertEqual(pars.AST.children[0].leaf.children[0].children[0].leaf, 0)
+        self.assertEqual(pars.AST.children[0].leaf.children[1].type, "Expression")
+        self.assertEqual(pars.AST.children[0].leaf.children[1].children[0].leaf, 4)
+
+        declvisitor = parser.DeclVisitor(pars)
+        vardecl_i = declvisitor.get_vardecl("i")
+        self.assertEqual(vardecl_i.range_min.type, "Expression")
+        self.assertEqual(vardecl_i.range_min.children[0].leaf, 0)
+        self.assertEqual(vardecl_i.range_max.type, "Expression")
+        self.assertEqual(vardecl_i.range_max.children[0].leaf, 4)
+        
+        vardecl_i = declvisitor.get_vardecl("j")
+        #self.assertEqual(vardecl_j.range, (-32767, 32767))
+        self.assertEqual(vardecl_i.range_min.type, "Number")
+        self.assertEqual(vardecl_i.range_min.leaf, -32767)
+        self.assertEqual(vardecl_i.range_max.type, "Number")
+        self.assertEqual(vardecl_i.range_max.leaf, 32767)
 
 #TODO clean this up a bit
 class myToken:
