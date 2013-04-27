@@ -736,9 +736,7 @@ class DeclVisitor:
     def get_vardecl(self, ident):
         """Return the VarDecl object for ident, assumes the type of ident is a
            variable type."""
-        for x in self.variables:
-            if x.identifier == ident:
-                return x
+        return [x for x in self.variables if x.identifier == ident][0]
 
     def get_type(self, ident):
         """Return the type of ident"""
