@@ -3,6 +3,7 @@ import sys
 import os
 import unittest
 from pyuppaal.ulp import lexer, parser, expressionParser, node
+from pyuppaal.ulp.systemdec_parser import SystemDeclarationParser
 
 class TestBasicParsing(unittest.TestCase):
 
@@ -10,6 +11,16 @@ class TestBasicParsing(unittest.TestCase):
         lex = lexer.lexer
         declaration = '// comment'
         pars = parser.Parser(declaration, lex)
+    
+    def test_error_upc_raise_exception(self):
+        lex = lexer.lexer
+        declaration = 'foo' #illegal statement
+        self.assertRaises(Exception, parser.Parser, declaration, lex)
+            
+    def test_error_system_decl_raise_exception(self):
+        declaration = '//foo' #illegal statement
+        pars = SystemDeclarationParser(declaration)
+        self.assertRaises(Exception, pars.parse)
 
     def test_parse_declarations(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_simple_declarations.txt'), "r")

@@ -117,4 +117,6 @@ class SystemDeclarationParser:
             ident.priority = self.prioritycounter
             p[0] = [ident] + p[3]
 
+    def p_error(self, p):
+        raise SyntaxError("Unable to parse system declaration.")
 
