@@ -55,7 +55,7 @@ class Parser:
     
     def __init__(self, data, lexer, typedefDict=None):
         self.lexer = lexer
-        self.lexer.input(data)
+        self.lexer.input(data+'\n')
         self.currentToken = self.lexer.token()
 
         self.typedefDict = typedefDict or {}

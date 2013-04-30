@@ -6,6 +6,11 @@ from pyuppaal.ulp import lexer, parser, expressionParser, node
 
 class TestBasicParsing(unittest.TestCase):
 
+    def test_comment_last_line(self):
+        lex = lexer.lexer
+        declaration = '// comment'
+        pars = parser.Parser(declaration, lex)
+
     def test_parse_declarations(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_simple_declarations.txt'), "r")
 
