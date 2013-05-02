@@ -894,6 +894,28 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(vardecl_i.range_max.type, "Number")
         self.assertEqual(vardecl_i.range_max.leaf, 32767)
 
+    def test_parse_if_elseif(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_if_elseif.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        pars.AST.visit()
+
+        ifnode = pars.AST.children[0].children[0]
+
+        ifbodynode = ifnode.children[0]
+        elseifbodynode = ifnode.children[1]
+        elsebodynode = ifnode.children[2]
+
+        self.assertEqual(ifnode.leaf, [])
+
+        self.assertEqual(ifbodynode.leaf[0].children[0].type, "Number")
+        self.assertEqual(ifbodynode.leaf[0].children[0].leaf, 4)
+
+        self.assertEqual(elseifbodynode.leaf[0].children[0].type, "Number")
+        self.assertEqual(elseifbodynode.leaf[0].children[0].leaf, 3)
+
+
+
 #TODO clean this up a bit
 class myToken:
     type = None

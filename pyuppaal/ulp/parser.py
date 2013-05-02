@@ -424,7 +424,7 @@ class Parser:
                 else:
                     children.append(Node('ElseBodyStatements', self.parseBodyStatements(single=True), None))
 
-        return Node('If', children, leaf)
+        return Node('If', children)
 
     def parseIdentifier(self):
         n = Node('Identifier', [], self.currentToken.value)
