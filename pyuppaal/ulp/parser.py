@@ -232,7 +232,7 @@ class Parser:
         if type.type == "NodeTypedef":
             n.basic_type = type.children[0].type
         else:
-            n.basic_type = type
+            n.basic_type = type.type
         return n
     
     def parseParameters(self):

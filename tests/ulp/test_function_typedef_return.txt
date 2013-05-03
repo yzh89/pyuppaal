@@ -3,3 +3,6 @@ typedef int adr;
 adr foo() {
     return 5;
 }
+
+void bar() {
+}

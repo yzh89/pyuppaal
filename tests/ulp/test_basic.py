@@ -929,9 +929,14 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         declvisitor = parser.DeclVisitor(pars)
 
-        self.assertEqual(len(declvisitor.functions), 1)
+        self.assertEqual(len(declvisitor.functions), 2)
         foo = declvisitor.functions[0]
+        self.assertEqual(foo.leaf[1].leaf, "foo")
         self.assertEqual(foo.basic_type, "TypeInt")
+
+        bar = declvisitor.functions[1]
+        self.assertEqual(bar.leaf[1].leaf, "bar")
+        self.assertEqual(bar.basic_type, "TypeVoid")
 
 #TODO clean this up a bit
 class myToken:
