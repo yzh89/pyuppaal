@@ -923,7 +923,15 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(elseifbodynode.leaf[0].children[0].type, "Number")
         self.assertEqual(elseifbodynode.leaf[0].children[0].leaf, 3)
 
+    def test_parse_function_typedef_return(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_function_typedef_return.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        declvisitor = parser.DeclVisitor(pars)
 
+        self.assertEqual(len(declvisitor.functions), 1)
+        foo = declvisitor.functions[0]
+        self.assertEqual(foo.basic_type, "TypeInt")
 
 #TODO clean this up a bit
 class myToken:

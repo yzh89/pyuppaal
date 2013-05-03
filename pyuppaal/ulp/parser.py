@@ -227,7 +227,13 @@ class Parser:
         children.extend(self.parseBodyStatements())
         self.accept('RCURLYPAREN')
 
-        return Node('Function', children, (type, identifier, parameters))
+        n = Node('Function', children, (type, identifier, parameters))
+        #typedef'ed return value?
+        if type.type == "NodeTypedef":
+            n.basic_type = type.children[0].type
+        else:
+            n.basic_type = type
+        return n
     
     def parseParameters(self):
         parameters = []
