@@ -592,10 +592,15 @@ class Parser:
 class VarDecl:
     """
     A nicer representation of a VarDecl node.
+
+    @identifier is name of var
+    @type is type used at declaration, e.g. "addr" if a typedef'ed var
+    @basic_type is the underlying type, e.g. "TypeInt"
     """
     def __init__(self, identifier, type, array_dimensions=None, initval=None):
         self.identifier = identifier
         self.type = type
+        self.basic_type = type
         self.array_dimensions = array_dimensions or []
         self.initval = initval
         #Default ranges
@@ -708,9 +713,16 @@ class DeclVisitor:
                     if len(node.children) > 0 and \
                             node.children[0].type == "Assignment":
                         initval = node.children[0].children[0]
-                        self.variables += [VarDecl(ident, last_type_node.leaf, array_dimensions, initval)]
+                        vdecl = VarDecl(ident, last_type_node.leaf, array_dimensions, initval)
                     else:
-                        self.variables += [VarDecl(ident, last_type_node.leaf, array_dimensions, None)]
+                        vdecl = VarDecl(ident, last_type_node.leaf, array_dimensions, None)
+                    #ranges from typedef
+                    typedef = parser.typedefDict[last_type_node.leaf]
+                    vdecl.basic_type = parser.typedefDict[last_type_node.leaf].children[0].type
+                    if len(typedef.children[0].children) == 2:
+                        vdecl.range_min = typedef.children[0].children[0]
+                        vdecl.range_max = typedef.children[0].children[1]
+                    self.variables += [vdecl]
                 
                 #else:
                 #    print 'Unknown type: ' + last_type

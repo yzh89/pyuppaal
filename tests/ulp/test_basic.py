@@ -191,13 +191,22 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(len(declvisitor.variables), 5)
         
         pars.AST.visit()
-        print declvisitor.variables
+        print map(tuple, declvisitor.variables)
         varnames = [x for (x, _, _, _) in declvisitor.variables]
         self.assertTrue('m' in varnames)
         self.assertTrue(('m', 'myStructType', [], None) in map(tuple, declvisitor.variables))
         self.assertTrue('n' in varnames)
         self.assertTrue(('n', 'adr', [], None) in map(tuple, declvisitor.variables))
         self.assertTrue('n2' in varnames)
+        
+        #check ranges inherited from typedef
+        self.assertEqual(declvisitor.get_vardecl('n').basic_type, "TypeInt")
+        self.assertEqual(declvisitor.get_vardecl('n').range_min.type, "Expression")
+        self.assertEqual(declvisitor.get_vardecl('n').range_min.children[0].type, "Number")
+        self.assertEqual(declvisitor.get_vardecl('n').range_min.children[0].leaf, 1)
+        self.assertEqual(declvisitor.get_vardecl('n').range_max.type, "Expression")
+        self.assertEqual(declvisitor.get_vardecl('n').range_max.children[0].type, "Number")
+        self.assertEqual(declvisitor.get_vardecl('n').range_max.children[0].leaf, 3)
 
         for (x, _, _, initval) in declvisitor.variables:
             if x == "n2":
