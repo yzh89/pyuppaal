@@ -870,7 +870,7 @@ class TestBasicParsing(unittest.TestCase):
 
         declvisitor = parser.DeclVisitor(pars)
 
-        inorder = ["a", "b", "c", "d"]
+        inorder = ["a", "b", "c", "d", "N"]
         #should return the constants in file order
         self.assertEqual(declvisitor.constants.keys(), inorder)
 

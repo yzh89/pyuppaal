@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. """
 
 from collections import OrderedDict
+import copy
 
 from lexer import *
 import expressionParser
@@ -557,13 +558,17 @@ class Parser:
                 return Node('TypeConstBool')
             else:
                 return Node('TypeBool')
-        elif self.currentToken.type == 'IDENTIFIER': # and not isConst:
+        elif self.currentToken.type == 'IDENTIFIER':
             identn = self.parseIdentifierComplex()
             identn.visit()
 
             # typedef vardecl, e.g. myint i;
             if len(identn.children) == 0 and self.isType(identn.leaf):
-                return self.getType(identn.leaf)
+                typedefedtype = self.getType(identn.leaf)
+                if isConst:
+                    typedefedtype = copy.copy(typedefedtype)
+                    typedefedtype.type = "TypeConstTypedef"
+                return typedefedtype
             # extern vardecl child, e.g. oct.intvar x
             elif self.identifierTypeDict[identn.leaf].type == "NodeExtern":
                 return Node('TypeExternChild', [identn])
@@ -715,12 +720,13 @@ class DeclVisitor:
                 elif last_type == "TypeExternChild":
                     classident = get_full_name_from_complex_identifier(last_type_node.children[0])
                     self.variables += [VarDecl(ident, classident, array_dimensions, None)]
-                elif last_type == 'NodeTypedef':
+                elif last_type in ('NodeTypedef', 'TypeConstTypedef'):
                     if len(node.children) > 0 and \
                             node.children[0].type == "Assignment":
                         initval = node.children[0].children[0]
                         vdecl = VarDecl(ident, last_type_node.leaf, array_dimensions, initval)
                     else:
+                        initval = Node("Number", [], 0)
                         vdecl = VarDecl(ident, last_type_node.leaf, array_dimensions, None)
                     #ranges from typedef
                     typedef = parser.typedefDict[last_type_node.leaf]
@@ -728,7 +734,10 @@ class DeclVisitor:
                     if len(typedef.children[0].children) == 2:
                         vdecl.range_min = typedef.children[0].children[0]
                         vdecl.range_max = typedef.children[0].children[1]
-                    self.variables += [vdecl]
+                    if last_type == "TypeConstTypedef":
+                        self.constants[ident] = initval
+                    else:
+                        self.variables += [vdecl]
                 
                 #else:
                 #    print 'Unknown type: ' + last_type
