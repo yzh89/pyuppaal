@@ -214,6 +214,18 @@ class Parser:
         if self.currentToken.type == 'RBRACKET':
             self.error('invalid expression')
             e = None
+        #can be Type
+        elif self.currentToken.type in ('INT', 'BOOL', 'CONST'):
+            isConst = False
+            if self.currentToken.type == 'CONST':
+                self.accept('CONST')
+                isConst = True
+            e = self.parseStdType(isConst) 
+        #can be typedef'ed type
+        elif self.currentToken.type in ('IDENTIFIER',) and \
+                self.isType(self.currentToken.value):
+            e = self.parseTypedefType(self.currentToken.value)
+        #or expression
         else:
             e = self.parseExpression()
         self.accept('RBRACKET')

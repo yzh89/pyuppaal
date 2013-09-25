@@ -938,6 +938,37 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(bar.leaf[1].leaf, "bar")
         self.assertEqual(bar.basic_type, "TypeVoid")
 
+    def test_parse_array_types(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_array_types.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        res = pars.AST.children
+        pars.AST.visit()
+
+        self.assertEqual(res[1].type, "VarDecl")
+        self.assertEqual(res[1].children[0].children[0].type, "Index")
+        self.assertEqual(res[1].children[0].children[0].leaf.type, "NodeTypedef")
+
+        self.assertEqual(res[2].type, "VarDecl")
+        self.assertEqual(res[2].children[0].children[0].type, "Index")
+        self.assertEqual(res[2].children[0].children[0].leaf.type, "TypeInt")
+        self.assertEqual(len(res[2].children[0].children[0].leaf.children), 2)
+        self.assertEqual(res[2].children[0].children[0].leaf.children[0].children[0].type, "Number")
+        self.assertEqual(res[2].children[0].children[0].leaf.children[0].children[0].leaf, 2)
+        self.assertEqual(res[2].children[0].children[0].leaf.children[1].children[0].type, "Number")
+        self.assertEqual(res[2].children[0].children[0].leaf.children[1].children[0].leaf, 4)
+
+        self.assertEqual(res[3].type, "VarDecl")
+        self.assertEqual(res[3].children[0].children[0].type, "Index")
+        self.assertEqual(res[3].children[0].children[0].leaf.type, "TypeInt")
+        self.assertEqual(len(res[3].children[0].children[0].leaf.children), 2)
+        self.assertEqual(res[3].children[0].children[0].leaf.children[0].children[0].type, "Number")
+        self.assertEqual(res[3].children[0].children[0].leaf.children[0].children[0].leaf, 3)
+        self.assertEqual(res[3].children[0].children[0].leaf.children[1].children[0].type, "Number")
+        self.assertEqual(res[3].children[0].children[0].leaf.children[1].children[0].leaf, 4)
+
+
+
 #TODO clean this up a bit
 class myToken:
     type = None
