@@ -54,20 +54,53 @@ def parse_expression(data):
             n = Node('Number', [], self.currentToken.value)
             self.accept('NUMBER')
             return n
+       
+        def parseExpression(self):
+            exParser = ExpressionParser(self.lex, self)
+            return exParser.parse()
+       
+        def parseIndexList(self):
+            indexList = []
+            
+            while self.currentToken.type == 'LBRACKET':
+                index = self.parseIndex()
+                indexList += [index]
+        
+            if len(indexList) > 0:
+                return Node('IndexList', indexList, None)
+            else:
+                return None
+
+        def parseIndex(self):
+            self.accept('LBRACKET')
+            if self.currentToken.type == 'RBRACKET':
+                self.error('invalid expression')
+                e = None
+            else:
+                e = self.parseExpression()
+            self.accept('RBRACKET')
+            return Node('Index', [], e)
+  
+        def parseIdentifier(self):
+            n = Node('Identifier', [self.currentToken.value], None)
+            self.accept('IDENTIFIER')
+            return n
 
         def parseIdentifierComplex(self):
-            n = Node('Identifier', [], self.currentToken.value)
-            self.accept('IDENTIFIER')
-         
-            p = n
-            while self.currentToken.type == 'DOT':
-                self.accept('DOT')
-                element = Node('Identifier', [], self.currentToken.value)
-                self.accept('IDENTIFIER')
-                p.children = [element]
-                p = element
+            rootP = self.parseIdentifier()
+            p = rootP
 
-            return n
+            while True:
+                p.leaf = self.parseIndexList()
+                if self.currentToken.type == 'DOT':
+                    self.accept('DOT')
+                    element = self.parseIdentifier()
+                    p.children.extend([element])
+                    p = element
+                if self.currentToken.type not in ['LBRACKET', 'DOT']:	
+                    break
+
+            return rootP 
 
         def accept(self, expectedTokenType):
             if self.currentToken.type == expectedTokenType:
@@ -231,7 +264,8 @@ class ExpressionParser:
             self.parser.accept('FALSE')
         elif self.parser.currentToken.type in ['IDENTIFIER', 'NUMBER']:
             if self.parser.currentToken.type == 'IDENTIFIER':
-                self.res_stack.append(self.parser.parseIdentifierComplex())
+                ident = self.parser.parseIdentifierComplex()
+                self.res_stack.append(ident)
                 if self.parser.currentToken.type == 'PLUSPLUS': #x++
                     identifier = self.res_stack.pop()
                     self.res_stack.append(Node('PlusPlusPost',[identifier]))
@@ -259,7 +293,9 @@ class ExpressionParser:
                 elif self.parser.currentToken.type == 'LBRACKET':  #array index, a[..]
                     identifier = self.res_stack.pop()
                     #import pdb;pdb.set_trace()
-                    n = Node('Identifier', [], identifier.leaf)
+                    n = Node('Identifier', [identifier.children[0]], None)
+                    indexList = []
+
                     while self.parser.currentToken.type == 'LBRACKET':
                         self.parser.accept('LBRACKET')
 
@@ -273,12 +309,14 @@ class ExpressionParser:
                         #expr = self.res_stack.pop()
                         #self.parser.accept('RBRACKET')
                         
-                        n.children.append(Node('Index', [], expr))
+                        indexList.append(Node('Index', [], expr))
+                    
+                    n.leaf = Node('IndexList', indexList, None)
 
                     self.res_stack.append(n)
                 elif self.parser.currentToken.type == 'APOSTROPHE': #x' (used for clock rate "assignment")
                     identifier = self.res_stack.pop()
-                    self.res_stack.append(Node('ClockRate', [], identifier.leaf))
+                    self.res_stack.append(Node('ClockRate', [], identifier.children[0]))
                     self.parser.accept('APOSTROPHE')
             else:
                 self.res_stack.append(self.parser.parseNumber())

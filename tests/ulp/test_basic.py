@@ -21,6 +21,11 @@ class TestBasicParsing(unittest.TestCase):
         declaration = '//foo' #illegal statement
         pars = SystemDeclarationParser(declaration)
         self.assertRaises(Exception, pars.parse)
+    
+    def test_init_array(self):
+        lex = lexer.lexer
+        declaration = 'int myArray[10] = { 5, 5, 5, 5, 5, 5, 5, 5, 5, 5 };'
+        pars = parser.Parser(declaration, lex)
 
     def test_parse_declarations(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_simple_declarations.txt'), "r")
@@ -32,8 +37,12 @@ class TestBasicParsing(unittest.TestCase):
         #pars.AST.visit()
 
         declvisitor = parser.DeclVisitor(pars)
-
-        self.assertEqual(map(tuple, declvisitor.variables), [('a', 'TypeInt', [], 0), ('b', 'TypeBool', [], False), ('b1', 'TypeBool', [], False), ('b2', 'TypeBool', [], False)])
+        declvisitor.visit(pars.AST)
+        
+        #print map(tuple, declvisitor.variables)
+        #before declvisitor rewrite not all clocks were stored in variables
+        #self.assertEqual(map(tuple, declvisitor.variables), [('a', 'TypeInt', [], None), ('b', 'TypeBool', [], None), ('b1', 'TypeBool', [], None), ('b2', 'TypeBool', [], None)])
+        self.assertEqual(map(tuple, declvisitor.variables), [('a', 'TypeInt', [], None), ('b', 'TypeBool', [], None), ('b1', 'TypeBool', [], None), ('b2', 'TypeBool', [], None), ('c', 'TypeClock', [], None)])
 
         self.assertEqual(len(declvisitor.clocks), 1)
         self.assertEqual(declvisitor.clocks[0][0], 'c')
@@ -50,52 +59,29 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         res = pars.AST.children
 
-        pars.AST.visit()
-
         declvisitor = parser.DeclVisitor(pars)
+        declvisitor.visit(pars.AST)
 
-        self.assertEqual(res[7].type, 'VarDecl')
-        self.assertEqual(res[7].leaf.type, 'TypeInt')
-        self.assertEqual(res[7].children[0].type, 'Identifier')
-        self.assertEqual(res[7].children[0].leaf, 'lalala')
-        self.assertEqual(res[7].children[0].children[0].type, 'Assignment')
-        self.assertEqual(res[7].children[0].children[0].leaf.type, 'Identifier')
-        self.assertEqual(res[7].children[0].children[0].leaf.leaf, 'lalala')
-
-
-        self.assertEqual(res[12].type, 'VarDecl')
-        self.assertEqual(res[12].leaf.type, 'TypeBool')
-        self.assertEqual(res[12].children[0].type, 'Identifier')
-        self.assertEqual(res[12].children[0].leaf, 'msg')
-        self.assertEqual(res[12].children[0].children[0].type, 'Index')
-        self.assertEqual(res[12].children[0].children[1].type, 'Index')
-
-
-        self.assertEqual(tuple(declvisitor.variables[0]), ('L', 'TypeInt', [], 0))
-
-        #self.assertEqual(declvisitor.variables[1], ('lalala', 'int', [], _))
-        self.assertEqual(tuple(declvisitor.variables[1])[0], 'lalala')
-        self.assertEqual(tuple(declvisitor.variables[1])[1], 'TypeInt')
-        self.assertEqual(tuple(declvisitor.variables[1])[2], [])
-        self.assertEqual(tuple(declvisitor.variables[1])[3].type, 'Expression')
-        self.assertEqual(tuple(declvisitor.variables[1])[3].children[0].type, 'Number')
-        self.assertEqual(tuple(declvisitor.variables[1])[3].children[0].leaf, 3)
-
-        self.assertEqual(tuple(declvisitor.variables[3])[0], 'lock')
-        self.assertEqual(tuple(declvisitor.variables[3])[1], 'TypeBool')
-        self.assertEqual(tuple(declvisitor.variables[3])[2], [])
-        self.assertEqual(tuple(declvisitor.variables[3])[3].type, 'Expression')
-        self.assertEqual(tuple(declvisitor.variables[3])[3].children[0].type, 'False')
-
-        self.assertEqual(tuple(declvisitor.variables[4])[0], 'lock2')
-        self.assertEqual(tuple(declvisitor.variables[4])[1], 'TypeBool')
-        self.assertEqual(tuple(declvisitor.variables[4])[2], [])
-        self.assertEqual(tuple(declvisitor.variables[4])[3].children[0].type, 'True')
+        self.assertEqual(len(declvisitor.variables), 10)
+        self.assertTrue(('L', 'TypeInt', [], None) in map(tuple, declvisitor.variables))
+        self.assertTrue(('time', 'TypeClock', [], None) in map(tuple, declvisitor.variables))
+        self.assertTrue(('y1', 'TypeClock', [], None) in map(tuple, declvisitor.variables))
+        self.assertTrue(('y2', 'TypeClock', [], None) in map(tuple, declvisitor.variables))
+        self.assertTrue(('y3', 'TypeClock', [], None) in map(tuple, declvisitor.variables))
+        self.assertTrue(('y4', 'TypeClock', [], None) in map(tuple, declvisitor.variables))
+        #TODO test complex vaiables as well
+        #    ('lalala', 'TypeInt', [], node.Node('Expression', [node.Node('Number', [], 3)], [])) ])
+        #    ('msg', 'TypeBool', node.Node('IndexList', 
+        #       [node.Node('Index', [], node.Node('Expression', [node.Node('Identifier', ['N'], None)], [])), 
+        #          node.Node('Index', [], node.Node('Expression', [node.Node('Identifier', ['N'], None)], []))], None), None), 
+        # ('lock', 'TypeBool', [], node.Node('Expression', [node.Node('False', [], [])], [])), 
+        #('lock2', 'TypeBool', [], node.Node('Expression', [node.Node('True', [], [])], []))] )
 
         self.assertEqual(declvisitor.clocks, [('time', 10), ('y1', 10), ('y2', 10), ('y3', 10), ('y4', 10)])
         self.assertEqual(declvisitor.channels, [('take', []), ('release', [])])
 
-        
+        inorder = ["fastest", "fast", "slow", "slowest", "N"]
+        self.assertEqual(declvisitor.constants.keys(), inorder)
 
 
     def test_parse_empty_query(self):
@@ -110,20 +96,13 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 7) #TODO add more asserts
         res = pars.AST.children
-        #pars.AST.visit()
-        self.assertEqual(res[0].children[0].children[0].type, "Index") 
-        self.assertEqual(res[1].children[0].children[0].type, "Index") 
-        self.assertEqual(res[2].children[0].children[0].type, "Index") 
-        self.assertEqual(res[3].children[0].children[0].type, "Index") 
-        self.assertEqual(res[4].children[0].children[0].type, "Index") 
-        self.assertEqual(res[6].children[0].children[0].type, "Index") 
-        self.assertEqual(res[6].children[0].children[1].type, "Index") 
-
-        #mchro 07-04-2011: don't allow empty brackets, it's not a valid expression
-        #myParser = testParser(lexer.lexer)
-        #res = myParser.parse("a[]")
-        #self.assertEqual(res.type, "Identifier") 
-        #self.assertEqual(len(res.children), 0)
+        res[0].visit()
+        self.assertEqual(res[0].children[0].children[0].leaf.type, "IndexList") 
+        self.assertEqual(res[1].children[0].children[0].leaf.type, "IndexList") 
+        self.assertEqual(res[2].children[0].children[0].leaf.type, "IndexList") 
+        self.assertEqual(res[3].children[0].children[0].leaf.type, "IndexList") 
+        self.assertEqual(res[4].children[0].children[0].leaf.type, "IndexList") 
+        self.assertEqual(res[6].children[0].children[0].leaf.type, "IndexList") 
 
     def test_struct(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_struct.txt'), "r")
@@ -171,8 +150,8 @@ class TestBasicParsing(unittest.TestCase):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_typedef.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
-        pars.AST.visit()
-        self.assertEqual(len(pars.AST.children), 8)
+        #pars.AST.visit()
+        #self.assertEqual(len(pars.AST.children), 8)
 
         self.assertEqual(len(pars.typedefDict), 4)
         self.assertTrue('myStructType' in pars.typedefDict)
@@ -182,31 +161,31 @@ class TestBasicParsing(unittest.TestCase):
 
         ctype = pars.typedefDict['clock']
         self.assertEqual(ctype.type, 'NodeTypedef')
-        self.assertEqual(ctype.leaf, 'clock')
+        self.assertEqual(ctype.leaf, 'DBMClock')
         self.assertEqual(len(ctype.children), 1)
         self.assertEqual(ctype.children[0], pars.typedefDict['DBMClock'])
 
         declvisitor = parser.DeclVisitor(pars)
+        declvisitor.visit(pars.AST)
         #XXX parses to deeply into structs!
-        self.assertEqual(len(declvisitor.variables), 5)
+        self.assertEqual(len(declvisitor.variables), 4)
         
-        pars.AST.visit()
-        print map(tuple, declvisitor.variables)
+        #pars.AST.visit()
+        print "variables", map(tuple, declvisitor.variables)
         varnames = [x for (x, _, _, _) in declvisitor.variables]
         self.assertTrue('m' in varnames)
+        
         self.assertTrue(('m', 'myStructType', [], None) in map(tuple, declvisitor.variables))
         self.assertTrue('n' in varnames)
         self.assertTrue(('n', 'adr', [], None) in map(tuple, declvisitor.variables))
         self.assertTrue('n2' in varnames)
         
         #check ranges inherited from typedef
-        self.assertEqual(declvisitor.get_vardecl('n').basic_type, "TypeInt")
-        self.assertEqual(declvisitor.get_vardecl('n').range_min.type, "Expression")
-        self.assertEqual(declvisitor.get_vardecl('n').range_min.children[0].type, "Number")
-        self.assertEqual(declvisitor.get_vardecl('n').range_min.children[0].leaf, 1)
-        self.assertEqual(declvisitor.get_vardecl('n').range_max.type, "Expression")
-        self.assertEqual(declvisitor.get_vardecl('n').range_max.children[0].type, "Number")
-        self.assertEqual(declvisitor.get_vardecl('n').range_max.children[0].leaf, 3)
+        self.assertEqual(declvisitor.get_vardecl('n').basic_type, "adr")
+        self.assertEqual(declvisitor.get_vardecl('n').range_min.type, "Number")
+        self.assertEqual(declvisitor.get_vardecl('n').range_min.leaf, 1)
+        self.assertEqual(declvisitor.get_vardecl('n').range_max.type, "Number")
+        self.assertEqual(declvisitor.get_vardecl('n').range_max.leaf, 3)
 
         for (x, _, _, initval) in declvisitor.variables:
             if x == "n2":
@@ -219,6 +198,15 @@ class TestBasicParsing(unittest.TestCase):
         #XXX parses to deeply into structs!
         #self.assertFalse('a' in varnames)
 
+    def test_parse_typedef_clock(self):
+        lex = lexer.lexer
+        declaration = 'typedef clock rtclock;'
+        
+        with self.assertRaises(Exception) as context:
+            parser.Parser(declaration, lex)
+        
+        self.assertEqual(context.exception.message, 'Currently, we do not allow adding new clock types, e.g., typedef clock rtclock')
+
     def test_parse_brackets(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_brackets.txt'), "r")
         lex = lexer.lexer
@@ -229,7 +217,7 @@ class TestBasicParsing(unittest.TestCase):
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(pars.AST.type, "RootNode")
-        self.assertEqual(pars.AST.children[0].type, "VarDecl") 
+        self.assertEqual(pars.AST.children[0].type, "VarDeclList") 
         self.assertEqual(pars.AST.children[1].type, "Function")
         self.assertEqual(pars.AST.children[1].children[0].type, "Assignment")
         self.assertEqual(pars.AST.children[1].children[0].children[0].type, "Expression")
@@ -241,7 +229,7 @@ class TestBasicParsing(unittest.TestCase):
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(pars.AST.type, "RootNode")
-        self.assertEqual(pars.AST.children[0].type, "VarDecl") 
+        self.assertEqual(pars.AST.children[0].type, "VarDeclList") 
         self.assertEqual(pars.AST.children[1].type, "Function")
         self.assertEqual(pars.AST.children[1].children[0].type, "Assignment")
         self.assertEqual(pars.AST.children[1].children[0].children[0].type, "Expression")
@@ -291,9 +279,9 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(pars.AST.children[1].children[15].type, "Assignment")
         self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].type, "Modulo")
         self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].children[0].type, "Identifier")
-        self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].children[0].leaf, "a")
+        self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].children[0].children[0], "a")
         self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].children[1].type, "Identifier")
-        self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].children[1].leaf, "a")
+        self.assertEqual(pars.AST.children[1].children[15].children[0].children[0].children[1].children[0], "a")
 
         #TODO add more operators pars.AST.visit() 
         self.assertEqual(len(pars.AST.children), 2)   
@@ -303,8 +291,8 @@ class TestBasicParsing(unittest.TestCase):
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(pars.AST.type, "RootNode")
-        self.assertEqual(pars.AST.children[0].type, "VarDecl") 
-        self.assertEqual(pars.AST.children[1].type, "VarDecl") 
+        self.assertEqual(pars.AST.children[0].type, "VarDeclList") 
+        self.assertEqual(pars.AST.children[1].type, "VarDeclList") 
         self.assertEqual(pars.AST.children[2].type, "Function")
         self.assertEqual(pars.AST.children[2].children[0].type, "Assignment")
         self.assertEqual(pars.AST.children[2].children[0].children[0].type, "Expression")
@@ -355,28 +343,28 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(len(pars.AST.children), 3) #TODO add more asserts
 
     def test_parse_expression(self):
-        parser = testParser(lexer.lexer)
+        parser = expressionParser
 
-        res = parser.parse("")
+        res = parser.parse_expression("")
         #should not fail
         self.assertFalse(res)
 
-        res = parser.parse(" ")
+        res = parser.parse_expression(" ")
         #should not fail
         self.assertFalse(res)
 
-        res = parser.parse("5")
+        res = parser.parse_expression("5")
         self.assertEqual(res.type, "Number")
         self.assertEqual(res.leaf, 5)
   
-        res = parser.parse("5 > 5")
+        res = parser.parse_expression("5 > 5")
         self.assertEqual(res.type, "Greater") 
         self.assertEqual(res.children[0].type, "Number")
         self.assertEqual(res.children[0].leaf, 5)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 5)
 
-        res = parser.parse("5 != 5")
+        res = parser.parse_expression("5 != 5")
         #res.visit()
         self.assertEqual(res.type, "NotEqual") 
         self.assertEqual(res.children[0].type, "Number")
@@ -384,25 +372,25 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 5)
 
-        res = parser.parse("!True")
+        res = parser.parse_expression("!True")
         self.assertEqual(res.type, "UnaryNot")
         self.assertEqual(res.children[0].type, 'True')
   
-        res = parser.parse("5 && 4")
+        res = parser.parse_expression("5 && 4")
         self.assertEqual(res.type, "And")
         self.assertEqual(res.children[0].type, "Number")
         self.assertEqual(res.children[0].leaf, 5)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 4)
 
-        res = parser.parse("5 and 4")
+        res = parser.parse_expression("5 and 4")
         self.assertEqual(res.type, "And")
         self.assertEqual(res.children[0].type, "Number")
         self.assertEqual(res.children[0].leaf, 5)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 4)
 
-        res = parser.parse("!(5 && 4)")
+        res = parser.parse_expression("!(5 && 4)")
         self.assertEqual(res.type, "UnaryNot")
         self.assertEqual(res.children[0].type, "And")
         self.assertEqual(res.children[0].children[0].type, "Number")
@@ -410,7 +398,7 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[0].children[1].type, "Number")
         self.assertEqual(res.children[0].children[1].leaf, 4)
 
-        res = parser.parse("not (5 && 4)")
+        res = parser.parse_expression("not (5 && 4)")
         self.assertEqual(res.type, "UnaryNot")
         self.assertEqual(res.children[0].type, "And")
         self.assertEqual(res.children[0].children[0].type, "Number")
@@ -418,21 +406,21 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[0].children[1].type, "Number")
         self.assertEqual(res.children[0].children[1].leaf, 4)
 
-        res = parser.parse("5 || 4")
+        res = parser.parse_expression("5 || 4")
         self.assertEqual(res.type, "Or")
         self.assertEqual(res.children[0].type, "Number")
         self.assertEqual(res.children[0].leaf, 5)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 4)
 
-        res = parser.parse("5 or 4")
+        res = parser.parse_expression("5 or 4")
         self.assertEqual(res.type, "Or")
         self.assertEqual(res.children[0].type, "Number")
         self.assertEqual(res.children[0].leaf, 5)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 4)
   
-        res = parser.parse("5 < 5 and 4 > 3")
+        res = parser.parse_expression("5 < 5 and 4 > 3")
         self.assertEqual(res.type, "And")
         self.assertEqual(res.children[0].type, "Less")
         self.assertEqual(res.children[0].children[0].type, "Number")
@@ -440,7 +428,7 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[0].children[1].type, "Number")
         self.assertEqual(res.children[0].children[1].leaf, 5)
   
-        res = parser.parse("3 * 2 + 4")
+        res = parser.parse_expression("3 * 2 + 4")
         self.assertEqual(res.type, "Plus")
         self.assertEqual(res.children[0].type, "Times")
         self.assertEqual(res.children[0].children[0].type, "Number")
@@ -450,81 +438,83 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 4)
 
-        res = parser.parse("Viking1.safe and Viking2.safe") #TODO add struct support
+        res = parser.parse_expression("Viking1.safe and Viking2.safe") #TODO add struct support
         self.assertEqual(res.type, "And")
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].leaf, "Viking1")
-        self.assertEqual(res.children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].leaf, "safe")
+        print res.children[0]
+        self.assertEqual(res.children[0].children[0], "Viking1")
+        self.assertEqual(res.children[0].children[1].type, "Identifier")
+        self.assertEqual(res.children[0].children[1].children[0], "safe")
         self.assertEqual(res.children[1].type, "Identifier")
-        self.assertEqual(res.children[1].leaf, "Viking2")
-        self.assertEqual(res.children[1].children[0].type, "Identifier")
-        self.assertEqual(res.children[1].children[0].leaf, "safe")
+        self.assertEqual(res.children[1].children[0], "Viking2")
+        self.assertEqual(res.children[1].children[1].type, "Identifier")
+        self.assertEqual(res.children[1].children[1].children[0], "safe")
 
-        res = parser.parse(
+        res = parser.parse_expression(
             "Viking1.safe and Viking2.safe and Viking3.safe and Viking4.safe")
         self.assertEqual(res.type, "And")
         self.assertEqual(res.children[0].type, "And")
         self.assertEqual(res.children[1].type, "Identifier")
-        self.assertEqual(res.children[1].leaf, "Viking4")
-        self.assertEqual(res.children[1].children[0].type, "Identifier")
-        self.assertEqual(res.children[1].children[0].leaf, "safe")
+        self.assertEqual(res.children[1].children[0], "Viking4")
+        self.assertEqual(res.children[1].children[1].type, "Identifier")
+        self.assertEqual(res.children[1].children[1].children[0], "safe")
 
         self.assertEqual(res.children[0].children[0].type, "And")
         self.assertEqual(res.children[0].children[1].type, "Identifier")
-        self.assertEqual(res.children[0].children[1].leaf, "Viking3")
-        self.assertEqual(res.children[0].children[1].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[1].children[0].leaf, "safe")
+        self.assertEqual(res.children[0].children[1].children[0], "Viking3")
+        self.assertEqual(res.children[0].children[1].children[1].type, "Identifier")
+        self.assertEqual(res.children[0].children[1].children[1].children[0], "safe")
 
         self.assertEqual(res.children[0].children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].children[0].leaf, "Viking1")
-        self.assertEqual(res.children[0].children[0].children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].children[0].children[0].leaf, "safe")
+        self.assertEqual(res.children[0].children[0].children[0].children[0], "Viking1")
+        self.assertEqual(res.children[0].children[0].children[0].children[1].type, "Identifier")
+        self.assertEqual(res.children[0].children[0].children[0].children[1].children[0], "safe")
         self.assertEqual(res.children[0].children[0].children[1].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].children[1].leaf, "Viking2")
-        self.assertEqual(res.children[0].children[0].children[1].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].children[1].children[0].leaf, "safe")
+        self.assertEqual(res.children[0].children[0].children[1].children[0], "Viking2")
+        self.assertEqual(res.children[0].children[0].children[1].children[1].type, "Identifier")
+        self.assertEqual(res.children[0].children[0].children[1].children[1].children[0], "safe")
 
-        res = parser.parse("N - 1")
+        res = parser.parse_expression("N - 1")
         self.assertEqual(res.type, "Minus") 
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].leaf, 'N')
+        self.assertEqual(res.children[0].children[0], 'N')
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 1)
 
-        res = parser.parse("f() == 2")
+        res = parser.parse_expression("f() == 2")
         self.assertEqual(res.type, "Equal") 
         self.assertEqual(res.children[0].type, "FunctionCall")
         self.assertEqual(res.children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].leaf, "f")
+        self.assertEqual(res.children[0].children[0].children[0], "f")
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 2)
 
-        res = parser.parse("dbm.isEmpty()")
+        res = parser.parse_expression("dbm.isEmpty()")
         self.assertEqual(res.type, "FunctionCall") 
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].leaf, "dbm")
-        self.assertEqual(res.children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].leaf, "isEmpty")
+        self.assertEqual(res.children[0].children[0], "dbm")
+        self.assertEqual(res.children[0].children[1].type, "Identifier")
+        self.assertEqual(res.children[0].children[1].children[0], "isEmpty")
 
     def test_parse_expression2(self):
-        parser = testParser(lexer.lexer)
-        res = parser.parse("(N - 0 - 1)")
+        parser = expressionParser
+
+        res = parser.parse_expression("(N - 0 - 1)")
         self.assertEqual(res.type, "Minus")
         self.assertEqual(res.children[0].type, "Minus")
         self.assertEqual(res.children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].leaf, 'N')
+        self.assertEqual(res.children[0].children[0].children[0], 'N')
         self.assertEqual(res.children[0].children[1].type, "Number")
         self.assertEqual(res.children[0].children[1].leaf, 0)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 1)
 
-        res = parser.parse("-42")
+        res = parser.parse_expression("-42")
         self.assertEqual(res.type, "UnaryMinus")
         self.assertEqual(res.children[0].type, "Number")
         self.assertEqual(res.children[0].leaf, 42)
 
-        res = parser.parse("-(42+1)")
+        res = parser.parse_expression("-(42+1)")
         self.assertEqual(res.type, "UnaryMinus")
         self.assertEqual(res.children[0].type, "Plus")
         self.assertEqual(res.children[0].children[0].type, "Number")
@@ -532,85 +522,87 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[0].children[1].type, "Number")
         self.assertEqual(res.children[0].children[1].leaf, 1)
 
-        res = parser.parse("N- 0- 1")
+        res = parser.parse_expression("N- 0- 1")
         self.assertEqual(res.type, "Minus")
         self.assertEqual(res.children[0].type, "Minus")
         self.assertEqual(res.children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].leaf, 'N')
+        self.assertEqual(res.children[0].children[0].children[0], 'N')
         self.assertEqual(res.children[0].children[1].type, "Number")
         self.assertEqual(res.children[0].children[1].leaf, 0)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 1)
 
 
-        res = parser.parse("N-0-1")
+        res = parser.parse_expression("N-0-1")
         self.assertEqual(res.type, "Minus")
         self.assertEqual(res.children[0].type, "Minus")
         self.assertEqual(res.children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].leaf, 'N')
+        self.assertEqual(res.children[0].children[0].children[0], 'N')
         self.assertEqual(res.children[0].children[1].type, "Number")
         self.assertEqual(res.children[0].children[1].leaf, 0)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 1)
 
-        res = parser.parse("(x == 5 && y == 4)")
+        res = parser.parse_expression("(x == 5 && y == 4)")
         self.assertEqual(res.type, "And")
         self.assertEqual(res.children[0].type, "Equal")
         self.assertEqual(res.children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].leaf, 'x')
+        self.assertEqual(res.children[0].children[0].children[0], 'x')
         self.assertEqual(res.children[0].children[1].type, "Number")
         self.assertEqual(res.children[0].children[1].leaf, 5)
         self.assertEqual(res.children[1].children[0].type, "Identifier")
-        self.assertEqual(res.children[1].children[0].leaf, 'y')
+        self.assertEqual(res.children[1].children[0].children[0], 'y')
         self.assertEqual(res.children[1].children[1].type, "Number")
         self.assertEqual(res.children[1].children[1].leaf, 4)
 
-        res = parser.parse("True")
+        res = parser.parse_expression("True")
         self.assertEqual(res.type, "True")
 
-        res = parser.parse("true")
+        res = parser.parse_expression("true")
         res.visit()
         self.assertEqual(res.type, "True")
 
-        res = parser.parse("x[0][1] == True")
+        res = parser.parse_expression("x[0][1] == True")
         self.assertEqual(res.type, "Equal")
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].leaf, 'x')
-        self.assertEqual(res.children[0].children[0].type, "Index")
-        self.assertEqual(res.children[0].children[0].leaf.type, 'Number')
-        self.assertEqual(res.children[0].children[0].leaf.leaf, 0)
-        self.assertEqual(res.children[0].children[1].type, "Index")
-        self.assertEqual(res.children[0].children[1].leaf.type, 'Number')
-        self.assertEqual(res.children[0].children[1].leaf.leaf, 1)
+        self.assertEqual(res.children[0].children[0], 'x')
+        self.assertEqual(res.children[0].leaf.type, "IndexList")
+        self.assertEqual(res.children[0].leaf.children[0].type, "Index")
+        self.assertEqual(res.children[0].leaf.children[0].leaf.type, 'Number')
+        self.assertEqual(res.children[0].leaf.children[0].leaf.leaf, 0)
+        self.assertEqual(res.children[0].leaf.children[1].type, "Index")
+        self.assertEqual(res.children[0].leaf.children[1].leaf.type, 'Number')
+        self.assertEqual(res.children[0].leaf.children[1].leaf.leaf, 1)
         self.assertEqual(res.children[1].type, "True")
 
-        res = parser.parse("msg[ 0 ][ N - 0 - 1 ] == True")
+        res = parser.parse_expression("msg[ 0 ][ N - 0 - 1 ] == True")
         self.assertEqual(res.type, "Equal")
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].leaf, 'msg')
-        self.assertEqual(res.children[0].children[0].type, "Index")
-        self.assertEqual(res.children[0].children[0].leaf.type, 'Number')
-        self.assertEqual(res.children[0].children[0].leaf.leaf, 0)
-        self.assertEqual(res.children[0].children[1].type, "Index")
-        index2 = res.children[0].children[1].leaf
+        self.assertEqual(res.children[0].children[0], 'msg')
+        self.assertEqual(res.children[0].leaf.type, "IndexList")
+        self.assertEqual(res.children[0].leaf.children[0].type, "Index")
+        self.assertEqual(res.children[0].leaf.children[0].leaf.type, 'Number')
+        self.assertEqual(res.children[0].leaf.children[0].leaf.leaf, 0)
+        self.assertEqual(res.children[0].leaf.children[1].type, "Index")
+        index2 = res.children[0].leaf.children[1].leaf
         self.assertEqual(index2.type, 'Minus')
         self.assertEqual(index2.children[0].type, 'Minus')
         self.assertEqual(index2.children[0].children[0].type, 'Identifier')
-        self.assertEqual(index2.children[0].children[0].leaf, 'N')
+        self.assertEqual(index2.children[0].children[0].children[0], 'N')
         self.assertEqual(index2.children[0].children[1].type, 'Number')
         self.assertEqual(index2.children[0].children[1].leaf, 0)
         self.assertEqual(res.children[1].type, "True")
 
 
     def test_parse_expression3(self):
-        parser = testParser(lexer.lexer)
+        parser = expressionParser
 
-        res = parser.parse("(x == true) && (0 > N-0-1)")
+        res = parser.parse_expression("(x == true) && (0 > N-0-1)")
         self.assertEqual(res.type, 'And')
         self.assertEqual(len(res.children), 2)
         self.assertEqual(res.children[0].type, 'Equal')
         self.assertEqual(res.children[0].children[0].type, 'Identifier')
-        self.assertEqual(res.children[0].children[0].leaf, 'x')
+        self.assertEqual(res.children[0].children[0].children[0], 'x')
         self.assertEqual(res.children[0].children[1].type, 'True')
         self.assertEqual(res.children[1].type, 'Greater')
         self.assertEqual(res.children[1].children[0].type, 'Number')
@@ -618,18 +610,18 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].children[1].type, 'Minus')
         self.assertEqual(res.children[1].children[1].children[0].type, 'Minus')
         self.assertEqual(res.children[1].children[1].children[0].children[0].type, 'Identifier')
-        self.assertEqual(res.children[1].children[1].children[0].children[0].leaf, 'N')
+        self.assertEqual(res.children[1].children[1].children[0].children[0].children[0], 'N')
         self.assertEqual(res.children[1].children[1].children[0].children[1].type, 'Number')
         self.assertEqual(res.children[1].children[1].children[0].children[1].leaf, 0)
         self.assertEqual(res.children[1].children[1].children[1].type, 'Number')
         self.assertEqual(res.children[1].children[1].children[1].leaf, 1)
 
-        res = parser.parse("x == true && (0 > N-0-1)")
+        res = parser.parse_expression("x == true && (0 > N-0-1)")
         self.assertEqual(res.type, 'And')
         self.assertEqual(len(res.children), 2)
         self.assertEqual(res.children[0].type, 'Equal')
         self.assertEqual(res.children[0].children[0].type, 'Identifier')
-        self.assertEqual(res.children[0].children[0].leaf, 'x')
+        self.assertEqual(res.children[0].children[0].children[0], 'x')
         self.assertEqual(res.children[0].children[1].type, 'True')
         self.assertEqual(res.children[1].type, 'Greater')
         self.assertEqual(res.children[1].children[0].type, 'Number')
@@ -637,16 +629,16 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].children[1].type, 'Minus')
         self.assertEqual(res.children[1].children[1].children[0].type, 'Minus')
         self.assertEqual(res.children[1].children[1].children[0].children[0].type, 'Identifier')
-        self.assertEqual(res.children[1].children[1].children[0].children[0].leaf, 'N')
+        self.assertEqual(res.children[1].children[1].children[0].children[0].children[0], 'N')
         self.assertEqual(res.children[1].children[1].children[0].children[1].type, 'Number')
         self.assertEqual(res.children[1].children[1].children[0].children[1].leaf, 0)
         self.assertEqual(res.children[1].children[1].children[1].type, 'Number')
         self.assertEqual(res.children[1].children[1].children[1].leaf, 1)
 
     def test_parse_expression4(self):
-        parser = testParser(lexer.lexer)
+        parser = expressionParser
 
-        res = parser.parse("x' == 0")
+        res = parser.parse_expression("x' == 0")
         res.visit()
         self.assertEqual(res.type, 'Equal')
         self.assertEqual(res.children[0].type, 'ClockRate')
@@ -654,13 +646,13 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].type, 'Number')
         self.assertEqual(res.children[1].leaf, 0)
 
-        res = parser.parse("y >= 5 && x' == 0")
+        res = parser.parse_expression("y >= 5 && x' == 0")
         res.visit()
         self.assertEqual(res.type, 'And')
         self.assertEqual(len(res.children), 2)
         self.assertEqual(res.children[0].type, 'GreaterEqual')
         self.assertEqual(res.children[0].children[0].type, 'Identifier')
-        self.assertEqual(res.children[0].children[0].leaf, 'y')
+        self.assertEqual(res.children[0].children[0].children[0], 'y')
         self.assertEqual(res.children[0].children[1].type, 'Number')
         self.assertEqual(res.children[0].children[1].leaf, 5)
 
@@ -671,45 +663,45 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].children[1].leaf, 0)
 
     def test_parse_func_with_params(self):
-        parser = testParser(lexer.lexer)
+        parser = expressionParser
 
-        res = parser.parse("ishit(4)")
+        res = parser.parse_expression("ishit(4)")
         self.assertEqual(res.type, "FunctionCall")
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].leaf, "ishit")
+        self.assertEqual(res.children[0].children[0], "ishit")
         #parameters
         self.assertEqual(len(res.leaf), 1)
         self.assertEqual(res.leaf[0].type, "Number")
         self.assertEqual(res.leaf[0].leaf, 4)
 
-        res = parser.parse("cache.ishit(4)")
+        res = parser.parse_expression("cache.ishit(4)")
         self.assertEqual(res.type, "FunctionCall")
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].leaf, "cache")
-        self.assertEqual(res.children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].leaf, "ishit")
+        self.assertEqual(res.children[0].children[0], "cache")
+        self.assertEqual(res.children[0].children[1].type, "Identifier")
+        self.assertEqual(res.children[0].children[1].children[0], "ishit")
         #parameters
         self.assertEqual(len(res.leaf), 1)
         self.assertEqual(res.leaf[0].type, "Number")
         self.assertEqual(res.leaf[0].leaf, 4)
 
 
-        res = parser.parse("cache.ishit(acc)")
+        res = parser.parse_expression("cache.ishit(acc)")
         self.assertEqual(res.type, "FunctionCall")
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].leaf, "cache")
-        self.assertEqual(res.children[0].children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].leaf, "ishit")
+        self.assertEqual(res.children[0].children[0], "cache")
+        self.assertEqual(res.children[0].children[1].type, "Identifier")
+        self.assertEqual(res.children[0].children[1].children[0], "ishit")
         #parameters
         self.assertEqual(len(res.leaf), 1)
         self.assertEqual(res.leaf[0].type, "Identifier")
-        self.assertEqual(res.leaf[0].leaf, "acc")
+        self.assertEqual(res.leaf[0].children[0], "acc")
 
-        res = parser.parse("ishit(4, 5, x, True, a.b.c)")
+        res = parser.parse_expression("ishit(4, 5, x, True, a.b.c)")
         res.visit()
         self.assertEqual(res.type, "FunctionCall")
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].leaf, "ishit")
+        self.assertEqual(res.children[0].children[0], "ishit")
         #parameters
         self.assertEqual(len(res.leaf), 5)
         self.assertEqual(res.leaf[0].type, "Number")
@@ -717,33 +709,32 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.leaf[1].type, "Number")
         self.assertEqual(res.leaf[1].leaf, 5)
         self.assertEqual(res.leaf[2].type, "Identifier")
-        self.assertEqual(res.leaf[2].leaf, "x")
+        self.assertEqual(res.leaf[2].children[0], "x")
         self.assertEqual(res.leaf[3].type, "True")
         self.assertEqual(res.leaf[4].type, "Identifier")
-        self.assertEqual(res.leaf[4].leaf, "a")
-        self.assertEqual(res.leaf[4].children[0].type, "Identifier")
-        self.assertEqual(res.leaf[4].children[0].leaf, "b")
-        self.assertEqual(res.leaf[4].children[0].children[0].type, "Identifier")
-        self.assertEqual(res.leaf[4].children[0].children[0].leaf, "c")
+        self.assertEqual(res.leaf[4].children[0], "a")
+        self.assertEqual(res.leaf[4].children[1].type, "Identifier")
+        self.assertEqual(res.leaf[4].children[1].children[0], "b")
+        self.assertEqual(res.leaf[4].children[1].children[1].type, "Identifier")
+        self.assertEqual(res.leaf[4].children[1].children[1].children[0], "c")
 
     def test_parse_array_index_expression(self):
-        parser = testParser(lexer.lexer)
-        res = parser.parse("a[1] == 2")
-        #parser = testParser(lexer.lexer)
-        #res = pars.parse()
-        #res.visit()
+        parser = expressionParser
+
+        res = parser.parse_expression("a[1] == 2")
         self.assertEqual(res.type, "Equal") 
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].children[0].type, "Index")
-        self.assertEqual(res.children[0].children[0].leaf.type, "Number")
-        self.assertEqual(res.children[0].children[0].leaf.leaf, 1)
+        self.assertEqual(res.children[0].leaf.type, "IndexList")
+        self.assertEqual(res.children[0].leaf.children[0].type, "Index")
+        self.assertEqual(res.children[0].leaf.children[0].leaf.type, "Number")
+        self.assertEqual(res.children[0].leaf.children[0].leaf.leaf, 1)
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 2)
 
-        res = parser.parse("N-1")
+        res = parser.parse_expression("N-1")
         self.assertEqual(res.type, "Minus") 
         self.assertEqual(res.children[0].type, "Identifier")
-        self.assertEqual(res.children[0].leaf, 'N')
+        self.assertEqual(res.children[0].children[0], 'N')
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 1)
 
@@ -757,6 +748,7 @@ class TestBasicParsing(unittest.TestCase):
         #pars.AST.visit()
 
         declvisitor = parser.DeclVisitor(pars)
+        declvisitor.visit(pars.AST)
 
     def test_parse_extern2(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern2.txt'), "r")
@@ -768,6 +760,7 @@ class TestBasicParsing(unittest.TestCase):
         pars.AST.visit()
 
         declvisitor = parser.DeclVisitor(pars)
+        declvisitor.visit(pars.AST)
 
         self.assertTrue('TestExternalLattice' in pars.externList)
 
@@ -783,6 +776,7 @@ class TestBasicParsing(unittest.TestCase):
         pars.AST.visit()
 
         declvisitor = parser.DeclVisitor(pars)
+        declvisitor.visit(pars.AST)
 
         self.assertTrue('WideningIntRange' in pars.externList)
 
@@ -794,7 +788,7 @@ class TestBasicParsing(unittest.TestCase):
         wideningIntRangeTypeNode.visit()
 
         self.assertEqual(wideningIntRangeTypeNode.leaf.type, "Identifier")
-        self.assertEqual(wideningIntRangeTypeNode.leaf.leaf, "WideningIntRange")
+        self.assertEqual(wideningIntRangeTypeNode.leaf.children[0], "WideningIntRange")
         
         self.assertEqual(len(wideningIntRangeTypeNode.children), 1)
         self.assertEqual(wideningIntRangeTypeNode.children[0].type, 'FunctionCall')
@@ -805,8 +799,6 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(parameters[2].leaf, 3)
         self.assertEqual(parameters[3].leaf, 9)
 
-        #self.assertTrue(False)
-
 
 
     def test_parse_extern_dbm(self):
@@ -816,10 +808,8 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         res = pars.AST.children
 
-        #pars.AST.visit()
-
         declvisitor = parser.DeclVisitor(pars)
-        #print declvisitor.variables
+        declvisitor.visit(pars.AST)
 
         self.assertEqual(len(declvisitor.variables), 5)
 
@@ -828,13 +818,13 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(tuple(declvisitor.variables[2]), ('dbm.c', 'DBMClock', [], None))
         self.assertEqual(declvisitor.variables[3].identifier, 'dbm.y') #('dbm.y', 'DBMClock', [10])
         self.assertEqual(declvisitor.variables[3].type, 'DBMClock')
-        self.assertEqual(len(declvisitor.variables[3].array_dimensions), 1)
-        self.assertEqual(declvisitor.variables[3].array_dimensions[0].children[0].leaf, 10)
+        self.assertEqual(declvisitor.variables[3].array_dimensions.type, 'IndexList')
+        self.assertEqual(declvisitor.variables[3].array_dimensions.children[0].leaf.children[0].leaf, 10)
         self.assertEqual(declvisitor.variables[4].identifier, 'dbm.z') #('dbm.z', 'DBMClock', [10, 20])
         self.assertEqual(declvisitor.variables[4].type, 'DBMClock')
-        self.assertEqual(len(declvisitor.variables[4].array_dimensions), 2)
-        self.assertEqual(declvisitor.variables[4].array_dimensions[0].children[0].leaf, 10)
-        self.assertEqual(declvisitor.variables[4].array_dimensions[1].children[0].leaf, 20)
+        self.assertEqual(declvisitor.variables[4].array_dimensions.type, 'IndexList')
+        self.assertEqual(declvisitor.variables[4].array_dimensions.children[0].leaf.children[0].leaf, 10)
+        self.assertEqual(declvisitor.variables[4].array_dimensions.children[1].leaf.children[0].leaf, 20)
 
     def test_parse_extern_octagon(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern_octagon.txt'), "r")
@@ -843,9 +833,9 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         res = pars.AST.children
 
-        pars.AST.visit()
 
         declvisitor = parser.DeclVisitor(pars)
+        declvisitor.visit(pars.AST)
 
         self.assertTrue('ApronOctagon' in pars.externList)
 
@@ -866,9 +856,11 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         res = pars.AST.children
 
-        pars.AST.visit()
+        #pars.AST.visit()
 
         declvisitor = parser.DeclVisitor(pars)
+        declvisitor.visit(pars.AST)
+
 
         inorder = ["a", "b", "c", "d", "N"]
         #should return the constants in file order
@@ -880,9 +872,9 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         pars.AST.visit()
 
-        self.assertEqual(pars.AST.children[0].type, "VarDecl") 
+        self.assertEqual(pars.AST.children[0].type, "VarDeclList") 
         self.assertEqual(pars.AST.children[0].leaf.type, 'TypeInt')
-        self.assertEqual(pars.AST.children[0].children[0].leaf, "i") 
+        self.assertEqual(pars.AST.children[0].children[0].children[0].children[0], "i") 
         
         self.assertEqual(pars.AST.children[0].leaf.children[0].type, "Expression")
         self.assertEqual(pars.AST.children[0].leaf.children[0].children[0].leaf, 0)
@@ -890,11 +882,12 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(pars.AST.children[0].leaf.children[1].children[0].leaf, 4)
 
         declvisitor = parser.DeclVisitor(pars)
+        declvisitor.visit(pars.AST)
         vardecl_i = declvisitor.get_vardecl("i")
-        self.assertEqual(vardecl_i.range_min.type, "Expression")
-        self.assertEqual(vardecl_i.range_min.children[0].leaf, 0)
-        self.assertEqual(vardecl_i.range_max.type, "Expression")
-        self.assertEqual(vardecl_i.range_max.children[0].leaf, 4)
+        self.assertEqual(vardecl_i.range_min.type, "Number")
+        self.assertEqual(vardecl_i.range_min.leaf, 0)
+        self.assertEqual(vardecl_i.range_max.type, "Number")
+        self.assertEqual(vardecl_i.range_max.leaf, 4)
         
         vardecl_i = declvisitor.get_vardecl("j")
         #self.assertEqual(vardecl_j.range, (-32767, 32767))
@@ -928,66 +921,16 @@ class TestBasicParsing(unittest.TestCase):
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         declvisitor = parser.DeclVisitor(pars)
+        declvisitor.visit(pars.AST)
 
         self.assertEqual(len(declvisitor.functions), 2)
         foo = declvisitor.functions[0]
-        self.assertEqual(foo.leaf[1].leaf, "foo")
+        self.assertEqual(foo.leaf[1].children[0], "foo")
         self.assertEqual(foo.basic_type, "TypeInt")
 
         bar = declvisitor.functions[1]
-        self.assertEqual(bar.leaf[1].leaf, "bar")
+        self.assertEqual(bar.leaf[1].children[0], "bar")
         self.assertEqual(bar.basic_type, "TypeVoid")
 
-#TODO clean this up a bit
-class myToken:
-    type = None
-
-    def __init__(self, type):
-        self.type = type
-        
-class testParser:
-    currentToken = None
-    lex = None
-
-    def __init__(self, lexer):
-        self.lex = lexer
-
-    def parse(self, str):
-        self.lex.input(str)
-        self.currentToken = self.lex.token()
-        exParser = expressionParser.ExpressionParser(self.lex, self)
-        return exParser.parse()
-
-    def parseNumber(self):
-        n = node.Node('Number', [], self.currentToken.value)
-        self.accept('NUMBER')
-        return n
-
-    def parseIdentifierComplex(self):
-        n = node.Node('Identifier', [], self.currentToken.value)
-        self.accept('IDENTIFIER')
-     
-        p = n
-        while self.currentToken.type == 'DOT':
-            self.accept('DOT')
-            element = node.Node('Identifier', [], self.currentToken.value)
-            self.accept('IDENTIFIER')
-            p.children = [element]
-            p = element
-
-        return n
-
-    def accept(self, expectedTokenType):
-        if self.currentToken.type == expectedTokenType:
-            self.currentToken = self.lex.token()
-            if self.currentToken == None:
-                t = myToken('UNKNOWN')
-                self.currentToken = t
-        else:
-            self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
-
-    def error(self, msg):
-        raise Exception("Parser error" + msg)
- 
 if __name__ == '__main__':
     unittest.main()
