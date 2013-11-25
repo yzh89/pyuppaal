@@ -48,6 +48,9 @@ class NTA:
         if not t in self.templates:
             self.templates += [t]
 
+    def get_template(self, tname):
+        return [t for t in self.templates if t.name == tname][0]
+
     def to_xml(self):
         templatesxml = ""
         for t in self.templates:

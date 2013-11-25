@@ -25,13 +25,14 @@ from node import Node
 
 class updateStatementParser(parser.Parser):
 
-    def __init__(self, data, lexerArg=None, typedefDict=None):
+    def __init__(self, data, lexerArg=None, typedefDict={}):
         if lexerArg is None:
             lexerArg = lexer
 
         self.lexer = lexerArg
         self.lexer.input(data+";")
         self.currentToken = self.lexer.token()
+        self.typedefDict = typedefDict
 
 
     def parseUpdateStatements(self):

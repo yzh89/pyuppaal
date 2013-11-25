@@ -818,13 +818,11 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(tuple(declvisitor.variables[2]), ('dbm.c', 'DBMClock', [], None))
         self.assertEqual(declvisitor.variables[3].identifier, 'dbm.y') #('dbm.y', 'DBMClock', [10])
         self.assertEqual(declvisitor.variables[3].type, 'DBMClock')
-        self.assertEqual(declvisitor.variables[3].array_dimensions.type, 'IndexList')
-        self.assertEqual(declvisitor.variables[3].array_dimensions.children[0].leaf.children[0].leaf, 10)
+        self.assertEqual(declvisitor.variables[3].array_dimensions[0].children[0].leaf, 10)
         self.assertEqual(declvisitor.variables[4].identifier, 'dbm.z') #('dbm.z', 'DBMClock', [10, 20])
         self.assertEqual(declvisitor.variables[4].type, 'DBMClock')
-        self.assertEqual(declvisitor.variables[4].array_dimensions.type, 'IndexList')
-        self.assertEqual(declvisitor.variables[4].array_dimensions.children[0].leaf.children[0].leaf, 10)
-        self.assertEqual(declvisitor.variables[4].array_dimensions.children[1].leaf.children[0].leaf, 20)
+        self.assertEqual(declvisitor.variables[4].array_dimensions[0].children[0].leaf, 10)
+        self.assertEqual(declvisitor.variables[4].array_dimensions[1].children[0].leaf, 20)
 
     def test_parse_extern_octagon(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern_octagon.txt'), "r")
@@ -932,5 +930,44 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(bar.leaf[1].children[0], "bar")
         self.assertEqual(bar.basic_type, "TypeVoid")
 
-if __name__ == '__main__':
+    def test_parse_array_types(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_array_types.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        res = pars.AST.children
+        pars.AST.visit()
+
+        self.assertEqual(res[1].type, "VarDeclList")
+        self.assertEqual(res[1].children[0].type, "VarDecl")
+        self.assertEqual(res[1].children[0].children[0].type, "Identifier")
+        self.assertEqual(res[1].children[0].children[0].leaf.type, "IndexList")
+        self.assertEqual(res[1].children[0].children[0].leaf.children[0].type, "Index")
+        self.assertEqual(res[1].children[0].children[0].leaf.children[0].leaf.type, "NodeTypedef")
+
+        self.assertEqual(res[2].type, "VarDeclList")
+        self.assertEqual(res[2].children[0].type, "VarDecl")
+        self.assertEqual(res[2].children[0].children[0].type, "Identifier")
+        self.assertEqual(res[2].children[0].children[0].leaf.type, "IndexList")
+        self.assertEqual(res[2].children[0].children[0].leaf.children[0].type, "Index")
+        self.assertEqual(res[2].children[0].children[0].leaf.children[0].leaf.type, "TypeInt")
+        self.assertEqual(len(res[2].children[0].children[0].leaf.children[0].leaf.children), 2)
+        self.assertEqual(res[2].children[0].children[0].leaf.children[0].leaf.children[0].children[0].type, "Number")
+        self.assertEqual(res[2].children[0].children[0].leaf.children[0].leaf.children[0].children[0].leaf, 2)
+        self.assertEqual(res[2].children[0].children[0].leaf.children[0].leaf.children[1].children[0].type, "Number")
+        self.assertEqual(res[2].children[0].children[0].leaf.children[0].leaf.children[1].children[0].leaf, 4)
+
+        self.assertEqual(res[3].type, "VarDeclList")
+        self.assertEqual(res[3].children[0].type, "VarDecl")
+        self.assertEqual(res[3].children[0].children[0].type, "Identifier")
+        self.assertEqual(res[3].children[0].children[0].leaf.type, "IndexList")
+        self.assertEqual(res[3].children[0].children[0].leaf.children[0].type, "Index")
+        self.assertEqual(res[3].children[0].children[0].leaf.children[0].leaf.type, "TypeInt")
+        self.assertEqual(len(res[3].children[0].children[0].leaf.children[0].leaf.children), 2)
+        self.assertEqual(res[3].children[0].children[0].leaf.children[0].leaf.children[0].children[0].type, "Number")
+        self.assertEqual(res[3].children[0].children[0].leaf.children[0].leaf.children[0].children[0].leaf, 3)
+        self.assertEqual(res[3].children[0].children[0].leaf.children[0].leaf.children[1].children[0].type, "Number")
+        self.assertEqual(res[3].children[0].children[0].leaf.children[0].leaf.children[1].children[0].leaf, 4)
+
+
+if '__name__'  == '__main__':
     unittest.main()

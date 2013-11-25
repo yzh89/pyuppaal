@@ -33,7 +33,10 @@ def get_index_of_last_ident(node):
         curnode = curnode.children[1]        
         last_index = curnode.leaf
 
-    return last_index
+    if last_index == None:
+        return []
+    else:
+        return last_index.children
 
 def get_last_name_from_complex_identifier(n):
     """Follow the children of a complex identifier node, i.e.
@@ -283,6 +286,18 @@ class Parser:
         if self.currentToken.type == 'RBRACKET':
             self.error('invalid expression')
             e = None
+        #can be Type
+        elif self.currentToken.type in ('INT', 'BOOL', 'CONST'):
+            isConst = False
+            if self.currentToken.type == 'CONST':
+                self.accept('CONST')
+                isConst = True
+            e = self.parseStdType(isConst) 
+        #can be typedef'ed type
+        elif self.currentToken.type in ('IDENTIFIER',) and \
+                self.isType(self.currentToken.value):
+            e = self.parseTypedefType(self.currentToken.value)
+        #or expression
         else:
             e = self.parseExpression()
         self.accept('RBRACKET')
@@ -383,7 +398,11 @@ class Parser:
         return Node('Expression', children=[exprParser.parse()])
        
     def parseNumber(self):
-        n = Node('Number', [], self.currentToken.value)
+        if self.currentToken.type == 'MINUS':
+            self.accept('MINUS')
+            n = Node('Number', [], -self.currentToken.value)
+        else:
+            n = Node('Number', [], self.currentToken.value)
         self.accept('NUMBER')
         return n
 
@@ -399,7 +418,7 @@ class Parser:
                 if self.currentToken.type == 'COMMA':
                     self.accept('COMMA')
                 break
-            elif self.currentToken.type == 'NUMBER':
+            elif self.currentToken.type in ['NUMBER', 'MINUS']:
                 childList.append(self.parseNumber())
                 if self.currentToken.type == 'COMMA':
                     self.accept('COMMA')
@@ -637,7 +656,7 @@ class Parser:
             self.accept('INT')
             if self.currentToken.type == 'BITAND' and not isConst:
                 self.accept('BITAND')
-                return Node('TypeIntPointer')
+                return Node('TypeIntReference')
             elif self.currentToken.type == 'LBRACKET':
                 self.accept('LBRACKET')
                 #range-constrained int
@@ -654,7 +673,7 @@ class Parser:
             self.accept('BOOL')
             if self.currentToken.type == 'BITAND' and not isConst:
                 self.accept('BITAND')
-                return Node('TypeBoolPointer')
+                return Node('TypeBoolReference')
             elif isConst:
                 return Node('TypeConstBool')
             else:
@@ -708,7 +727,7 @@ class VarDecl:
     @type is type used at declaration, e.g. "addr" if a typedef'ed var
     @basic_type is the underlying type, e.g. "TypeInt"
     """
-    def __init__(self, identifier, typeNode, array_dimensions=None, initval=None):
+    def __init__(self, identifier, typeNode, array_dimensions=[], initval=None):
         self.identifier = identifier
         isTypedefStruct = False
         
@@ -724,10 +743,10 @@ class VarDecl:
             self.type = typeNode.type #FIXME should this adher to documentation?
         
         self.basic_type = self.type
-        self.array_dimensions = array_dimensions or []
+        self.array_dimensions = array_dimensions
         self.initval = initval
         #Default ranges
-        if typeNode.type in ['TypeInt', 'TypeConstInt', 'NodeTypedef']:
+        if typeNode.type in ['TypeInt', 'TypeConstInt'] or (typeNode.type == 'NodeTypedef' and typeNode.children[0].type != 'VarDeclList'): #alias typedef
             if len(typeNode.children) == 2:
                 self.range_min = typeNode.children[0].children[0]
                 self.range_max = typeNode.children[1].children[0]
@@ -788,12 +807,20 @@ class DeclVisitor(object):
 
     def visit_Identifier(self, node):
         ident_str = get_full_name_from_complex_identifier(node)
-        index = get_index_of_last_ident(node)
-        return (ident_str, index)
+        index_list = get_index_of_last_ident(node)
+        
+        if len(index_list) == 0:
+            return (ident_str, index_list)
+        else:
+            exprList = []
+            for index in index_list:
+                exprList += [index.leaf]
+
+            return (ident_str, exprList)
 
     def visit_Parameter(self, node):
         (ptype, iden) = node.leaf
-        self.add_variable(ptype, iden.children[0], None, None)
+        self.add_variable(ptype, iden.children[0], None, [])
 
     def visit_VarDeclList(self, node):
         list_type = node.leaf
@@ -804,23 +831,13 @@ class DeclVisitor(object):
 
     def visit_VarDecl(self, node):
         (iden, dimen) = self.visit_Identifier(node.children[0])
-
-        if dimen == None:
-            return (iden, node.leaf, [])
-        else:
-            exprList = []
-            for index in dimen.children:
-                exprList += [index.leaf]
-
-            return (iden, node.leaf, exprList)
+        return (iden, node.leaf, dimen)
 
     def visit_ClockDeclList(self, node):
         list_type = node.leaf
 
         for c in node.children:
             (ident, array_dimen) = self.visit_Clock(c)
-            print "add clock:", ident
-            #array_dimen is missing 
             self.variables += [VarDecl(ident, list_type, array_dimen, None)]
             self.clocks += [(ident, 10)] #XXX why 10???
 
@@ -833,7 +850,6 @@ class DeclVisitor(object):
         for c in node.children:
             (channel_ident, _, dimen) = self.visit_VarDecl(c)
             channel = (channel_ident, dimen)
-            print "channel", channel_ident, list_type.type
             if list_type.type == 'TypeChannel':
                 self.channels += [channel]
             elif list_type.type == 'TypeUrgentChannel':
@@ -844,7 +860,8 @@ class DeclVisitor(object):
                 self.urgent_broadcast_channels += [channel]
     
     def add_variable(self, list_type, iden, initval, array_dimen):
-        if list_type.type in ['TypeConstInt', 'TypeConstBool', 'TypeConstTypedef']:
+        if list_type.type in ['TypeConstInt', 'TypeConstBool'] or (list_type.type == 'TypeConstTypedef' and list_type.children[0].type != 'VarDeclList'): #alias const typedef
+            print "constrant"
             self.constants[iden] = initval
         else:
             if list_type.type == 'TypeBool' and initval == 0:
@@ -856,6 +873,9 @@ class DeclVisitor(object):
                 varType = self.parser.identifierTypeDict[iden]
             else:
                 varType = list_type
+       
+
+            print "vardecl", iden, varType, list_type, array_dimen 
 
             vdecl = VarDecl(iden, varType, array_dimen, initval)
 
