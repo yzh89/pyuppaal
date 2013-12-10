@@ -76,6 +76,8 @@ class Parser:
         self.typedefDict = typedefDict or {}
         self.externList = []
         self.identifierTypeDict = {}
+        self.inFunction = False
+        self.globalIdentifierTypeDict = {}
 
         children = []        
         if self.currentToken != None:
@@ -198,7 +200,10 @@ class Parser:
 
 
         for decl in declList:
-            self.identifierTypeDict[get_full_name_from_complex_identifier(decl.children[0])] = type
+            if self.inFunction:
+                self.identifierTypeDict[get_full_name_from_complex_identifier(decl.children[0])] = type
+            else:
+                self.globalIdentifierTypeDict[get_full_name_from_complex_identifier(decl.children[0])] = type
 
         return Node(nodeType+'List', declList, type)
 
@@ -304,6 +309,10 @@ class Parser:
         return Node('Index', [], e)
 
     def parseFunction(self, type, identifier):
+        self.inFunction = True #used to determine if variables are global or not
+        tmpIdentifierTypeDict = self.identifierTypeDict
+        self.identifierTypeDict = {}
+
         children = []
         self.accept('LPAREN')
         parameters = self.parseParameters()
@@ -312,7 +321,12 @@ class Parser:
         children.extend(self.parseBodyStatements())
         self.accept('RCURLYPAREN')
 
-        n = Node('Function', children, (type, identifier, parameters))
+        self.inFunction = False
+
+        funcIdentifierTypeDict = self.identifierTypeDict
+        self.identifierTypeDict = tmpIdentifierTypeDict 
+
+        n = Node('Function', children, (type, identifier, parameters, funcIdentifierTypeDict))
         #typedef'ed return value?
         if type.type == "NodeTypedef":
             n.basic_type = type.children[0].type
@@ -861,7 +875,6 @@ class DeclVisitor(object):
     
     def add_variable(self, list_type, iden, initval, array_dimen):
         if list_type.type in ['TypeConstInt', 'TypeConstBool'] or (list_type.type == 'TypeConstTypedef' and list_type.children[0].type != 'VarDeclList'): #alias const typedef
-            print "constrant"
             self.constants[iden] = initval
         else:
             if list_type.type == 'TypeBool' and initval == 0:
@@ -870,18 +883,33 @@ class DeclVisitor(object):
                 last_type = get_last_name_from_complex_identifier(list_type.leaf)
                 varType = Node('Identifier', [last_type], None)
             elif list_type.type == 'NodeTypedef':
-                varType = self.parser.identifierTypeDict[iden]
+                if iden in self.parser.identifierTypeDict:
+                    varType = self.parser.identifierTypeDict[iden]
+                else: 
+                    varType = self.parser.globalIdentifierTypeDict[iden]
             else:
                 varType = list_type
        
-
-            print "vardecl", iden, varType, list_type, array_dimen 
-
             vdecl = VarDecl(iden, varType, array_dimen, initval)
-
             self.variables += [vdecl]
+   
+    #Is suppose to be called after parsing is done
+    #The preprocessed typedef dict still need to have min/max ranges evaluated
+    def preprocess_typedefs(self):
+        pTypedefDict = {}
+        tmp_var = self.variables
+        self.variables = []
 
-    
+        for (typename, typedef) in self.parser.typedefDict.items():
+            if typedef.type != 'NodeExtern' and typedef.children[0].type == 'VarDeclList':
+                n = Node('RootNode', typedef.children)
+                self.visit(n)
+                pTypedefDict[typename] = self.variables
+                self.variables = []
+
+        self.variables = tmp_var
+        return pTypedefDict
+
     def get_vardecl(self, ident):
         """Return the VarDecl object for ident, assumes the type of ident is a
            variable type."""
@@ -917,5 +945,10 @@ class DeclVisitor(object):
             return "TypeUrgentBroadcastChannel"
         return None
 
+    def is_alias_type(self, node): #TODO use this method in parser code
+        if (node.type == 'TypeConstTypedef' or node.type == 'NodeTypedef') and node.children[0].type != 'VarDeclList':
+            return True
+        else:
+            return False
 
 # vim:ts=4:sw=4:expandtab
