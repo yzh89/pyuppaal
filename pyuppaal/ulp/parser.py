@@ -610,7 +610,20 @@ class Parser:
             self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
 
     def error(self, msg):
-            raise Exception('Error: Parser error '+ msg)
+        token = self.currentToken
+        
+        if token.lexpos - 100 < 0:
+            startIndex = 0
+        else:
+            startIndex = token.lexpos - 100
+        
+        if self.lexer.lexlen < token.lexpos + 100:
+            endIndex = self.lexer.lexlen
+        else:
+            endIndex = token.lexpos + 100
+        
+        print "\n\nError parsing:\n", self.lexer.lexdata[startIndex:endIndex], "\n\n\n"
+        raise Exception('Error: Parser error '+ msg)
 
 class VarDecl:
     """
