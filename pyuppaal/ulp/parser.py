@@ -605,7 +605,10 @@ class Parser:
     
     def accept(self, expectedTokenType):
         if self.currentToken.type == expectedTokenType:
-            self.currentToken = self.lexer.token()
+            try:
+                self.currentToken = self.lexer.token()
+            except:
+                self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
         else:
             self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
 
