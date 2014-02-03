@@ -842,10 +842,10 @@ class TestBasicParsing(unittest.TestCase):
         octTypeNode = pars.typedefDict['ApronOctagon']
 
         self.assertEqual(octTypeNode.leaf.type, "Identifier")
-        self.assertEqual(octTypeNode.leaf.leaf, "ApronOctagon")
+        self.assertEqual(octTypeNode.leaf.children[0], "ApronOctagon")
         
-        self.assertEqual(declvisitor.get_type('i'), ['oct', 'intvar'])
-        self.assertEqual(declvisitor.get_type('f'), ['oct', 'floatvar'])
+        self.assertEqual(declvisitor.get_type('i'), 'TypeExternChild')
+        self.assertEqual(declvisitor.get_type('f'), 'TypeExternChild')
 
     def test_parse_constants(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_parse_constants.txt'), "r")
