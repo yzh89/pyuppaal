@@ -16,6 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. """
 
+
 #AST
 class Node:
     def __init__(self, type, children=[], leaf=[]):
@@ -45,6 +46,9 @@ class Node:
             visitor = Node.print_node
         if visitor(self):
             for v in self.children:
-                v.visit(visitor, self.level+1);
+                try:
+                    v.visit(visitor, self.level+1);
+                except:
+                    pass 
 
 

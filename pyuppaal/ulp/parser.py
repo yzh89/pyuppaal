@@ -24,29 +24,43 @@ from lexer import *
 import expressionParser
 from node import Node
 
-def get_class_name_from_complex_identifier(n):
+def get_index_of_last_ident(node):
+    last_index = node.leaf
+
+    #parse out entire name (follow dots)
+    curnode = node
+    while len(curnode.children) == 2 and curnode.children[1].type == 'Identifier':
+        curnode = curnode.children[1]        
+        last_index = curnode.leaf
+
+    if last_index == None:
+        return []
+    else:
+        return last_index.children
+
+def get_last_name_from_complex_identifier(n):
     """Follow the children of a complex identifier node, i.e.
     "a.b.c.d" to just return "d"
     """
-    #parse out the actual class name
-    classnamenode = n
-    while len(classnamenode.children) == 1 and \
-            classnamenode.children[0].type == 'Identifier':
-        classnamenode = classnamenode.children[0]
-    ident = classnamenode.leaf
-    return ident
+    full_str = get_full_name_from_complex_identifier(n)
+    if '.' in full_str:
+        return full_str.rsplit('.',1)[1] #FIXME this could be done without constructing the full string first
+    else:
+        return full_str
 
-def get_full_name_from_complex_identifier(n):
-    """Follow the children of a complex identifier node, i.e.
-    "a.b.c.d" to return the full name "a.b.c.d"
+""" Takes an identifier and return the full name:
+    e.g., myidentifier.someotheridentifier.nestedidentifier.
     """
-    names = [n.leaf]
-    cur = n
-    while len(cur.children) == 1 and \
-            cur.children[0].type == 'Identifier':
-        cur = cur.children[0]
-        names.append(cur.leaf)
-    return names
+def get_full_name_from_complex_identifier(identifierNode):
+    id_str = identifierNode.children[0]
+
+    #parse out entire name (follow dots)
+    curnode = identifierNode
+    while len(curnode.children) == 2 and curnode.children[1].type == 'Identifier':
+        curnode = curnode.children[1]
+        id_str += '.' + curnode.children[0]
+
+    return id_str
 
 class Parser:
 
@@ -62,6 +76,8 @@ class Parser:
         self.typedefDict = typedefDict or {}
         self.externList = []
         self.identifierTypeDict = {}
+        self.inFunction = False
+        self.globalIdentifierTypeDict = {}
 
         children = []        
         if self.currentToken != None:
@@ -77,16 +93,16 @@ class Parser:
                     type = self.parseFuncType()
                     identifier = self.parseIdentifier()
                     statements.append(self.parseFunction(type, identifier))
-                elif self.currentToken.type in ('CONST', 'CLOCK', 'CHANNEL', 'URGENT', 'BROADCAST'): #Declaration
-                    if self.currentToken.type == 'CONST':
-                        self.accept('CONST')
-                        type = self.parseStdType(True)
-                    else:
-                        type = self.parseDeclType()
+                elif self.currentToken.type in ('CLOCK', 'CHANNEL', 'URGENT', 'BROADCAST'): #Declaration
+                    type = self.parseDeclType()
                     identifier = self.parseIdentifierComplex()
                     statements.append(self.parseDeclaration(type, identifier, isglobal=True))
-                elif self.currentToken.type in ('INT', 'BOOL', 'IDENTIFIER'): #Function or declaration           
-                    type = self.parseStdType(False)
+                elif self.currentToken.type in ('CONST', 'INT', 'BOOL', 'IDENTIFIER'): #Function or declaration           
+                    isConst = False
+                    if self.currentToken.type == 'CONST':
+                        self.accept('CONST')
+                        isConst = True
+                    type = self.parseStdType(isConst)
                     identifier = self.parseIdentifierComplex()
                     
                     if self.currentToken.type == 'LPAREN':  #TODO check that it is not a complex identifier
@@ -100,7 +116,7 @@ class Parser:
                     statements.append(Node('Struct', structDecl, structIden))
                 elif self.currentToken.type == 'TYPEDEF':
                     statements.append(self.parseTypedef())
-                elif self.currentToken.type == 'EXTERN':
+                elif self.currentToken.type == 'EXTERN': #EXTENTION of UPPAAL C language
                     statements.append(self.parseExtern())
                 else:
                     break 
@@ -124,34 +140,77 @@ class Parser:
         self.accept('RCURLYPAREN')
         return structDecl
 
+    '''
+    if called with type is some form of interger/struct variable:
+       it should accept:
+        int iden0, iden1 = expression; or
+        bool iden0[1], iden1[2][3] = {{...},{..},}, iden2[2][3] = {{...},{..}};
+       and return a VarDeclList->[Children=list of VarDecl->[Children=[initval, index],Leaf=identifier],Leaf=type]
+    if called with type is clock:
+       it should accept:
+        clock iden0, iden1[2][2];
+       and return a ClockList
+    if called with type is chan:
+       it should accepts:
+        chan iden0, iden1[2][2];
+        urgent chan iden0, broadcast chan iden1;
+       and return a ChannelList
+    '''
+    #TODO scalars
+
     def parseDeclaration(self, type, identifier, isglobal=False):
-        varList = []
+        declList = []
+        allowInitVal = True
+        nodeType = 'VarDecl'
+        defaultValue = None
         
-        #TODO scalars
-        #TODO typedef
-        varList.append(identifier)
-        while self.currentToken.type in ('COMMA', 'EQUALS', 'ASSIGN'):
+        if type.type in ['TypeClock', 'TypeChannel', 'TypeUrgentChannel', 'TypeBroadcastChannel', 'TypeUrgentBroadcastChannel']:
+            allowInitVal = False
+            defaultValue = None
+
+            if type.type == 'TypeClock':
+                nodeType = 'ClockDecl'
+                if 'clock' in self.typedefDict:
+                    type = self.typedefDict['clock']
+            else:
+                nodeType = 'ChannelDecl'
+
+        while True:
+            
+            if allowInitVal == True and self.currentToken.type in ('EQUALS', 'ASSIGN'):
+                self.accept(self.currentToken.type)
+
+                if self.currentToken.type == 'LCURLYPAREN':
+                    initVal = self.parseInitializer()
+                else:
+                    initVal = self.parseExpression()
+
+                declList.append(Node(nodeType, [identifier], initVal))
+            else:
+                declList.append(Node(nodeType, [identifier], defaultValue))
+
             if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
                 identifier = self.parseIdentifierComplex()
-                varList.append(identifier)
-            elif self.currentToken.type in ['EQUALS', 'ASSIGN']:
-                a = self.parseAssignment(identifier, shorthand=False)
-                identifier.children.append(a)
             else:
-                self.error('Did not expect token type' + self.currentToken.type)
-                return
-    
+                break
+
         if self.currentToken.type == 'SEMI':           
             self.accept('SEMI')
 
-        for var in varList:
-            self.identifierTypeDict[var.leaf] = type
 
-        return Node('VarDecl', varList, type)
+        for decl in declList:
+            if self.inFunction:
+                self.identifierTypeDict[get_full_name_from_complex_identifier(decl.children[0])] = type
+            else:
+                self.globalIdentifierTypeDict[get_full_name_from_complex_identifier(decl.children[0])] = type
+
+        return Node(nodeType+'List', declList, type)
 
     def parseTypedef(self):
         self.accept('TYPEDEF')
+        clockHack = False
+
         if self.currentToken.type == 'STRUCT':
             structDecl = self.parseStruct()
             if self.currentToken.type == 'IDENTIFIER':
@@ -165,19 +224,30 @@ class Parser:
             self.accept('SEMI')
             return n
         else:
+            if self.currentToken.type == 'CLOCK':
+                raise Exception("Currently, we do not allow adding new clock types, e.g., typedef clock rtclock")
+
             type = self.parseStdType(False)
+
             if self.currentToken.type == 'IDENTIFIER':
                 typeName = self.currentToken.value
                 self.accept('IDENTIFIER')
             elif self.currentToken.type == 'CLOCK':
-                #allow redefining clock
-                typeName = self.currentToken.value
+                #allow overriding the clock type, e.g., typedef int clock
+                typeName = 'clock'
+                clockHack = True
                 self.accept('CLOCK')
             else:
                 typeName = 'ErrorName'
                 self.error('Expected identifier')
-            n = Node('NodeTypedef', [type], typeName)
+           
+            if clockHack:
+                n = Node('NodeTypedef', [type], type.leaf.children[0])
+            else:
+                n = Node('NodeTypedef', [type], typeName)
+
             self.typedefDict[typeName] = n
+
             self.accept('SEMI')
             return n
 
@@ -186,13 +256,8 @@ class Parser:
         #has the form "extern somelib.somelib.ClassName"
         identnode = self.parseIdentifierComplex()
         n = Node('NodeExtern', [], identnode)
-
-        #parse out the actual class name
-        classnamenode = identnode
-        while len(classnamenode.children) == 1 and \
-                classnamenode.children[0].type == 'Identifier':
-            classnamenode = classnamenode.children[0]
-        ident = classnamenode.leaf
+        
+        ident = get_last_name_from_complex_identifier(identnode)
 
         #do we have constructor parameters?
         if self.currentToken.type == 'EQUALS':
@@ -202,12 +267,24 @@ class Parser:
             assert constructor_call_expr.children[0].type == 'FunctionCall'
             constructor_call = constructor_call_expr.children[0]
             n.children = [constructor_call]
-
+        
         self.typedefDict[ident] = n
         self.externList += [ident]
 
         self.accept('SEMI')
         return n
+
+
+    def parseIndexList(self):
+        indexList = []
+        while self.currentToken.type == 'LBRACKET':
+            index = self.parseIndex()
+            indexList += [index]
+        
+        if len(indexList) > 0:
+            return Node('IndexList', indexList, None)
+        else:
+            return None
 
     def parseIndex(self):
         self.accept('LBRACKET')
@@ -232,6 +309,10 @@ class Parser:
         return Node('Index', [], e)
 
     def parseFunction(self, type, identifier):
+        self.inFunction = True #used to determine if variables are global or not
+        tmpIdentifierTypeDict = self.identifierTypeDict
+        self.identifierTypeDict = {}
+
         children = []
         self.accept('LPAREN')
         parameters = self.parseParameters()
@@ -240,7 +321,12 @@ class Parser:
         children.extend(self.parseBodyStatements())
         self.accept('RCURLYPAREN')
 
-        n = Node('Function', children, (type, identifier, parameters))
+        self.inFunction = False
+
+        funcIdentifierTypeDict = self.identifierTypeDict
+        self.identifierTypeDict = tmpIdentifierTypeDict 
+
+        n = Node('Function', children, (type, identifier, parameters, funcIdentifierTypeDict))
         #typedef'ed return value?
         if type.type == "NodeTypedef":
             n.basic_type = type.children[0].type
@@ -257,6 +343,7 @@ class Parser:
                 isConst = True
             type = self.parseStdType(isConst) 
             identifier = self.parseIdentifierComplex()
+            self.identifierTypeDict[get_full_name_from_complex_identifier(identifier)] = type
             parameters.append( Node('Parameter', [], (type, identifier)) )
             if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
@@ -325,13 +412,46 @@ class Parser:
         return Node('Expression', children=[exprParser.parse()])
        
     def parseNumber(self):
-        n = Node('Number', [], self.currentToken.value)
+        if self.currentToken.type == 'MINUS':
+            self.accept('MINUS')
+            n = Node('Number', [], -self.currentToken.value)
+        else:
+            n = Node('Number', [], self.currentToken.value)
         self.accept('NUMBER')
         return n
 
+    def parseInitializer(self):
+        self.accept(self.currentToken.type)
+        childList = []
+
+        while True:
+            if self.currentToken.type == 'LCURLYPAREN':
+                childList.append(self.parseInitializer())
+            elif self.currentToken.type == 'RCURLYPAREN':
+                self.accept(self.currentToken.type)
+                if self.currentToken.type == 'COMMA':
+                    self.accept('COMMA')
+                break
+            elif self.currentToken.type in ['NUMBER', 'MINUS']:
+                childList.append(self.parseNumber())
+                if self.currentToken.type == 'COMMA':
+                    self.accept('COMMA')
+            elif self.currentToken.type in ['TRUE', 'FALSE']:
+                childList.append(self.currentToken.type)
+                self.accept(self.currentToken.type)
+                if self.currentToken.type == 'COMMA':
+                    self.accept('COMMA')
+            else:
+                self.error('parseInitializer: parse error, unexpected token type: %s' % self.currentToken.type)
+           
+        return Node('Initializer', children=childList)
+
+    #This method should not be used for initialization assignments (handled by parseDeclaration)
     def parseAssignment(self, identifier, shorthand = True):
         if self.currentToken.type in ['EQUALS', 'ASSIGN']:
             self.accept(self.currentToken.type)
+
+            #TODO refactor
             n = self.parseExpression()
             return Node('Assignment', [n], identifier) 
         elif self.currentToken.type in ['ANDEQUAL', 'TIMESEQUAL', 'DIVEQUAL', \
@@ -339,7 +459,7 @@ class Parser:
                         'RSHIFTEQUAL', 'ANDEQUAL', 'OREQUAL', 'XOREQUAL']:
             return self.transformXEqual(identifier)
 
-        elif shorthand:  #add -- support
+        elif shorthand:  
             if self.currentToken.type == 'PLUSPLUS':
                 self.accept('PLUSPLUS')
                 if identifier == None:
@@ -446,27 +566,29 @@ class Parser:
         return Node('If', children)
 
     def parseIdentifier(self):
-        n = Node('Identifier', [], self.currentToken.value)
+        n = Node('Identifier', [self.currentToken.value], None)
         self.accept('IDENTIFIER')
         return n
 
+    """ Should accept something like
+        d[34].sdf.df[3][2].df[2] =
+        d.sdf.df[3][2].df =
+    """
     def parseIdentifierComplex(self):
-        n = self.parseIdentifier()
-        p = n
+        rootP = self.parseIdentifier()
+        p = rootP
 
-        while self.currentToken.type == 'DOT':	#TODO should be possible to intermix DOT's and BRACKET's
-            self.accept('DOT')
-            element = self.parseIdentifier()
-            p.children = [element]
-            p = element
-        
-        p.children = p.children or []
-        while self.currentToken.type == 'LBRACKET':
-            index = self.parseIndex()
-            p.children += [index]
-            
-        
-        return n
+        while True:
+            p.leaf = self.parseIndexList()
+            if self.currentToken.type == 'DOT':
+                self.accept('DOT')
+                element = self.parseIdentifier()
+                p.children.extend([element])
+                p = element
+            if self.currentToken.type not in ['LBRACKET', 'DOT']:	
+                break
+
+        return rootP
    
     ### 
     ### FIXME: Notice similar functionalty exist in expressionParser, 
@@ -548,7 +670,7 @@ class Parser:
             self.accept('INT')
             if self.currentToken.type == 'BITAND' and not isConst:
                 self.accept('BITAND')
-                return Node('TypeIntPointer')
+                return Node('TypeIntReference')
             elif self.currentToken.type == 'LBRACKET':
                 self.accept('LBRACKET')
                 #range-constrained int
@@ -565,24 +687,23 @@ class Parser:
             self.accept('BOOL')
             if self.currentToken.type == 'BITAND' and not isConst:
                 self.accept('BITAND')
-                return Node('TypeBoolPointer')
+                return Node('TypeBoolReference')
             elif isConst:
                 return Node('TypeConstBool')
             else:
                 return Node('TypeBool')
         elif self.currentToken.type == 'IDENTIFIER':
             identn = self.parseIdentifierComplex()
-            identn.visit()
 
             # typedef vardecl, e.g. myint i;
-            if len(identn.children) == 0 and self.isType(identn.leaf):
-                typedefedtype = self.getType(identn.leaf)
+            if len(identn.children) == 1 and self.isType(identn.children[0]):
+                typedefedtype = self.getType(identn.children[0])
                 if isConst:
                     typedefedtype = copy.copy(typedefedtype)
                     typedefedtype.type = "TypeConstTypedef"
                 return typedefedtype
             # extern vardecl child, e.g. oct.intvar x
-            elif self.identifierTypeDict[identn.leaf].type == "NodeExtern":
+            elif self.globalIdentifierTypeDict[identn.children[0]].type == "NodeExtern":
                 return Node('TypeExternChild', [identn])
         self.error('Not a type')
 
@@ -602,11 +723,12 @@ class Parser:
 
     def getType(self, str):
         return self.typedefDict[str]
-    
+
     def accept(self, expectedTokenType):
         if self.currentToken.type == expectedTokenType:
             try:
                 self.currentToken = self.lexer.token()
+                return
             except:
                 self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
         else:
@@ -614,19 +736,20 @@ class Parser:
 
     def error(self, msg):
         token = self.currentToken
-        
+
         if token.lexpos - 100 < 0:
             startIndex = 0
         else:
             startIndex = token.lexpos - 100
-        
+
         if self.lexer.lexlen < token.lexpos + 100:
             endIndex = self.lexer.lexlen
         else:
             endIndex = token.lexpos + 100
-        
+
         print "\n\nError parsing:\n", self.lexer.lexdata[startIndex:endIndex], "\n\n\n"
         raise Exception('Error: Parser error '+ msg)
+
 
 class VarDecl:
     """
@@ -636,19 +759,35 @@ class VarDecl:
     @type is type used at declaration, e.g. "addr" if a typedef'ed var
     @basic_type is the underlying type, e.g. "TypeInt"
     """
-    def __init__(self, identifier, type, array_dimensions=None, initval=None):
+    def __init__(self, identifier, typeNode, array_dimensions=[], initval=None):
         self.identifier = identifier
-        self.type = type
-        self.basic_type = type
-        self.array_dimensions = array_dimensions or []
+        isTypedefStruct = False
+        
+        if typeNode.type == 'NodeTypedef': #TODO recursively find type
+            if typeNode.children[0].type == 'VarDeclList': #Means that this is a Struct
+                self.type = typeNode.leaf
+            else: 
+                self.type = typeNode.leaf 
+                typeNode = typeNode.children[0]
+        elif typeNode.type == 'Identifier':
+            self.type = typeNode.children[0]
+        else:
+            self.type = typeNode.type #FIXME should this adher to documentation?
+        
+        self.basic_type = self.type
+        self.array_dimensions = array_dimensions
         self.initval = initval
         #Default ranges
-        if self.type in ("TypeInt", "TypeConstInt"):
-            self.range_min = Node("Number", [], -32767)
-            self.range_max = Node("Number", [], 32767)
-        elif self.type in ("TypeBool", "TypeConstBool"):
-            self.range_min = Node("Number", [], 0)
-            self.range_max = Node("Number", [], 1)
+        if typeNode.type in ['TypeInt', 'TypeConstInt'] or (typeNode.type == 'NodeTypedef' and typeNode.children[0].type != 'VarDeclList'): #alias typedef
+            if len(typeNode.children) == 2:
+                self.range_min = typeNode.children[0].children[0]
+                self.range_max = typeNode.children[1].children[0]
+            else:
+                self.range_min = Node('Number', [], -32767)
+                self.range_max = Node('Number', [], 32767)
+        elif typeNode.type in ['TypeBool', 'TypeConstBool']:
+            self.range_min = Node('Number', [], 0)
+            self.range_max = Node('Number', [], 1)
         else:
             self.range_min = None
             self.range_max = None
@@ -658,135 +797,136 @@ class VarDecl:
         for x in (self.identifier, self.type, self.array_dimensions, self.initval):
             yield x
 
-class DeclVisitor:
+
+class DeclVisitor(object):
     def __init__(self, parser):
+        """Extract variables, constants, clocks, channels and functions from an AST (given a parser as it contains a type dictionary)
+        """
+        #assert isinstance(parser, Parser)
         self.parser = parser
 
         #calculate variables, clocks and channels
-        self.constants = OrderedDict()
+        self.constants = OrderedDict()  #Mappeing from iden->expression
         #variables: list of VarDecl objects
-        self.variables = []
+        self.variables = [] #List of VarDecl objects
         self.clocks = []
-        self.channels = []
+        #The 4 channel lists contain tuples where the first element is an identifer and the second is the dimensions 
+        self.channels = []  
         self.urgent_channels = []
         self.broadcast_channels = []
         self.urgent_broadcast_channels = []
-        self.functions = []
+        self.functions = [] #List of AST-nodes where type is set to 'Function'
 
-        last_type = None
-        last_type_node = None
-        def visit_identifiers(node):
-            global last_type, last_type_node
-            
-            if node.type == 'VarDecl':
-                last_type = node.leaf.type
-                last_type_node = node.leaf
-            elif node.type == 'NodeTypedef':
-                last_type = 'TypeTypedef'
-            elif node.type == 'NodeExtern':
-                last_type = 'TypeExtern'
-            elif node.type == 'Identifier':
-                ident = node.leaf
-                
-                #parse out entire name (follow dots)
-                curnode = node
-                while len(curnode.children) > 0 and curnode.children[0].type == 'Identifier':
-                    assert len(curnode.children) == 1
-                    curnode = curnode.children[0]
-                    ident += '.' + curnode.leaf
+    def visit(self, node):
+        if node.type == 'RootNode':
+            for c in node.children:
+                self.visit(c)
+        elif node.type == 'Parameter':
+            self.visit_Parameter(node)
+        elif node.type == 'VarDeclList':
+            self.visit_VarDeclList(node)
+        elif node.type == 'ClockDeclList':
+            self.visit_ClockDeclList(node)
+        elif node.type == 'ChannelDeclList':
+            self.visit_ChannelDeclList(node)
+        elif node.type == 'Function':
+            self.functions.append(node)
+        elif node.type in ['NodeTypedef', 'NodeExtern', 'Assignment', 'WhileLoop', 'If', 'Return', 'ForLoop', 'DoWhileLoop', 'FunctionCall']:
+            pass
+        else:
+            raise Exception("not impl node type: "+ node.type)
 
-                #find array dimensions (if any)
-                array_dimensions = []
-                for child in [c for c in curnode.children if c.type == 'Index']:
-                    array_dimensions += [child.leaf]
-                
-                if last_type == 'TypeInt':
-                    if len(node.children) > 0 and \
-                            node.children[0].type == "Assignment":
-                        initval = node.children[0].children[0]
-                        vdecl = VarDecl(ident, last_type, array_dimensions, initval)
-                    else:
-                        vdecl = VarDecl(ident, last_type, array_dimensions, 0)
-                    #ranges
-                    if len(last_type_node.children) == 2:
-                        vdecl.range_min = last_type_node.children[0]
-                        vdecl.range_max = last_type_node.children[1]
 
-                    self.variables += [vdecl]
-                elif last_type == 'TypeConstInt':
-                    self.constants[ident] = node.children[0].children[0].children[0]
-                elif last_type == 'TypeConstBool':
-                    self.constants[ident] = node.children[0].children[0].children[0]
-                elif last_type == 'TypeBool':
-                    if len(node.children) > 0 and \
-                            node.children[0].type == "Assignment":
-                        #parse initial value
-                        initval = node.children[0].children[0]
-                        self.variables += [VarDecl(ident, last_type, array_dimensions, initval)]
-                    else:
-                        self.variables += [VarDecl(ident, last_type, array_dimensions, False)]
-                elif last_type == 'TypeClock':
-                    #'clock' may have been typedef'ed
-                    clocktypedef = parser.typedefDict.get('clock', None)
-                    if clocktypedef:
-                        #treat clock as normal variable
-                        clocktype = clocktypedef.children[0].leaf.leaf
-                        self.variables += [VarDecl(ident, clocktype, array_dimensions, None)]
-                    else:
-                        self.clocks += [(node.leaf, 10)]
-                elif last_type == 'TypeChannel':
-                    self.channels += [(ident, array_dimensions)]
-                elif last_type == 'TypeUrgentChannel':
-                    self.urgent_channels += [(ident, array_dimensions)]
-                elif last_type == 'TypeBroadcastChannel':
-                    self.broadcast_channels += [(ident, array_dimensions)]
-                elif last_type == 'TypeUrgentBroadcastChannel':
-                    self.urgent_broadcast_channels += [(ident, array_dimensions)]
-                elif last_type == 'NodeExtern':
-                    classident = get_class_name_from_complex_identifier(last_type_node.leaf)
-                    self.variables += [VarDecl(ident, classident, array_dimensions, None)]
-                elif last_type == "TypeExternChild":
-                    classident = get_full_name_from_complex_identifier(last_type_node.children[0])
-                    self.variables += [VarDecl(ident, classident, array_dimensions, None)]
-                elif last_type in ('NodeTypedef', 'TypeConstTypedef'):
-                    if len(node.children) > 0 and \
-                            node.children[0].type == "Assignment":
-                        initval = node.children[0].children[0]
-                        vdecl = VarDecl(ident, last_type_node.leaf, array_dimensions, initval)
-                    else:
-                        initval = Node("Number", [], 0)
-                        vdecl = VarDecl(ident, last_type_node.leaf, array_dimensions, None)
-                    #ranges from typedef
-                    typedef = parser.typedefDict[last_type_node.leaf]
-                    vdecl.basic_type = parser.typedefDict[last_type_node.leaf].children[0].type
-                    if len(typedef.children[0].children) == 2:
-                        vdecl.range_min = typedef.children[0].children[0]
-                        vdecl.range_max = typedef.children[0].children[1]
-                    if last_type == "TypeConstTypedef":
-                        self.constants[ident] = initval
-                    else:
-                        self.variables += [vdecl]
-                
-                #else:
-                #    print 'Unknown type: ' + last_type
-                return False #don't recurse further
-            elif node.type == 'Parameter':
-                (t,iden) = node.leaf
-                t.visit(visit_identifiers)
-                if t.type == 'NodeTypedef':
-                    last_type_node = t
-                    last_type = 'NodeTypedef'
-                iden.visit(visit_identifiers) 
+    def visit_Identifier(self, node):
+        ident_str = get_full_name_from_complex_identifier(node)
+        index_list = get_index_of_last_ident(node)
+        
+        if len(index_list) == 0:
+            return (ident_str, index_list)
+        else:
+            exprList = []
+            for index in index_list:
+                exprList += [index.leaf]
+
+            return (ident_str, exprList)
+
+    def visit_Parameter(self, node):
+        (ptype, iden) = node.leaf
+        self.add_variable(ptype, iden.children[0], None, [])
+
+    def visit_VarDeclList(self, node):
+        list_type = node.leaf
+
+        for c in node.children:
+            (iden, initval, array_dimen) = self.visit_VarDecl(c)
+            self.add_variable(list_type, iden, initval, array_dimen)
+
+    def visit_VarDecl(self, node):
+        (iden, dimen) = self.visit_Identifier(node.children[0])
+        return (iden, node.leaf, dimen)
+
+    def visit_ClockDeclList(self, node):
+        list_type = node.leaf
+
+        for c in node.children:
+            (ident, array_dimen) = self.visit_Clock(c)
+            self.variables += [VarDecl(ident, list_type, array_dimen, None)]
+            self.clocks += [(ident, 10)] #XXX why 10???
+
+    def visit_Clock(self, node):
+        return self.visit_Identifier(node.children[0])
+
+    def visit_ChannelDeclList(self, node):
+        list_type = node.leaf
+
+        for c in node.children:
+            (channel_ident, _, dimen) = self.visit_VarDecl(c)
+            channel = (channel_ident, dimen)
+            if list_type.type == 'TypeChannel':
+                self.channels += [channel]
+            elif list_type.type == 'TypeUrgentChannel':
+                self.urgent_channels += [channel]
+            elif list_type.type == 'TypeBroadcastChannel':
+                self.broadcast_channels += [channel]
+            elif list_type.type == 'TypeUrgentBroadcastChannel':
+                self.urgent_broadcast_channels += [channel]
+    
+    def add_variable(self, list_type, iden, initval, array_dimen):
+        if list_type.type in ['TypeConstInt', 'TypeConstBool'] or (list_type.type == 'TypeConstTypedef' and list_type.children[0].type != 'VarDeclList'): #alias const typedef
+            self.constants[iden] = initval
+        else:
+            if list_type.type == 'TypeBool' and initval == 0:
+                initval = False
+            elif list_type.type == 'NodeExtern': 
+                last_type = get_last_name_from_complex_identifier(list_type.leaf)
+                varType = Node('Identifier', [last_type], None)
+            elif list_type.type == 'NodeTypedef':
+                if iden in self.parser.identifierTypeDict:
+                    varType = self.parser.identifierTypeDict[iden]
+                else: 
+                    varType = self.parser.globalIdentifierTypeDict[iden]
             else:
-                last_type = node.type
-            if node.type == 'Function':
-                self.functions.append(node)
-                last_type == 'Function'
-                last_type_node = node
-                return False
+                varType = list_type
+       
+            vdecl = VarDecl(iden, varType, array_dimen, initval)
+            self.variables += [vdecl]
+   
+    #Is suppose to be called after parsing is done
+    #The preprocessed typedef dict still need to have min/max ranges evaluated
+    def preprocess_typedefs(self):
+        pTypedefDict = {}
+        tmp_var = self.variables
+        self.variables = []
 
-            return True
-        parser.AST.visit(visit_identifiers)
+        for (typename, typedef) in self.parser.typedefDict.items():
+            if typedef.type != 'NodeExtern' and typedef.children[0].type == 'VarDeclList':
+                n = Node('RootNode', typedef.children)
+                self.visit(n)
+                pTypedefDict[typename] = self.variables
+                self.variables = []
+
+        self.variables = tmp_var
+        return pTypedefDict
 
     def get_vardecl(self, ident):
         """Return the VarDecl object for ident, assumes the type of ident is a
@@ -796,7 +936,7 @@ class DeclVisitor:
     def get_type(self, ident):
         """Return the type of ident"""
         if ident in [n for (n, _, _, _) in self.variables]:
-            (n, t) = [(n, t) for (n, t, _, _) in self.variables if n == ident][0]
+            (n, t, k, l) = [(n, t, k, l) for (n, t, k, l) in self.variables if n == ident][0]
             if t == 'TypeInt':
                 return "TypeInt"
             elif t == 'TypeBool':
@@ -823,5 +963,10 @@ class DeclVisitor:
             return "TypeUrgentBroadcastChannel"
         return None
 
+    def is_alias_type(self, node): #TODO use this method in parser code
+        if (node.type == 'TypeConstTypedef' or node.type == 'NodeTypedef') and node.children[0].type != 'VarDeclList':
+            return True
+        else:
+            return False
 
 # vim:ts=4:sw=4:expandtab
