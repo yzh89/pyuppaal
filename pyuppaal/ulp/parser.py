@@ -723,7 +723,7 @@ class Parser:
 
     def getType(self, str):
         return self.typedefDict[str]
-    
+
     def accept(self, expectedTokenType):
         if self.currentToken.type == expectedTokenType:
             try:
@@ -749,6 +749,7 @@ class Parser:
 
         print "\n\nError parsing:\n", self.lexer.lexdata[startIndex:endIndex], "\n\n\n"
         raise Exception('Error: Parser error '+ msg)
+
 
 class VarDecl:
     """
