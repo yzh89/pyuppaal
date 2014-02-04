@@ -148,6 +148,28 @@ system N0, N1, N2, N3, N4, N5;"""
         self.assertEqual(systemnode.children[2].leaf, 'A')
         self.assertEqual(systemnode.children[2].priority, 0)
 
+    @unittest.skip("needs parsing of constants in system declaration")
+    def test_parse_advanced1(self):
+        sysdec = """
+Supplier1   = SupplierAsync(1); 
+CPU1        = Resource(1, true, EDF);
+Task1       = Task(1);
+Task2       = Task(2);
+//Mon1         = Monitor(1);
+system 
+        Supplier1, 
+        CPU1, 
+        Task1, Task2, 
+        chop, 
+//        Mon1,
+        Sched_EDF; 
+        """
+        pars = SystemDeclarationParser(sysdec)
+        res = pars.parse()
+        res.visit()
+
+        self.assertTrue(False)
+
 
 if __name__ == '__main__':
     unittest.main()
