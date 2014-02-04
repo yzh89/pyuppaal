@@ -181,7 +181,8 @@ class TestBasicParsing(unittest.TestCase):
         self.assertTrue('n2' in varnames)
         
         #check ranges inherited from typedef
-        self.assertEqual(declvisitor.get_vardecl('n').basic_type, "adr")
+        print "type", declvisitor.get_vardecl('n').type
+        self.assertEqual(declvisitor.get_vardecl('n').basic_type, "TypeInt")
         self.assertEqual(declvisitor.get_vardecl('n').range_min.type, "Number")
         self.assertEqual(declvisitor.get_vardecl('n').range_min.leaf, 1)
         self.assertEqual(declvisitor.get_vardecl('n').range_max.type, "Number")
@@ -830,6 +831,7 @@ class TestBasicParsing(unittest.TestCase):
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         res = pars.AST.children
+        pars.AST.visit()
 
 
         declvisitor = parser.DeclVisitor(pars)
@@ -844,8 +846,10 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(octTypeNode.leaf.type, "Identifier")
         self.assertEqual(octTypeNode.leaf.children[0], "ApronOctagon")
         
-        self.assertEqual(declvisitor.get_type('i'), 'TypeExternChild')
-        self.assertEqual(declvisitor.get_type('f'), 'TypeExternChild')
+        self.assertEqual(declvisitor.get_vardecl('i').basic_type, 'TypeExternChild')
+        self.assertEqual(declvisitor.get_type('i'), ['oct', 'intvar'])
+        self.assertEqual(declvisitor.get_vardecl('f').basic_type, 'TypeExternChild')
+        self.assertEqual(declvisitor.get_type('f'), ['oct', 'floatvar'])
 
     def test_parse_constants(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_parse_constants.txt'), "r")

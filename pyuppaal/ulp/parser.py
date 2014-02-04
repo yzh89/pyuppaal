@@ -62,6 +62,19 @@ def get_full_name_from_complex_identifier(identifierNode):
 
     return id_str
 
+""" Takes an identifier and return the list of names:
+    e.g., ['myidentifier', 'someotheridentifier', 'nestedidentifier']
+    """
+def get_name_list_from_complex_identifier(identifierNode):
+    n = identifierNode
+    names = [n.children[0]]
+    cur = n
+    while len(cur.children) == 2 and \
+        cur.children[1].type == 'Identifier':
+        cur = cur.children[1]
+        names.append(cur.children[0])
+    return names
+    
 class Parser:
 
     currentToken = None
@@ -704,7 +717,8 @@ class Parser:
                 return typedefedtype
             # extern vardecl child, e.g. oct.intvar x
             elif self.globalIdentifierTypeDict[identn.children[0]].type == "NodeExtern":
-                return Node('TypeExternChild', [identn])
+                n = Node('TypeExternChild', [identn])
+                return n
         self.error('Not a type')
 
     def parseTypedefType(self, str):
@@ -759,23 +773,30 @@ class VarDecl:
     @type is type used at declaration, e.g. "addr" if a typedef'ed var
     @basic_type is the underlying type, e.g. "TypeInt"
     """
-    def __init__(self, identifier, typeNode, array_dimensions=[], initval=None):
+    def __init__(self, identifier, typeNode, array_dimensions=None, initval=None):
         self.identifier = identifier
         isTypedefStruct = False
         
         if typeNode.type == 'NodeTypedef': #TODO recursively find type
             if typeNode.children[0].type == 'VarDeclList': #Means that this is a Struct
                 self.type = typeNode.leaf
+                self.basic_type = self.type
             else: 
-                self.type = typeNode.leaf 
+                self.type = typeNode.leaf
                 typeNode = typeNode.children[0]
+                self.basic_type = typeNode.type
         elif typeNode.type == 'Identifier':
             self.type = typeNode.children[0]
-        else:
-            self.type = typeNode.type #FIXME should this adher to documentation?
+            self.basic_type = self.type
+        elif typeNode.type == "TypeExternChild":
+            self.basic_type = "TypeExternChild"
+            typeNode.children[0].visit()
+            self.type = get_name_list_from_complex_identifier(typeNode.children[0])
+        else: #basic type
+            self.type = typeNode.type
+            self.basic_type = self.type
         
-        self.basic_type = self.type
-        self.array_dimensions = array_dimensions
+        self.array_dimensions = array_dimensions or []
         self.initval = initval
         #Default ranges
         if typeNode.type in ['TypeInt', 'TypeConstInt'] or (typeNode.type == 'NodeTypedef' and typeNode.children[0].type != 'VarDeclList'): #alias typedef
