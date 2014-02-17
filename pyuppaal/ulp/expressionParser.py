@@ -205,15 +205,15 @@ class ExpressionParser:
         'MINUS':     Op('Minus', operator.sub, 40),
         'LSHIFT':    Op('LeftShift', operator.lshift, 35),
         'RSHIFT':    Op('RightShift', operator.rshift, 35),
-        'BITAND':    Op('BitAnd', operator.and_, 30),
-        'XOR':       Op('Xor', operator.xor, 29),
-        'BITOR':     Op('BitOr', operator.or_, 28),
         'GREATER':   Op('Greater', operator.gt, 20),
         'GREATEREQ': Op('GreaterEqual', operator.ge, 20),
         'LESS':      Op('Less', operator.lt, 20),
         'LESSEQ':    Op('LessEqual', operator.le, 20),
         'EQUAL':     Op('Equal', operator.eq, 15),
         'NOTEQUAL':  Op('NotEqual', operator.ne, 15),
+        'BITAND':    Op('BitAnd', operator.and_, 14),
+        'XOR':       Op('Xor', operator.xor, 13),
+        'BITOR':     Op('BitOr', operator.or_, 12),
         'LAND':      Op('And', operator.and_, 10), # &&
         'AND':       Op('And', operator.and_, 10), # and
         'LOR':       Op('Or', operator.or_, 10),   # ||
