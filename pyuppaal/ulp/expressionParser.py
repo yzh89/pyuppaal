@@ -152,7 +152,10 @@ class ExpressionParser:
         
         self.op_stack.append(self._sentinel)
         self._infix_eval_expr()
-        return self.res_stack[-1]
+        try:
+            return self.res_stack[-1]
+        except:
+            self.parser.error("ExpressionParser parsing error")
     
     class Op(object):
         """ Represents an operator recognized by the infix 

@@ -399,7 +399,10 @@ class Parser:
                 statements.append(self.parseIf())
             elif self.currentToken.type == 'RETURN':
                 self.accept('RETURN')
-                expression = self.parseExpression()
+                if self.currentToken.type != 'SEMI':
+                    expression = self.parseExpression()
+                else:
+                    expression = Node('Expression', children=[Node('Number', [], '0')])
                 n = Node('Return', [], expression)
                 statements.append(n)
                 self.accept('SEMI')
