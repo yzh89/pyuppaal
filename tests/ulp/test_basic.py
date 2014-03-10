@@ -341,7 +341,7 @@ class TestBasicParsing(unittest.TestCase):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_simple_function.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
-        self.assertEqual(len(pars.AST.children), 3) #TODO add more asserts
+        self.assertEqual(len(pars.AST.children), 4) #TODO add more asserts
 
     def test_parse_expression(self):
         parser = expressionParser

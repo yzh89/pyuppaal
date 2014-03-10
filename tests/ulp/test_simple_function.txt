@@ -17,3 +17,7 @@ bool bar2()
 	return 10;
 }
 
+void bar3()
+{
+	return;
+}
