@@ -448,13 +448,17 @@ class Parser:
                 if self.currentToken.type == 'COMMA':
                     self.accept('COMMA')
                 break
-            elif self.currentToken.type in ['NUMBER', 'MINUS']:
+            elif self.currentToken.type in ('NUMBER', 'MINUS', ):
                 childList.append(self.parseNumber())
                 if self.currentToken.type == 'COMMA':
                     self.accept('COMMA')
-            elif self.currentToken.type in ['TRUE', 'FALSE']:
+            elif self.currentToken.type in ('TRUE', 'FALSE', ):
                 childList.append(self.currentToken.type)
                 self.accept(self.currentToken.type)
+                if self.currentToken.type == 'COMMA':
+                    self.accept('COMMA')
+            elif self.currentToken.type in ('IDENTIFIER',):
+                childList.append(self.parseIdentifier())
                 if self.currentToken.type == 'COMMA':
                     self.accept('COMMA')
             else:
@@ -520,9 +524,13 @@ class Parser:
         self.accept('LPAREN')
         leaf.append(self.parseBooleanExpression())
         self.accept('RPAREN')
-        self.accept('LCURLYPAREN')
-        children = self.parseBodyStatements()
-        self.accept('RCURLYPAREN')
+
+        if self.currentToken.type == 'LCURLYPAREN':
+            self.accept('LCURLYPAREN')
+            children = self.parseBodyStatements()
+            self.accept('RCURLYPAREN')
+        else:
+            children = self.parseBodyStatements(single=True)
 
         return Node('WhileLoop', children, leaf)
 
