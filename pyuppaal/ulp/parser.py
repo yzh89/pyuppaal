@@ -139,7 +139,7 @@ class Parser(object):
                 return Node('Struct', structDecl, structIden)
             elif self.currentToken.type == 'TYPEDEF':
                 return self.parseTypedef()
-            elif self.currentToken.type == 'EXTERN': #EXTENTION of UPPAAL C language
+            elif self.currentToken.type == 'EXTERN': #EXTENSION of UPPAAL C language
                 return self.parseExtern()
             else:
                 raise UnexpectedTokenException()

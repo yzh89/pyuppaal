@@ -23,8 +23,6 @@ from parser import *
 import ply.yacc as yacc
 import os
 
-
-
 class SystemDeclarationParser(Parser):
 
     def __init__(self, data, typedefDict=None):
@@ -87,6 +85,8 @@ class SystemDeclarationParser(Parser):
         while self.currentToken.type in ('IDENTIFIER'):
             identifier = self.parseIdentifier()
 
+            #EXTENSION of UPPAAL language: instantiation on system line
+            #e.g. system Template(0), Template(1);
             if self.currentToken.type == 'LPAREN':
                 # Process(5, true)
                 #        ^
