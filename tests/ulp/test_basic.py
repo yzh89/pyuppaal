@@ -18,9 +18,8 @@ class TestBasicParsing(unittest.TestCase):
         self.assertRaises(Exception, parser.Parser, declaration, lex)
             
     def test_error_system_decl_raise_exception(self):
-        declaration = '//foo' #illegal statement
-        pars = SystemDeclarationParser(declaration)
-        self.assertRaises(Exception, pars.parse)
+        declaration = 'foo' #illegal statement
+        self.assertRaises(Exception, SystemDeclarationParser, declaration)
     
     def test_init_array(self):
         lex = lexer.lexer
