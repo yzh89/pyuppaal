@@ -1000,6 +1000,16 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res[3].children[0].children[0].leaf.children[0].leaf.children[1].children[0].type, "Number")
         self.assertEqual(res[3].children[0].children[0].leaf.children[0].leaf.children[1].children[0].leaf, 4)
 
+    @unittest.skip("No support for conditional operator")
+    def test_conditional_operator(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_conditional_operator.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        res = pars.AST.children
+        pars.AST.visit()
+
+        self.assertTrue(False)
+
 
 if '__name__'  == '__main__':
     unittest.main()

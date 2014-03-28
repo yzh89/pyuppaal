@@ -459,7 +459,7 @@ class Parser(object):
                 if self.currentToken.type == 'COMMA':
                     self.accept('COMMA')
             elif self.currentToken.type in ('TRUE', 'FALSE', ):
-                childList.append(self.currentToken.type)
+                childList.append(Node(self.currentToken.type == 'TRUE' and 'True' or 'False'))
                 self.accept(self.currentToken.type)
                 if self.currentToken.type == 'COMMA':
                     self.accept('COMMA')
@@ -761,7 +761,7 @@ class Parser(object):
                 self.currentToken = self.lexer.token()
                 return
             except:
-                self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
+                self.error('Lexer error at token %s on line %d' % (self.currentToken.value, self.currentToken.lineno, ))
         else:
             self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
 
