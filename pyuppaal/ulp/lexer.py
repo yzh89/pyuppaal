@@ -77,6 +77,7 @@ tokens = [
     'NOTEQUAL',
     'PLUSPLUS',
     'MINUSMINUS',
+    'CONDITIONAL',
 # Assignments
     'EQUALS',
     'ASSIGN',
@@ -128,6 +129,7 @@ t_EQUAL       = r'=='
 t_NOTEQUAL    = r'!='
 t_PLUSPLUS    = r'\+\+'
 t_MINUSMINUS  = r'--'
+t_CONDITIONAL = r'\?'
 
 # Assignments
 t_EQUALS      = r'='

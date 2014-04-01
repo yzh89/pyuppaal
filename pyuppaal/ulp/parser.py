@@ -355,7 +355,7 @@ class Parser:
                 self.accept('CONST')
                 isConst = True
             type = self.parseStdType(isConst) 
-            identifier = self.parseIdentifierComplex()
+            identifier = self.parseIdentifierComplex(accept_ampersand_prefix = True)
             self.identifierTypeDict[get_full_name_from_complex_identifier(identifier)] = type
             parameters.append( Node('Parameter', [], (type, identifier)) )
             if self.currentToken.type == 'COMMA':
@@ -590,9 +590,14 @@ class Parser:
         d[34].sdf.df[3][2].df[2] =
         d.sdf.df[3][2].df =
     """
-    def parseIdentifierComplex(self):
+    def parseIdentifierComplex(self, accept_ampersand_prefix = False):
         rootP = self.parseIdentifier()
         p = rootP
+        reference = False
+
+        if accept_ampersand_prefix == True and self.currentToken.type == 'BITAND':
+            reference = True
+            self.accept('BITAND')
 
         while True:
             p.leaf = self.parseIndexList()
@@ -603,6 +608,9 @@ class Parser:
                 p = element
             if self.currentToken.type not in ['LBRACKET', 'DOT']:	
                 break
+
+        if reference == True:
+            n.children.append(Node('Reference', [], []))
 
         return rootP
    
@@ -992,5 +1000,15 @@ class DeclVisitor(object):
             return True
         else:
             return False
+
+    def is_reference(self, node):
+        if node.type == 'Reference':
+            return True
+
+        for c in node.children:
+            if c.type == 'Reference':
+                return True
+
+        return False
 
 # vim:ts=4:sw=4:expandtab

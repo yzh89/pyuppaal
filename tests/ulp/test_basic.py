@@ -343,6 +343,12 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 4) #TODO add more asserts
 
+    def test_parse_function_ref_arg(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_function_ref_arg.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
+
     def test_parse_expression(self):
         parser = expressionParser
 
@@ -662,6 +668,36 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].children[0].leaf, 'x')
         self.assertEqual(res.children[1].children[1].type, 'Number')
         self.assertEqual(res.children[1].children[1].leaf, 0)
+
+    def test_parse_expression_conditional_operator(self):
+        parser = expressionParser
+
+        res = parser.parse_expression("1 ? 42 : 0")
+        self.assertEqual(res.type, "Conditional") 
+        self.assertEqual(res.children[0].type, "Number") 
+        self.assertEqual(res.children[1].type, "Colon")
+        self.assertEqual(res.children[1].children[0].type, "Number")
+        self.assertEqual(res.children[1].children[0].leaf, 42)
+        self.assertEqual(res.children[1].children[1].type, "Number")
+        self.assertEqual(res.children[1].children[1].leaf, 0)
+
+        res = parser.parse_expression("1 ? (42+3) : (0*3)")
+        res.visit()
+        self.assertEqual(res.type, "Conditional") 
+        self.assertEqual(res.children[0].type, "Number") 
+        self.assertEqual(res.children[1].type, "Colon")
+        self.assertEqual(res.children[1].children[0].type, "Plus")
+        self.assertEqual(res.children[1].children[1].type, "Times")
+
+        res = parser.parse_expression("1 ? (0 ? 0 : 42) : (0*3)")
+        res.visit()
+        self.assertEqual(res.type, "Conditional") 
+        self.assertEqual(res.children[0].type, "Number") 
+        self.assertEqual(res.children[1].type, "Colon")
+        self.assertEqual(res.children[1].children[0].type, "Conditional") 
+        self.assertEqual(res.children[1].children[0].children[0].type, "Number")
+        self.assertEqual(res.children[1].children[0].children[1].type, "Colon")
+        self.assertEqual(res.children[1].children[1].type, "Times")
 
     def test_parse_func_with_params(self):
         parser = expressionParser

@@ -54,7 +54,7 @@ class updateStatementParser(parser.Parser):
                 elif self.currentToken.type == 'SEMI':
                         self.accept('SEMI')
                 else:
-                    self.error("failed to parse updateStatements") 
+                    self.error("failed to parse updateStatements - unexpected token type: "+self.currentToken.type) 
                     break
             else:
                 break

@@ -28,6 +28,11 @@ logger = logging.getLogger('expressionParser')
 #no debug output by default
 logger.setLevel(logging.INFO)
 
+def ternary(condition, if_true, if_false):
+    if eval(condition):
+        return if_true
+    else:
+        return if_false
 
 class IllegalExpressionException(Exception):
     pass
@@ -164,12 +169,22 @@ class ExpressionParser:
             right/left associative.
         """
         def __init__(   self, name, op, prec, 
-                        unary=False, right_assoc=False):
+                        arguments=2, right_assoc=False):
             self.name = name
             self.op = op
             self.prec = prec
-            self.unary = unary
-            self.binary = not self.unary
+
+            self.unary = False
+            self.binary = False
+            self.ternary = False
+
+            if arguments == 2:
+                self.binary = True
+            elif arguments == 1:
+                self.unary = True
+            else:
+                self.ternary = ternary
+
             self.right_assoc = right_assoc
             self.left_assoc = not self.right_assoc
             
@@ -198,9 +213,9 @@ class ExpressionParser:
     # The operators recognized by the evaluator.
     #
     _ops = {
-        'uMINUS':    Op('UnaryMinus', operator.neg, 90, unary=True),
-        'uLNOT':     Op('UnaryNot', operator.not_, 90, unary=True),
-        'uNOT':      Op('UnaryNot', operator.not_, 90, unary=True),
+        'uMINUS':    Op('UnaryMinus', operator.neg, 90, arguments=1),
+        'uLNOT':     Op('UnaryNot', operator.not_, 90, arguments=1),
+        'uNOT':      Op('UnaryNot', operator.not_, 90, arguments=1),
         'TIMES':     Op('Times', operator.mul, 50),
         'DIVIDE':    Op('Divide', operator.div, 50),
         'MODULO':    Op('Modulo', operator.mod, 50),
@@ -208,15 +223,20 @@ class ExpressionParser:
         'MINUS':     Op('Minus', operator.sub, 40),
         'LSHIFT':    Op('LeftShift', operator.lshift, 35),
         'RSHIFT':    Op('RightShift', operator.rshift, 35),
+        'BITAND':    Op('BitAnd', operator.and_, 30),
+        'XOR':       Op('Xor', operator.xor, 29),
+        'BITOR':     Op('BitOr', operator.or_, 28),
         'GREATER':   Op('Greater', operator.gt, 20),
         'GREATEREQ': Op('GreaterEqual', operator.ge, 20),
         'LESS':      Op('Less', operator.lt, 20),
         'LESSEQ':    Op('LessEqual', operator.le, 20),
+        'COLON':   Op('Colon', ternary, 41),
         'EQUAL':     Op('Equal', operator.eq, 15),
         'NOTEQUAL':  Op('NotEqual', operator.ne, 15),
         'BITAND':    Op('BitAnd', operator.and_, 14),
         'XOR':       Op('Xor', operator.xor, 13),
         'BITOR':     Op('BitOr', operator.or_, 12),
+        'CONDITIONAL':   Op('Conditional', ternary, 11, arguments=3,right_assoc=False),
         'LAND':      Op('And', operator.and_, 10), # &&
         'AND':       Op('And', operator.and_, 10), # and
         'LOR':       Op('Or', operator.or_, 10),   # ||
@@ -242,14 +262,22 @@ class ExpressionParser:
             operators.
         """
         self._infix_eval_atom()
+        ternary = False
 
         while ( self.parser.currentToken and
                 self.parser.currentToken.type in self._ops and 
-                self._ops[self.parser.currentToken.type].binary):
+                (self._ops[self.parser.currentToken.type].binary or self._ops[self.parser.currentToken.type].ternary)):
+            if self._ops[self.parser.currentToken.type].ternary:
+                ternary = True
             logger.debug("%s, %s" % (str(self.res_stack), str(self.op_stack)))
             self._push_op(self._ops[self.parser.currentToken.type])
             self._get_next_token()
             self._infix_eval_atom()
+            if ternary:
+                self._push_op(self._ops[self.parser.currentToken.type])
+                self._get_next_token()
+                self._infix_eval_atom()
+                ternary = False
         
         while self.op_stack[-1] != self._sentinel:
             self._pop_op()
@@ -321,6 +349,8 @@ class ExpressionParser:
                     identifier = self.res_stack.pop()
                     self.res_stack.append(Node('ClockRate', [], identifier.children[0]))
                     self.parser.accept('APOSTROPHE')
+           # elif self.parser.currentToken.type == 'CONDITIONAL':
+           #     print "con", self.res_stack
             else:
                 self.res_stack.append(self.parser.parseNumber())
         elif self.parser.currentToken.type == 'LPAREN':
