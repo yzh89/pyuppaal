@@ -95,13 +95,18 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 7) #TODO add more asserts
         res = pars.AST.children
-        res[0].visit()
+
         self.assertEqual(res[0].children[0].children[0].leaf.type, "IndexList") 
         self.assertEqual(res[1].children[0].children[0].leaf.type, "IndexList") 
         self.assertEqual(res[2].children[0].children[0].leaf.type, "IndexList") 
         self.assertEqual(res[3].children[0].children[0].leaf.type, "IndexList") 
         self.assertEqual(res[4].children[0].children[0].leaf.type, "IndexList") 
         self.assertEqual(res[6].children[0].children[0].leaf.type, "IndexList") 
+        indexlist = res[6].children[0].children[0].leaf
+        self.assertEqual(len(indexlist.children), 2)
+        indexlist.visit()
+        self.assertEqual(indexlist.children[0].type, "Index")
+        self.assertEqual(indexlist.children[1].type, "Index")
 
     def test_struct(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_struct.txt'), "r")
@@ -766,6 +771,114 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[0].children[0], 'N')
         self.assertEqual(res.children[1].type, "Number")
         self.assertEqual(res.children[1].leaf, 1)
+
+    def test_parse_array_index_mixed_expression(self):
+        parser = expressionParser
+
+        res = parser.parse_expression("a[1].foo")
+        res.visit()
+        self.assertEqual(res.type, "Identifier")
+        ident = res
+
+        self.assertEqual(len(ident.children), 2)
+        self.assertEqual(ident.children[0], "a")
+        self.assertEqual(ident.leaf.type, "IndexList")
+        indexlist = ident.leaf
+
+        self.assertEqual(len(indexlist.children), 1)
+        self.assertEqual(indexlist.children[0].type, "Index")
+        self.assertEqual(indexlist.children[0].leaf.type, "Number")
+        self.assertEqual(indexlist.children[0].leaf.leaf, 1)
+        
+        self.assertEqual(ident.children[1].type, "Identifier")
+        self.assertEqual(ident.children[1].children[0], "foo")
+
+
+        res = parser.parse_expression("a.foo.bar.baz")
+        res.visit()
+        self.assertEqual(res.type, "Identifier")
+        ident = res
+
+        self.assertEqual(len(ident.children), 2)
+        self.assertEqual(ident.children[0], "a")
+
+        dot = ident.children[1]
+        self.assertEqual(len(dot.children), 2)
+        self.assertEqual(dot.type, "Identifier")
+        self.assertEqual(dot.children[0], "foo")
+
+        dot = dot.children[1]
+        self.assertEqual(len(dot.children), 2)
+        self.assertEqual(dot.type, "Identifier")
+        self.assertEqual(dot.children[0], "bar")
+
+        dot = dot.children[1]
+        self.assertEqual(len(dot.children), 1)
+        self.assertEqual(dot.type, "Identifier")
+        self.assertEqual(dot.children[0], "baz")
+
+
+        res = parser.parse_expression("a.foo[2].bar[i].baz")
+        res.visit()
+        self.assertEqual(res.type, "Identifier")
+        ident = res
+
+        self.assertEqual(len(ident.children), 2)
+        self.assertEqual(ident.children[0], "a")
+
+        dot = ident.children[1]
+        self.assertEqual(len(dot.children), 2)
+        self.assertEqual(dot.type, "Identifier")
+        self.assertEqual(dot.children[0], "foo")
+        indexlist = dot.leaf
+        self.assertEqual(indexlist.type, "IndexList")
+        self.assertEqual(len(indexlist.children), 1)
+        index = indexlist.children[0]
+        self.assertEqual(index.type, "Index")
+        self.assertEqual(index.leaf.type, "Number")
+        self.assertEqual(index.leaf.leaf, 2)
+
+        dot = dot.children[1]
+        self.assertEqual(len(dot.children), 2)
+        self.assertEqual(dot.type, "Identifier")
+        self.assertEqual(dot.children[0], "bar")
+        indexlist = dot.leaf
+        self.assertEqual(indexlist.type, "IndexList")
+        self.assertEqual(len(indexlist.children), 1)
+        index = indexlist.children[0]
+        self.assertEqual(index.type, "Index")
+        self.assertEqual(index.leaf.type, "Identifier")
+        self.assertEqual(index.leaf.children[0], "i")
+
+        dot = dot.children[1]
+        self.assertEqual(len(dot.children), 1)
+        self.assertEqual(dot.type, "Identifier")
+        self.assertEqual(dot.children[0], "baz")
+
+
+        res = parser.parse_expression("a[1][2][3].foo")
+        res.visit()
+        self.assertEqual(res.type, "Identifier")
+        ident = res
+
+        self.assertEqual(len(ident.children), 2)
+        self.assertEqual(ident.children[0], "a")
+        self.assertEqual(ident.leaf.type, "IndexList")
+        indexlist = ident.leaf
+
+        self.assertEqual(len(indexlist.children), 3)
+        self.assertEqual(indexlist.children[0].type, "Index")
+        self.assertEqual(indexlist.children[0].leaf.type, "Number")
+        self.assertEqual(indexlist.children[0].leaf.leaf, 1)
+        self.assertEqual(indexlist.children[1].type, "Index")
+        self.assertEqual(indexlist.children[1].leaf.type, "Number")
+        self.assertEqual(indexlist.children[1].leaf.leaf, 2)
+        self.assertEqual(indexlist.children[2].type, "Index")
+        self.assertEqual(indexlist.children[2].leaf.type, "Number")
+        self.assertEqual(indexlist.children[2].leaf.leaf, 3)
+        
+        self.assertEqual(ident.children[1].type, "Identifier")
+        self.assertEqual(ident.children[1].children[0], "foo")
 
     def test_parse_extern(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_extern.txt'), "r")

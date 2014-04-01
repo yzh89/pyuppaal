@@ -60,6 +60,7 @@ class Node:
                 try:
                     v.visit(visitor, self.level+1);
                 except:
+                    print "visit", "  "*(self.level+1), v
                     pass 
 
 
