@@ -59,7 +59,8 @@ class SystemDeclarationParser(Parser):
                 # ;
                 self.accept('SEMI')
 
-                return Node("ProcessAssignment", [inst], ident)
+                return Node("ProcessAssignment", [inst], ident, 
+                        ident=ident, instantiation=inst)
             else:
                 return super(SystemDeclarationParser, self).parseCurrentStatement()
         else:
@@ -78,7 +79,8 @@ class SystemDeclarationParser(Parser):
             parameters += [expr]
         self.accept('RPAREN')
 
-        return Node("TemplateInstantiation", parameters, templateident)
+        return Node("TemplateInstantiation", parameters, templateident,
+                parameters=parameters, ident=templateident)
 
     def parseSystemList(self):
         systemslist = []
@@ -93,7 +95,9 @@ class SystemDeclarationParser(Parser):
                 inst = self.parseTemplateInstantiation(identifier)
             else:
                 # Process
-                inst = Node("TemplateInstantiation", [], identifier)
+                params = []
+                inst = Node("TemplateInstantiation", params, identifier,
+                        ident=identifier, parameters=params)
 
             inst.priority = self.prioritycounter
 
