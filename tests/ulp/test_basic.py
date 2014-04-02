@@ -18,9 +18,8 @@ class TestBasicParsing(unittest.TestCase):
         self.assertRaises(Exception, parser.Parser, declaration, lex)
             
     def test_error_system_decl_raise_exception(self):
-        declaration = '//foo' #illegal statement
-        pars = SystemDeclarationParser(declaration)
-        self.assertRaises(Exception, pars.parse)
+        declaration = 'foo' #illegal statement
+        self.assertRaises(Exception, SystemDeclarationParser, declaration)
     
     def test_init_array(self):
         lex = lexer.lexer
@@ -110,6 +109,29 @@ class TestBasicParsing(unittest.TestCase):
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
         
+    def test_struct_initializer(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_struct_initializer.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        pars.AST.visit()
+        self.assertEqual(len(pars.AST.children), 4)
+        
+        vardecl = pars.AST.children[3]
+        self.assertEqual(vardecl.type, "VarDeclList")
+        initializer = vardecl.children[0].leaf
+        self.assertEqual(initializer.type, "Initializer")
+        self.assertEqual(len(initializer.children), 3)
+
+        init1 = initializer.children[0]
+        self.assertEqual(init1.type, "Initializer")
+        self.assertEqual(len(init1.children), 3)
+        self.assertEqual(init1.children[0].type, "Number")
+        self.assertEqual(init1.children[0].leaf, 0)
+        self.assertEqual(init1.children[1].type, "Identifier")
+        self.assertEqual(init1.children[1].children[0], "DORMANT")
+        self.assertEqual(init1.children[2].type, "Number")
+        self.assertEqual(init1.children[2].leaf, 0)
+
     def test_parse_typedef_simple(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_typedef_simple.txt'), "r")
         lex = lexer.lexer
@@ -327,6 +349,12 @@ class TestBasicParsing(unittest.TestCase):
 
     def test_parse_while_loop(self):
         test_file = open(os.path.join(os.path.dirname(__file__), 'test_while_loop.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
+
+    def test_parse_while_loop_nobraces(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_while_loop_nobraces.txt'), "r")
         lex = lexer.lexer
         pars = parser.Parser(test_file.read(), lex)
         self.assertEqual(len(pars.AST.children), 1) #TODO add more asserts
@@ -1007,6 +1035,14 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res[3].children[0].children[0].leaf.children[0].leaf.children[0].children[0].leaf, 3)
         self.assertEqual(res[3].children[0].children[0].leaf.children[0].leaf.children[1].children[0].type, "Number")
         self.assertEqual(res[3].children[0].children[0].leaf.children[0].leaf.children[1].children[0].leaf, 4)
+
+    def test_conditional_operator(self):
+        test_file = open(os.path.join(os.path.dirname(__file__), 'test_conditional_operator.txt'), "r")
+        lex = lexer.lexer
+        pars = parser.Parser(test_file.read(), lex)
+        res = pars.AST.children
+        pars.AST.visit()
+
 
 
 if '__name__'  == '__main__':

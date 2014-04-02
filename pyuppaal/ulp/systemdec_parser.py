@@ -17,106 +17,99 @@
 
 #from lexer import *
 import lexer
-import expressionParser
 from node import Node
+from parser import *
 
 import ply.yacc as yacc
 import os
 
-class SystemDeclarationParser:
-    def __init__(self, data, lex_optimize=True,
-            lextab='pyuppaal.ulp.systemdec_parser_lextab',
-            yacc_optimize=False,
-            yacctab='pyuppaal.ulp.systemdec_parser_yacctab',
-            yacc_debug=False):
-        
-        self.data = data
+class SystemDeclarationParser(Parser):
 
+    def __init__(self, data, typedefDict=None):
         #priority counter for system decs, lower number == higher priority
         self.prioritycounter = 0
 
-        self.tokens = lexer.tokens
-        # Build the parser
-        self.systemdec_parser = yacc.yacc(module=self, 
-            start='systemdec',
-            debug=yacc_debug,
-            optimize=yacc_optimize,
-            tabmodule=yacctab,
-            #generate parsertab next to this file
-            outputdir=os.path.dirname(__file__))
+        super(SystemDeclarationParser, self).__init__(data, lexer, typedefDict)
 
-    def parse(self):
-        return self.systemdec_parser.parse(self.data)
+        self.AST.type = 'SystemDec'
+    
+    def parseCurrentStatement(self):
+        if self.currentToken.type in ('SYSTEM',):
+            self.accept('SYSTEM')
+            systemslist = self.parseSystemList()
+            return Node("System", systemslist)
+        elif self.currentToken.type == 'IDENTIFIER':
+            #look ahead to check if this is a Process Instantiation Assignment, e.g.
+            # P1 = Process(5, true);
+            # Note: Partial instantiation is NOT supported
+            lookahead = self.lexer.clone()
+            nextToken = lookahead.token()
+            if nextToken.type in ('EQUALS', 'ASSIGN'):
+                #P1
+                ident = self.parseIdentifier()
 
-    #start rule
-    def p_systemdec(self, p):
-        '''systemdec : systemdec statement SEMI
-                     | statement SEMI'''
-        if len(p) == 3: #one statement
-            p[0] = Node("SystemDec", [p[1]])
-        else:
-            assert isinstance(p[1], Node)
-            assert p[1].type == 'SystemDec'
-            assert isinstance(p[2], Node)
+                # =
+                assert self.currentToken.type in ('EQUALS', 'ASSIGN')
+                self.accept(self.currentToken.type)
 
-            p[1].children += [p[2]]
-            p[0] = p[1]
+                # Process(5, true)
+                templateident = self.parseIdentifier()
+                inst = self.parseTemplateInstantiation(templateident)
 
-    def p_empty(self, p):
-        'empty :'
-        pass
+                # ;
+                self.accept('SEMI')
 
-
-    def p_instantiation(self, p):
-        '''statement : IDENTIFIER EQUALS IDENTIFIER LPAREN arguments RPAREN
-                   |   IDENTIFIER ASSIGN IDENTIFIER LPAREN arguments RPAREN'''
-        ident = Node('Identifier', [], p[1])
-        templateident = Node('Identifier', [], p[3])
-        arguments = p[5]
-
-        inst = Node("TemplateInstantiation", arguments, templateident)
-        p[0] = Node("Assignment", [inst], ident)
-
-    def p_arguments(self, p):
-        '''arguments : expression COMMA arguments
-                   | expression
-                   | empty
-        '''
-        if len(p) == 2: #one or zero arguments
-            if p[1]:
-                p[0] = [p[1]]
+                return Node("ProcessAssignment", [inst], ident, 
+                        ident=ident, instantiation=inst)
             else:
-                p[0] = []
+                return super(SystemDeclarationParser, self).parseCurrentStatement()
         else:
-            p[0] = [p[1]] + p[3] 
+            return super(SystemDeclarationParser, self).parseCurrentStatement()
 
-    #XXX, let's see if we can get away with only parsing numbers for now
-    #otherwise, we should hook up the expressionParser
+    def parseTemplateInstantiation(self, templateident):
+        # Process(5, true)
+        #        ^
+        self.accept('LPAREN')
+        
+        parameters = []
+        while self.currentToken.type != 'RPAREN':
+            expr = self.parseExpression()
+            if self.currentToken.type == 'COMMA':
+                self.accept('COMMA')
+            parameters += [expr]
+        self.accept('RPAREN')
 
-    def p_expression(self, p):
-        '''expression : NUMBER'''
-        p[0] = Node('Number', [], p[1])
+        return Node("TemplateInstantiation", parameters, templateident,
+                parameters=parameters, ident=templateident)
 
-    def p_system(self, p):
-        'statement : SYSTEM systemslist'
-        p[0] = Node("System", p[2])
+    def parseSystemList(self):
+        systemslist = []
+        while self.currentToken.type in ('IDENTIFIER'):
+            identifier = self.parseIdentifier()
 
-    def p_systemslist(self, p):
-        '''systemslist : IDENTIFIER COMMA systemslist
-                    | IDENTIFIER LESS systemslist
-                    | IDENTIFIER
-        '''
-        if len(p) == 2: #one identifier
-            ident = Node('Identifier', [], p[1])
-            ident.priority = self.prioritycounter
-            p[0] = [ident]
-        else:
-            ident = Node('Identifier', [], p[1])
-            if p[2] == lexer.t_LESS:
+            #EXTENSION of UPPAAL language: instantiation on system line
+            #e.g. system Template(0), Template(1);
+            if self.currentToken.type == 'LPAREN':
+                # Process(5, true)
+                #        ^
+                inst = self.parseTemplateInstantiation(identifier)
+            else:
+                # Process
+                params = []
+                inst = Node("TemplateInstantiation", params, identifier,
+                        ident=identifier, parameters=params)
+
+            inst.priority = self.prioritycounter
+
+            if self.currentToken.type == 'COMMA':            
+                self.accept('COMMA') 
+            elif self.currentToken.type == 'LESS':
+                self.accept('LESS') 
                 self.prioritycounter += 1
-            ident.priority = self.prioritycounter
-            p[0] = [ident] + p[3]
 
-    def p_error(self, p):
-        raise SyntaxError("Unable to parse system declaration.")
+            systemslist.append( inst )
 
+            if self.currentToken.type == 'SEMI':
+                self.accept('SEMI')
+                break
+        return systemslist

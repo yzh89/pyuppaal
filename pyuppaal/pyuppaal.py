@@ -347,6 +347,12 @@ class Location:
     </location>""" % (self.id, self.xpos, self.ypos, namexml, invariantxml, expratexml,
         self.committed and '<committed />' or '', self.urgent and '<urgent />' or '')
 
+    def __str__(self):
+        if self.name.value:
+            return "Location '%s'/%s" % (self.name.value, self.id,)
+        else:
+            return "Location %s" % (self.id,)
+
 class Branchpoint:
     @require_keyword_args(1)
     def __init__(self, id=None, xpos=0, ypos=0):

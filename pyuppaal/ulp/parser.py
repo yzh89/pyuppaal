@@ -74,8 +74,11 @@ def get_name_list_from_complex_identifier(identifierNode):
         cur = cur.children[1]
         names.append(cur.children[0])
     return names
+
+class UnexpectedTokenException(Exception):
+    pass
     
-class Parser:
+class Parser(object):
 
     currentToken = None
     lexer = None
@@ -100,46 +103,49 @@ class Parser:
     def parseStatements(self):
         statements = []
 
-        while 1:
-            if self.currentToken:
-                if self.currentToken.type in ('VOID'): #Function
-                    type = self.parseFuncType()
-                    identifier = self.parseIdentifier()
-                    statements.append(self.parseFunction(type, identifier))
-                elif self.currentToken.type in ('CLOCK', 'CHANNEL', 'URGENT', 'BROADCAST'): #Declaration
-                    type = self.parseDeclType()
-                    identifier = self.parseIdentifierComplex()
-                    statements.append(self.parseDeclaration(type, identifier, isglobal=True))
-                elif self.currentToken.type in ('CONST', 'INT', 'BOOL', 'IDENTIFIER'): #Function or declaration           
-                    isConst = False
-                    if self.currentToken.type == 'CONST':
-                        self.accept('CONST')
-                        isConst = True
-                    type = self.parseStdType(isConst)
-                    identifier = self.parseIdentifierComplex()
-                    
-                    if self.currentToken.type == 'LPAREN':  #TODO check that it is not a complex identifier
-                        statements.append(self.parseFunction(type, identifier))
-                    else:
-                        statements.append(self.parseDeclaration(type, identifier)) 
-                elif self.currentToken.type == 'STRUCT':
-                    structDecl = self.parseStruct()
-                    structIden = self.parseIdentifier()
-                    self.accept('SEMI')
-                    statements.append(Node('Struct', structDecl, structIden))
-                elif self.currentToken.type == 'TYPEDEF':
-                    statements.append(self.parseTypedef())
-                elif self.currentToken.type == 'EXTERN': #EXTENTION of UPPAAL C language
-                    statements.append(self.parseExtern())
-                else:
-                    break 
-            else:
-                break
-
-        if self.currentToken != None:
+        try:
+            while self.currentToken:
+                statements.append(self.parseCurrentStatement())
+            return statements
+        except UnexpectedTokenException, e:
             self.error('at token "%s" on line %d: Did not expect any token, but found token of type %s' % (self.currentToken.value, self.currentToken.lineno, self.currentToken.type))
 
-        return statements
+    def parseCurrentStatement(self):
+        if self.currentToken:
+            if self.currentToken.type in ('VOID'): #Function
+                type = self.parseFuncType()
+                identifier = self.parseIdentifier()
+                return self.parseFunction(type, identifier)
+            elif self.currentToken.type in ('CLOCK', 'CHANNEL', 'URGENT', 'BROADCAST'): #Declaration
+                type = self.parseDeclType()
+                identifier = self.parseIdentifierComplex()
+                return self.parseDeclaration(type, identifier, isglobal=True)
+            elif self.currentToken.type in ('CONST', 'INT', 'BOOL', 'IDENTIFIER'): #Function or declaration           
+                isConst = False
+                if self.currentToken.type == 'CONST':
+                    self.accept('CONST')
+                    isConst = True
+                type = self.parseStdType(isConst)
+                identifier = self.parseIdentifierComplex()
+                
+                if self.currentToken.type == 'LPAREN':  #TODO check that it is not a complex identifier
+                    return self.parseFunction(type, identifier)
+                else:
+                    return self.parseDeclaration(type, identifier)
+            elif self.currentToken.type == 'STRUCT':
+                structDecl = self.parseStruct()
+                structIden = self.parseIdentifier()
+                self.accept('SEMI')
+                return Node('Struct', structDecl, structIden)
+            elif self.currentToken.type == 'TYPEDEF':
+                return self.parseTypedef()
+            elif self.currentToken.type == 'EXTERN': #EXTENSION of UPPAAL C language
+                return self.parseExtern()
+            else:
+                raise UnexpectedTokenException()
+        else:
+            return None
+
 
     def parseStruct(self):
         structDecl = []
@@ -448,13 +454,17 @@ class Parser:
                 if self.currentToken.type == 'COMMA':
                     self.accept('COMMA')
                 break
-            elif self.currentToken.type in ['NUMBER', 'MINUS']:
+            elif self.currentToken.type in ('NUMBER', 'MINUS', ):
                 childList.append(self.parseNumber())
                 if self.currentToken.type == 'COMMA':
                     self.accept('COMMA')
-            elif self.currentToken.type in ['TRUE', 'FALSE']:
-                childList.append(self.currentToken.type)
+            elif self.currentToken.type in ('TRUE', 'FALSE', ):
+                childList.append(Node(self.currentToken.type == 'TRUE' and 'True' or 'False'))
                 self.accept(self.currentToken.type)
+                if self.currentToken.type == 'COMMA':
+                    self.accept('COMMA')
+            elif self.currentToken.type in ('IDENTIFIER',):
+                childList.append(self.parseIdentifier())
                 if self.currentToken.type == 'COMMA':
                     self.accept('COMMA')
             else:
@@ -520,9 +530,13 @@ class Parser:
         self.accept('LPAREN')
         leaf.append(self.parseBooleanExpression())
         self.accept('RPAREN')
-        self.accept('LCURLYPAREN')
-        children = self.parseBodyStatements()
-        self.accept('RCURLYPAREN')
+
+        if self.currentToken.type == 'LCURLYPAREN':
+            self.accept('LCURLYPAREN')
+            children = self.parseBodyStatements()
+            self.accept('RCURLYPAREN')
+        else:
+            children = self.parseBodyStatements(single=True)
 
         return Node('WhileLoop', children, leaf)
 
@@ -755,7 +769,7 @@ class Parser:
                 self.currentToken = self.lexer.token()
                 return
             except:
-                self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
+                self.error('Lexer error at token %s on line %d' % (self.currentToken.value, self.currentToken.lineno, ))
         else:
             self.error('at token %s on line %d: Expected %s but was %s' % (self.currentToken.value, self.currentToken.lineno, expectedTokenType, self.currentToken.type))
 

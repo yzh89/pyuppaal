@@ -19,10 +19,21 @@
 
 #AST
 class Node:
-    def __init__(self, type, children=[], leaf=[]):
+    def __init__(self, type, children=[], leaf=[], **kwargs):
+        """
+        Old style:
+        Node("TemplateInstantiation", parameters, templateident)
+                                      ^children[] ^leaf
+        New style:
+        Node("TemplateInstantiation", parameters, templateident, ident=templateident, parameters=parameters)
+                                      ^children[] ^leaf          ^shortcuts...
+        """
         self.type = type
         self.children = children
         self.leaf = leaf
+
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
 
     def print_node(self):
         print "visit", "  "*self.level, self.type, 
