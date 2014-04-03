@@ -204,9 +204,11 @@ class Parser(object):
                 else:
                     initVal = self.parseExpression()
 
-                declList.append(Node(nodeType, [identifier], initVal))
+                declList.append(Node(nodeType, [identifier], initVal,
+                    ident=identifier, initval=initVal))
             else:
-                declList.append(Node(nodeType, [identifier], defaultValue))
+                declList.append(Node(nodeType, [identifier], defaultValue,
+                    ident=identifier, initval=defaultValue))
 
             if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
@@ -224,7 +226,8 @@ class Parser(object):
             else:
                 self.globalIdentifierTypeDict[get_full_name_from_complex_identifier(decl.children[0])] = type
 
-        return Node(nodeType+'List', declList, type)
+        return Node(nodeType+'List', declList, type, 
+                vartype=type)
 
     def parseTypedef(self):
         self.accept('TYPEDEF')

@@ -18,7 +18,7 @@
 
 
 #AST
-class Node:
+class Node(object):
     def __init__(self, type, children=[], leaf=[], **kwargs):
         """
         Old style:
