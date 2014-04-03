@@ -325,7 +325,7 @@ class Parser(object):
         else:
             e = self.parseExpression()
         self.accept('RBRACKET')
-        return Node('Index', [], e)
+        return Node('Index', [], e, expr=e)
 
     def parseFunction(self, type, identifier):
         self.inFunction = True #used to determine if variables are global or not
