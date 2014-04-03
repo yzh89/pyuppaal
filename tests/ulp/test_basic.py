@@ -419,6 +419,7 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[1].leaf, 4)
 
         res = parser.parse_expression("5 and 4")
+        res.visit()
         self.assertEqual(res.type, "And")
         self.assertEqual(res.children[0].type, "Number")
         self.assertEqual(res.children[0].leaf, 5)
@@ -702,30 +703,38 @@ class TestBasicParsing(unittest.TestCase):
 
         res = parser.parse_expression("1 ? 42 : 0")
         self.assertEqual(res.type, "Conditional") 
-        self.assertEqual(res.children[0].type, "Number") 
-        self.assertEqual(res.children[1].type, "Colon")
-        self.assertEqual(res.children[1].children[0].type, "Number")
-        self.assertEqual(res.children[1].children[0].leaf, 42)
-        self.assertEqual(res.children[1].children[1].type, "Number")
-        self.assertEqual(res.children[1].children[1].leaf, 0)
+        self.assertEqual(res.children[0].type, "Number")
+        self.assertEqual(res.children[0].leaf, 1)
+        self.assertEqual(res.children[1].type, "Number")
+        self.assertEqual(res.children[1].leaf, 42)
+        self.assertEqual(res.children[2].type, "Number")
+        self.assertEqual(res.children[2].leaf, 0)
+
 
         res = parser.parse_expression("1 ? (42+3) : (0*3)")
-        res.visit()
         self.assertEqual(res.type, "Conditional") 
         self.assertEqual(res.children[0].type, "Number") 
-        self.assertEqual(res.children[1].type, "Colon")
-        self.assertEqual(res.children[1].children[0].type, "Plus")
-        self.assertEqual(res.children[1].children[1].type, "Times")
+        self.assertEqual(res.children[0].leaf, 1)
+        self.assertEqual(res.children[1].type, "Plus")
+        self.assertEqual(res.children[2].type, "Times")
 
+        res = parser.parse_expression("(1 == 1 ? 3 :6) ")
+        self.assertEqual(res.children[0].type, "Equal") 
+        self.assertEqual(res.children[1].type, "Number")
+        self.assertEqual(res.children[2].type, "Number")
+
+    
+    def test_parse_expression_nested_conditional_operator(self):
+        parser = expressionParser
         res = parser.parse_expression("1 ? (0 ? 0 : 42) : (0*3)")
-        res.visit()
+
         self.assertEqual(res.type, "Conditional") 
-        self.assertEqual(res.children[0].type, "Number") 
-        self.assertEqual(res.children[1].type, "Colon")
-        self.assertEqual(res.children[1].children[0].type, "Conditional") 
-        self.assertEqual(res.children[1].children[0].children[0].type, "Number")
-        self.assertEqual(res.children[1].children[0].children[1].type, "Colon")
-        self.assertEqual(res.children[1].children[1].type, "Times")
+        self.assertEqual(res.children[0].type, "Number")
+        self.assertEqual(res.children[1].type, "Conditional") 
+        self.assertEqual(res.children[1].children[0].type, "Number")
+        self.assertEqual(res.children[1].children[1].type, "Number")
+        self.assertEqual(res.children[1].children[2].type, "Number")
+        self.assertEqual(res.children[2].type, "Times")
 
     def test_parse_func_with_params(self):
         parser = expressionParser

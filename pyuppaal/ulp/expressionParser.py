@@ -197,13 +197,19 @@ class ExpressionParser:
                 are unusual (i.e. this is not the familiar 
                 algebraic '>')
             """
-            if self.binary and other.binary:
-                if self.prec > other.prec:
-                    return True
-                elif self.left_assoc and (self.prec == other.prec):
-                    return True
-            elif self.unary and other.binary:
-                return self.prec >= other.prec
+            return self.prec >= other.prec
+#            if self.ternary and other.ternary:
+#                if self.prec > other.prec:
+#                    return True
+#                elif self.left_assoc and (self.prec == other.prec):
+#                    return True
+#            elif self.binary and other.binary:
+#                if self.prec > other.prec:
+#                    return True
+#                elif self.left_assoc and (self.prec == other.prec):
+#                    return True
+#            elif self.unary and other.binary:
+#                return self.prec >= other.prec
             
             return False
 
@@ -226,21 +232,26 @@ class ExpressionParser:
         'BITAND':    Op('BitAnd', operator.and_, 30),
         'XOR':       Op('Xor', operator.xor, 29),
         'BITOR':     Op('BitOr', operator.or_, 28),
+
         'GREATER':   Op('Greater', operator.gt, 20),
         'GREATEREQ': Op('GreaterEqual', operator.ge, 20),
         'LESS':      Op('Less', operator.lt, 20),
         'LESSEQ':    Op('LessEqual', operator.le, 20),
-        'COLON':   Op('Colon', ternary, 41),
+        
         'EQUAL':     Op('Equal', operator.eq, 15),
         'NOTEQUAL':  Op('NotEqual', operator.ne, 15),
+
         'BITAND':    Op('BitAnd', operator.and_, 14),
         'XOR':       Op('Xor', operator.xor, 13),
         'BITOR':     Op('BitOr', operator.or_, 12),
-        'CONDITIONAL':   Op('Conditional', ternary, 11, arguments=3,right_assoc=False),
-        'LAND':      Op('And', operator.and_, 10), # &&
-        'AND':       Op('And', operator.and_, 10), # and
-        'LOR':       Op('Or', operator.or_, 10),   # ||
-        'OR':        Op('Or', operator.or_, 10),   # or
+        'LAND':      Op('And', operator.and_, 11), # && notice the operator is incorrect
+        'AND':      Op('And', operator.and_, 11), # && notice the operator is incorrect
+        'OR':      Op('Or', operator.or_, 11), # && notice the operator is incorrect
+        'LOR':       Op('Or', operator.or_, 11),   # || notice the operator is incorrect 
+        'CONDITIONAL':   Op('Conditional', ternary, 10, arguments=3,right_assoc=True),
+
+        #'AND':       Op('And', operator.and_, 10), # and
+        #'OR':        Op('Or', operator.or_, 10),   # or
         #XXX, we treat the logical ops the same as their names, e.g.
         # "&&" ~ "and", "!" ~ "not", this is not the same as the uppaal
         #documentation prescribes.
@@ -258,7 +269,7 @@ class ExpressionParser:
     _sentinel = Op(None, None, 0)
 
     def _infix_eval_expr(self):
-        """ Evaluates an 'expression' - atoms separated by binary
+        """ Evaluates an 'expression' - atoms separated by binary or ternary
             operators.
         """
         self._infix_eval_atom()
@@ -273,8 +284,8 @@ class ExpressionParser:
             self._push_op(self._ops[self.parser.currentToken.type])
             self._get_next_token()
             self._infix_eval_atom()
+
             if ternary:
-                self._push_op(self._ops[self.parser.currentToken.type])
                 self._get_next_token()
                 self._infix_eval_atom()
                 ternary = False
@@ -391,6 +402,11 @@ class ExpressionParser:
         
         if top_op.unary:
             self.res_stack.append(top_op.apply(self.res_stack.pop()))
+        elif top_op.ternary:
+            t2 = self.res_stack.pop()
+            t1 = self.res_stack.pop()
+            t0 = self.res_stack.pop()
+            self.res_stack.append(top_op.apply(t0, t1, t2))
         else:
             if len(self.res_stack) < 2:
                 self.parser.error('Not enough arguments for operator %s' % top_op.name)

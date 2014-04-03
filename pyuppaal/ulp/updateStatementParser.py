@@ -51,8 +51,10 @@ class updateStatementParser(parser.Parser):
                         self.accept('SEMI')
                     elif self.currentToken.type == 'COMMA':
                         self.accept('COMMA')
+                elif self.currentToken.type == 'NUMBER':
+                    statements.append(self.parseExpression())
                 elif self.currentToken.type == 'SEMI':
-                        self.accept('SEMI')
+                    self.accept('SEMI')
                 else:
                     self.error("failed to parse updateStatements - unexpected token type: "+self.currentToken.type) 
                     break
