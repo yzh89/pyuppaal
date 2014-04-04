@@ -60,7 +60,8 @@ class Node(object):
                 try:
                     v.visit(visitor, self.level+1);
                 except:
-                    print "visit", "  "*(self.level+1), v
+                    if visitor == Node.print_node:
+                        print "visit", "  "*(self.level+1), v
                     pass 
 
 
