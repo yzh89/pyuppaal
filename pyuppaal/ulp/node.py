@@ -16,6 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. """
 
+from util import *
 
 #AST
 class Node(object):
@@ -28,6 +29,9 @@ class Node(object):
         Node("TemplateInstantiation", parameters, templateident, ident=templateident, parameters=parameters)
                                       ^children[] ^leaf          ^shortcuts...
         """
+        super(Node, self).__init__()
+        if type == "VarDecl":
+            assert isinstance(self, VarDecl), "Use subclass VarDecl"
         self.type = type
         self.children = children
         self.leaf = leaf
@@ -63,4 +67,59 @@ class Node(object):
                     print "visit", "  "*(self.level+1), v
                     pass 
 
+class VarDecl(Node):
+    """
+    A VarDecl node.
+
+    @identifier is name of var (as string)
+    @vartype is type used at declaration, e.g. "addr" if a typedef'ed var
+    @basic_type is the underlying type, e.g. "TypeInt"
+    @typenode is a reference to the AST node representing the type
+    """
+
+    def __init__(self, identifier, typeNode, array_dimensions=None, initval=None, parser=None):
+        super(VarDecl, self).__init__("VarDecl", children=[identifier], leaf=initval)
+        self.identifier = identifier
+        isTypedefStruct = False
+        
+        if typeNode.type == 'NodeTypedef': #TODO recursively find type
+            if typeNode.children[0].type == 'VarDeclList': #Means that this is a Struct
+                self.vartype = typeNode.leaf
+                self.basic_type = self.vartype
+            else: 
+                self.vartype = typeNode.leaf
+                typeNode = typeNode.children[0]
+                self.basic_type = typeNode.type
+        elif typeNode.type == 'Identifier':
+            self.vartype = typeNode.children[0]
+            self.basic_type = self.vartype
+        elif typeNode.type == "TypeExternChild":
+            self.basic_type = "TypeExternChild"
+            typeNode.children[0].visit()
+            self.vartype = get_name_list_from_complex_identifier(typeNode.children[0])
+        else: #basic type
+            self.vartype = typeNode.type
+            self.basic_type = self.vartype
+        
+        self.array_dimensions = array_dimensions or []
+        self.initval = initval
+        #Default ranges
+        if typeNode.type in ['TypeInt', 'TypeConstInt'] or (typeNode.type == 'NodeTypedef' and typeNode.children[0].type != 'VarDeclList'): #alias typedef
+            if len(typeNode.children) == 2:
+                self.range_min = typeNode.children[0].children[0]
+                self.range_max = typeNode.children[1].children[0]
+            else:
+                self.range_min = Node('Number', [], -32767)
+                self.range_max = Node('Number', [], 32767)
+        elif typeNode.type in ['TypeBool', 'TypeConstBool']:
+            self.range_min = Node('Number', [], 0)
+            self.range_max = Node('Number', [], 1)
+        else:
+            self.range_min = None
+            self.range_max = None
+
+    def __iter__(self):
+        "For backwards compatibility."
+        for x in (self.identifier, self.vartype, self.array_dimensions, self.initval):
+            yield x
 

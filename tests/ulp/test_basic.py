@@ -208,7 +208,7 @@ class TestBasicParsing(unittest.TestCase):
         self.assertTrue('n2' in varnames)
         
         #check ranges inherited from typedef
-        print "type", declvisitor.get_vardecl('n').type
+        print "type", declvisitor.get_vardecl('n').vartype
         self.assertEqual(declvisitor.get_vardecl('n').basic_type, "TypeInt")
         self.assertEqual(declvisitor.get_vardecl('n').range_min.type, "Number")
         self.assertEqual(declvisitor.get_vardecl('n').range_min.leaf, 1)
@@ -1004,10 +1004,10 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(tuple(declvisitor.variables[1]), ('dbm.x', 'DBMClock', [], None))
         self.assertEqual(tuple(declvisitor.variables[2]), ('dbm.c', 'DBMClock', [], None))
         self.assertEqual(declvisitor.variables[3].identifier, 'dbm.y') #('dbm.y', 'DBMClock', [10])
-        self.assertEqual(declvisitor.variables[3].type, 'DBMClock')
+        self.assertEqual(declvisitor.variables[3].vartype, 'DBMClock')
         self.assertEqual(declvisitor.variables[3].array_dimensions[0].children[0].leaf, 10)
         self.assertEqual(declvisitor.variables[4].identifier, 'dbm.z') #('dbm.z', 'DBMClock', [10, 20])
-        self.assertEqual(declvisitor.variables[4].type, 'DBMClock')
+        self.assertEqual(declvisitor.variables[4].vartype, 'DBMClock')
         self.assertEqual(declvisitor.variables[4].array_dimensions[0].children[0].leaf, 10)
         self.assertEqual(declvisitor.variables[4].array_dimensions[1].children[0].leaf, 20)
 
@@ -1062,7 +1062,15 @@ class TestBasicParsing(unittest.TestCase):
 
         self.assertEqual(pars.AST.children[0].type, "VarDeclList") 
         self.assertEqual(pars.AST.children[0].leaf.type, 'TypeInt')
-        self.assertEqual(pars.AST.children[0].children[0].children[0].children[0], "i") 
+
+        vdecl = pars.AST.children[0].children[0]
+        self.assertEqual(vdecl.type, "VarDecl")
+        self.assertEqual(vdecl.children[0].children[0], "i")
+
+        self.assertEqual(vdecl.range_min.type, "Number")
+        self.assertEqual(vdecl.range_min.leaf, 0)
+        self.assertEqual(vdecl.range_max.type, "Number")
+        self.assertEqual(vdecl.range_max.leaf, 4)
         
         self.assertEqual(pars.AST.children[0].leaf.children[0].type, "Expression")
         self.assertEqual(pars.AST.children[0].leaf.children[0].children[0].leaf, 0)

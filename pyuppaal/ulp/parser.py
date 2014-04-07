@@ -22,58 +22,9 @@ import copy
 
 from lexer import *
 import expressionParser
-from node import Node
+from node import *
+from util import *
 
-def get_index_of_last_ident(node):
-    last_index = node.leaf
-
-    #parse out entire name (follow dots)
-    curnode = node
-    while len(curnode.children) == 2 and curnode.children[1].type == 'Identifier':
-        curnode = curnode.children[1]        
-        last_index = curnode.leaf
-
-    if last_index == None:
-        return []
-    else:
-        return last_index.children
-
-def get_last_name_from_complex_identifier(n):
-    """Follow the children of a complex identifier node, i.e.
-    "a.b.c.d" to just return "d"
-    """
-    full_str = get_full_name_from_complex_identifier(n)
-    if '.' in full_str:
-        return full_str.rsplit('.',1)[1] #FIXME this could be done without constructing the full string first
-    else:
-        return full_str
-
-""" Takes an identifier and return the full name:
-    e.g., myidentifier.someotheridentifier.nestedidentifier.
-    """
-def get_full_name_from_complex_identifier(identifierNode):
-    id_str = identifierNode.children[0]
-
-    #parse out entire name (follow dots)
-    curnode = identifierNode
-    while len(curnode.children) == 2 and curnode.children[1].type == 'Identifier':
-        curnode = curnode.children[1]
-        id_str += '.' + curnode.children[0]
-
-    return id_str
-
-""" Takes an identifier and return the list of names:
-    e.g., ['myidentifier', 'someotheridentifier', 'nestedidentifier']
-    """
-def get_name_list_from_complex_identifier(identifierNode):
-    n = identifierNode
-    names = [n.children[0]]
-    cur = n
-    while len(cur.children) == 2 and \
-        cur.children[1].type == 'Identifier':
-        cur = cur.children[1]
-        names.append(cur.children[0])
-    return names
 
 class UnexpectedTokenException(Exception):
     pass
@@ -204,11 +155,17 @@ class Parser(object):
                 else:
                     initVal = self.parseExpression()
 
-                declList.append(Node(nodeType, [identifier], initVal,
-                    ident=identifier, initval=initVal))
+                if nodeType == 'VarDecl':
+                    declList.append(VarDecl(identifier, type, initval=initVal))
+                else:
+                    declList.append(Node(nodeType, [identifier], initVal,
+                        identifier=identifier, initval=initVal))
             else:
-                declList.append(Node(nodeType, [identifier], defaultValue,
-                    ident=identifier, initval=defaultValue))
+                if nodeType == 'VarDecl':
+                    declList.append(VarDecl(identifier, type, initval=defaultValue))
+                else:
+                    declList.append(Node(nodeType, [identifier], defaultValue,
+                        identifier=identifier, initval=defaultValue))
 
             if self.currentToken.type == 'COMMA':
                 self.accept('COMMA')
@@ -219,12 +176,11 @@ class Parser(object):
         if self.currentToken.type == 'SEMI':           
             self.accept('SEMI')
 
-
         for decl in declList:
             if self.inFunction:
-                self.identifierTypeDict[get_full_name_from_complex_identifier(decl.children[0])] = type
+                self.identifierTypeDict[get_full_name_from_complex_identifier(decl.identifier)] = type
             else:
-                self.globalIdentifierTypeDict[get_full_name_from_complex_identifier(decl.children[0])] = type
+                self.globalIdentifierTypeDict[get_full_name_from_complex_identifier(decl.identifier)] = type
 
         return Node(nodeType+'List', declList, type, 
                 vartype=type)
@@ -793,58 +749,7 @@ class Parser(object):
         raise Exception('Error: Parser error '+ msg)
 
 
-class VarDecl:
-    """
-    A nicer representation of a VarDecl node.
 
-    @identifier is name of var
-    @type is type used at declaration, e.g. "addr" if a typedef'ed var
-    @basic_type is the underlying type, e.g. "TypeInt"
-    """
-    def __init__(self, identifier, typeNode, array_dimensions=None, initval=None):
-        self.identifier = identifier
-        isTypedefStruct = False
-        
-        if typeNode.type == 'NodeTypedef': #TODO recursively find type
-            if typeNode.children[0].type == 'VarDeclList': #Means that this is a Struct
-                self.type = typeNode.leaf
-                self.basic_type = self.type
-            else: 
-                self.type = typeNode.leaf
-                typeNode = typeNode.children[0]
-                self.basic_type = typeNode.type
-        elif typeNode.type == 'Identifier':
-            self.type = typeNode.children[0]
-            self.basic_type = self.type
-        elif typeNode.type == "TypeExternChild":
-            self.basic_type = "TypeExternChild"
-            typeNode.children[0].visit()
-            self.type = get_name_list_from_complex_identifier(typeNode.children[0])
-        else: #basic type
-            self.type = typeNode.type
-            self.basic_type = self.type
-        
-        self.array_dimensions = array_dimensions or []
-        self.initval = initval
-        #Default ranges
-        if typeNode.type in ['TypeInt', 'TypeConstInt'] or (typeNode.type == 'NodeTypedef' and typeNode.children[0].type != 'VarDeclList'): #alias typedef
-            if len(typeNode.children) == 2:
-                self.range_min = typeNode.children[0].children[0]
-                self.range_max = typeNode.children[1].children[0]
-            else:
-                self.range_min = Node('Number', [], -32767)
-                self.range_max = Node('Number', [], 32767)
-        elif typeNode.type in ['TypeBool', 'TypeConstBool']:
-            self.range_min = Node('Number', [], 0)
-            self.range_max = Node('Number', [], 1)
-        else:
-            self.range_min = None
-            self.range_max = None
-
-    def __iter__(self):
-        "For backwards compatibility."
-        for x in (self.identifier, self.type, self.array_dimensions, self.initval):
-            yield x
 
 
 class DeclVisitor(object):
