@@ -284,7 +284,8 @@ class Parser(object):
         else:
             e = self.parseExpression()
         self.accept('RBRACKET')
-        return Node('Index', [], e, expr=e)
+        return Node('Index', [], e, 
+                expr=e)
 
     def parseFunction(self, type, identifier):
         self.inFunction = True #used to determine if variables are global or not
@@ -304,7 +305,8 @@ class Parser(object):
         funcIdentifierTypeDict = self.identifierTypeDict
         self.identifierTypeDict = tmpIdentifierTypeDict 
 
-        n = Node('Function', children, (type, identifier, parameters, funcIdentifierTypeDict))
+        n = Node('Function', children, (type, identifier, parameters, funcIdentifierTypeDict),
+                returntype=type, identifier=identifier, parameters=parameters, identifierTypeDict=funcIdentifierTypeDict)
         #typedef'ed return value?
         if type.type == "NodeTypedef":
             n.basic_type = type.children[0].type
@@ -320,7 +322,7 @@ class Parser(object):
                 self.accept('CONST')
                 isConst = True
             type = self.parseStdType(isConst) 
-            identifier = self.parseIdentifierComplex(accept_ampersand_prefix = True)
+            identifier = self.parseIdentifierComplex()
             self.identifierTypeDict[get_full_name_from_complex_identifier(identifier)] = type
             parameters.append( Node('Parameter', [], (type, identifier)) )
             if self.currentToken.type == 'COMMA':
@@ -438,7 +440,8 @@ class Parser(object):
 
             #TODO refactor
             n = self.parseExpression()
-            return Node('Assignment', [n], identifier) 
+            return Node('Assignment', [n], identifier,
+                    identifier=identifier)
         elif self.currentToken.type in ['ANDEQUAL', 'TIMESEQUAL', 'DIVEQUAL', \
                         'MODEQUAL', 'PLUSEQUAL', 'MINUSEQUAL', 'LSHIFTEQUAL', \
                         'RSHIFTEQUAL', 'ANDEQUAL', 'OREQUAL', 'XOREQUAL']:
@@ -452,7 +455,8 @@ class Parser(object):
                     ppnode = Node('PlusPlusPre', [identifier])
                 else:
                     ppnode = Node('PlusPlusPost', [identifier])         
-                return Node('Assignment', children=[Node('Expression', children=[ppnode])])
+                return Node('Assignment', children=[Node('Expression', children=[ppnode])],
+                        identifier=identifier)
             elif self.currentToken.type == 'MINUSMINUS':
                 self.accept('MINUSMINUS')
                 if identifier == None:
@@ -460,7 +464,8 @@ class Parser(object):
                     mmnode = Node('MinusMinusPre', [identifier])
                 else:
                     mmnode = Node('MinusMinusPost', [identifier])
-                return Node('Assignment', children=[Node('Expression', children=[mmnode])])
+                return Node('Assignment', children=[Node('Expression', children=[mmnode])],
+                        identifier=identifier)
         self.error('at assignment parsing, at token "%s" on line %d: Did not expect token type: "%s"' % (self.currentToken.value, self.currentToken.lineno, self.currentToken.type))
 
     def parseBooleanExpression(self):
@@ -555,7 +560,7 @@ class Parser(object):
         return Node('If', children)
 
     def parseIdentifier(self):
-        n = Node('Identifier', [self.currentToken.value], None)
+        n = Identifier(self.currentToken.value)
         self.accept('IDENTIFIER')
         return n
 
@@ -563,29 +568,17 @@ class Parser(object):
         d[34].sdf.df[3][2].df[2] =
         d.sdf.df[3][2].df =
     """
-    def parseIdentifierComplex(self, accept_ampersand_prefix = False):
-        rootP = self.parseIdentifier()
-        p = rootP
-        reference = False
+    def parseIdentifierComplex(self):
+        strname = self.currentToken.value
+        self.accept('IDENTIFIER')
 
-        if accept_ampersand_prefix == True and self.currentToken.type == 'BITAND':
-            reference = True
-            self.accept('BITAND')
+        indexList = self.parseIndexList()
 
-        while True:
-            p.leaf = self.parseIndexList()
-            if self.currentToken.type == 'DOT':
-                self.accept('DOT')
-                element = self.parseIdentifier()
-                p.children.extend([element])
-                p = element
-            if self.currentToken.type not in ['LBRACKET', 'DOT']:	
-                break
-
-        if reference == True:
-            n.children.append(Node('Reference', [], []))
-
-        return rootP
+        dotchild = None
+        if self.currentToken.type == 'DOT':
+            self.accept('DOT')
+            dotchild = self.parseIdentifierComplex()
+        return Identifier(strname, indexList, dotchild)
    
     ### 
     ### FIXME: Notice similar functionalty exist in expressionParser, 
@@ -611,17 +604,20 @@ class Parser(object):
             self.accept(self.currentToken.type)
             n = self.parseExpression()
             expr = [Node('Expression', [Node('Equal', [identifier, n.children[0]], [])], [])]
-            return Node('Assignment', expr, identifier) 
+            return Node('Assignment', expr, identifier,
+                    identifier=identifier)
         elif self.currentToken.type == 'PLUSEQUAL':
             self.accept(self.currentToken.type)
             n = self.parseExpression()
             expr = [Node('Expression', [Node('Plus', [identifier, n.children[0]], [])], [])]
-            return Node('Assignment', expr, identifier) 
+            return Node('Assignment', expr, identifier,
+                    identifier=identifier) 
         elif self.currentToken.type == 'MINUSEQUAL':
             self.accept(self.currentToken.type)
             n = self.parseExpression()
             expr = [Node('Expression', [Node('Minus', [identifier, n.children[0]], [])], [])]
-            return Node('Assignment', expr, identifier) 
+            return Node('Assignment', expr, identifier,
+                    identifier=identifier)
         #elif self.currentToken.type == 'TIMESEQUAL':
         #elif self.currentToken.type == 'DIVEQUAL':
         #elif self.currentToken.type == 'MODEQUAL':
@@ -853,7 +849,7 @@ class DeclVisitor(object):
                 initval = False
             elif list_type.type == 'NodeExtern': 
                 last_type = get_last_name_from_complex_identifier(list_type.leaf)
-                varType = Node('Identifier', [last_type], None)
+                varType = Identifier(last_type)
             elif list_type.type == 'NodeTypedef':
                 if iden in self.parser.identifierTypeDict:
                     varType = self.parser.identifierTypeDict[iden]

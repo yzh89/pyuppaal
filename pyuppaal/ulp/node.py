@@ -32,6 +32,8 @@ class Node(object):
         super(Node, self).__init__()
         if type == "VarDecl":
             assert isinstance(self, VarDecl), "Use subclass VarDecl"
+        elif type == "Identifier":
+            assert isinstance(self, Identifier), "Use subclass Identifier"
         self.type = type
         self.children = children
         self.leaf = leaf
@@ -68,6 +70,26 @@ class Node(object):
                         print "visit", "  "*(self.level+1), v
                     pass 
 
+class Identifier(Node):
+    """
+    An Identifier node.
+
+    @strname is the name of the identifier (as string)
+    @indexList is an array access
+    @dotchild is an dot access of a child element (struct)
+
+    e.g. "a[5].b" =>
+    Identifier("a", indexList=[5], dotchild=Identifier("b"))
+    """
+    def __init__(self, strname, indexList=None, dotchild=None):
+        children = [strname]
+        if dotchild:
+            children.append(dotchild)
+        super(Identifier, self).__init__("Identifier", children=children, leaf=indexList)
+        self.strname = strname
+        self.indexList = indexList
+        self.dotchild = dotchild
+
 class VarDecl(Node):
     """
     A VarDecl node.
@@ -78,7 +100,7 @@ class VarDecl(Node):
     @typenode is a reference to the AST node representing the type
     """
 
-    def __init__(self, identifier, typeNode, array_dimensions=None, initval=None, parser=None):
+    def __init__(self, identifier, typeNode, array_dimensions=None, initval=None):
         super(VarDecl, self).__init__("VarDecl", children=[identifier], leaf=initval)
         self.identifier = identifier
         isTypedefStruct = False

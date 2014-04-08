@@ -537,6 +537,19 @@ class TestBasicParsing(unittest.TestCase):
         self.assertEqual(res.children[0].children[1].type, "Identifier")
         self.assertEqual(res.children[0].children[1].children[0], "isEmpty")
 
+        res = parser.parse_expression("a[42]")
+        res.visit()
+        self.assertEqual(res.type, "Identifier")
+        self.assertEqual(res.strname, "a")
+        indexList = res.indexList
+        self.assertEqual(indexList.type, "IndexList")
+        self.assertEqual(len(indexList.children), 1)
+        self.assertEqual(indexList.children[0].type, "Index")
+        self.assertEqual(indexList.children[0].leaf.type, "Number")
+        self.assertEqual(indexList.children[0].leaf.leaf, 42)
+        self.assertEqual(res.dotchild, None)
+        
+
     def test_parse_expression2(self):
         parser = expressionParser
 
