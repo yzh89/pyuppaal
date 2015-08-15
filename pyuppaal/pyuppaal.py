@@ -373,7 +373,7 @@ class Location:
     ##
     ## @brief      Location constructor
     ## 
-    ## @param      invariant  invariant of the location constructed using Label
+    ## @param      invariant  invariant of the location constructed using value of Label
     ## @param      urgent     bool flag for urgent location
     ## @param      committed  bool flag for committed location
     ## @param      name       name of the location as Label
