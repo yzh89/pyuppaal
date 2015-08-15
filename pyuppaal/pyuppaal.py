@@ -39,18 +39,40 @@ def require_keyword_args(num_unnamed):
 
 UPPAAL_LINEHEIGHT = 15
 class NTA:
+    ##
+    ## @brief      Construct a Nondeterministic Timed Automata
+    ##
+    ## @param      declaration  Declaration of global clocks and functions
+    ## @param      system       System declaration based on templates
+    ## @param      templates    Array of Template
+    ##
     def __init__(self, declaration="", system="", templates=None):
         self.declaration = declaration
         self.system = system
         self.templates = templates or []
 
+    ##
+    ## @brief      Add templates to NTA
+    ##
+    ## @param      t  Template
+    ##
     def add_template(self, t):
         if not t in self.templates:
             self.templates += [t]
 
+    ##
+    ## @brief      Get the first template which have same name as specified from NTA
+    ##
+    ## @param      tname  name of the template
+    ##
+    ## @return     template of class Template
+    ##
     def get_template(self, tname):
         return [t for t in self.templates if t.name == tname][0]
 
+    ##
+    ## @brief      Return string of xml format of the NTA
+    ##
     def to_xml(self):
         templatesxml = ""
         for t in self.templates:
@@ -62,6 +84,15 @@ class NTA:
   %s
   <system>%s</system>
 </nta>""" % (cgi.escape(self.declaration), templatesxml, cgi.escape(self.system))
+
+
+    ##
+    ## @brief      Generate a NTA instance based on XML
+    ## 
+    ## @param      xmlsock  xml file
+    ##
+    ## @return     a NTA instance
+    ##
     @classmethod
     def from_xml(cls, xmlsock):
         nta = cls()
@@ -155,6 +186,17 @@ class NTA:
             self.templates += [template]    
 
 class Template:
+
+    ##
+    ## @brief      Template constructor
+    ##
+    ## @param      name          name of the template
+    ## @param      declaration   local declaration
+    ## @param      locations     list of Location instances
+    ## @param      initlocation  initial location id
+    ## @param      transitions   list of Transition instances
+    ## @param      parameter     template parameters declaration
+    ##
     def __init__(self, name, declaration="", locations=None, initlocation=None, transitions=None, parameter=None):
         self.name = name
         self.declaration = declaration
@@ -244,6 +286,9 @@ class Template:
             return '<parameter>%s</parameter>' % (cgi.escape(self.parameter))
         return ""
 
+    ##
+    ## @brief      Generate XML from a Template instance
+    ##
     def to_xml(self):
         return """  <template>
     <name x="5" y="5">%s</name>
@@ -262,6 +307,15 @@ class Template:
     "\n".join([l.to_xml() for l in self.transitions]))
 
 class Label:
+
+    ##
+    ## @brief      Label Constructor
+    ##
+    ## @param      kind   'name', 'guard', 'assignment','invariant' or 'synchronoisation'
+    ## @param      value  value of the label for example xlt;20 for x<=20
+    ## @param      xpos   x position
+    ## @param      ypos   y position
+    ##
     def __init__(self, kind, value=None, xpos=None, ypos=None):
         self.kind = kind
         self.value = value
@@ -290,7 +344,10 @@ class Label:
     def move_relative(self, dx, dy):
         self.xpos += dx
         self.ypos += dy
-
+    
+    ##
+    ## @brief      Generate XML from a Label instance
+    ##
     def to_xml(self):
         if self.value:
             attrs = ['kind="%s"' % self.kind]
@@ -312,6 +369,18 @@ class Label:
         return self.get_value()
 
 class Location:
+
+    ##
+    ## @brief      Location constructor
+    ## 
+    ## @param      invariant  invariant of the location constructed using Label
+    ## @param      urgent     bool flag for urgent location
+    ## @param      committed  bool flag for committed location
+    ## @param      name       name of the location as Label
+    ## @param      id         id is unit reference of the location
+    ## @param      xpos       x position
+    ## @param      ypos       y position
+    ##
     @require_keyword_args(1)
     def __init__(self, invariant=None, urgent=False, committed=False, name=None, id = None,
         xpos=0, ypos=0):
@@ -330,6 +399,9 @@ class Location:
         for l in [self.invariant, self.name]:
             l.move_relative(dx, dy)
 
+    ##
+    ## @brief      Generate XML from a Location instance
+    ##
     def to_xml(self):
         namexml = self.name.to_xml()
         invariantxml = self.invariant.to_xml()
@@ -354,12 +426,22 @@ class Location:
             return "Location %s" % (self.id,)
 
 class Branchpoint:
+    ##
+    ## @brief      Branchpoint constructor
+    ##
+    ## @param      id    id of branchpoint
+    ## @param      xpos  { parameter_description }
+    ## @param      ypos  { parameter_description }
+    ##
     @require_keyword_args(1)
     def __init__(self, id=None, xpos=0, ypos=0):
         self.id = id
         self.xpos = xpos
         self.ypos = ypos
 
+    ##
+    ## @brief      Generate XML from a Branchpoint instance
+    ##
     def to_xml(self):
         return """
     <branchpoint id="%s" x="%s" y="%s" />""" % (self.id, self.xpos, self.ypos)
@@ -367,6 +449,19 @@ class Branchpoint:
 
 last_transition_id = 0
 class Transition:
+
+    ##
+    ## @brief      Transition constructor
+    ##
+    ## @param      source           source location id
+    ## @param      target           target location id
+    ## @param      select           select label: choose the index for guard and sync arrays
+    ## @param      guard            guard label
+    ## @param      synchronisation  synchronisation label
+    ## @param      assignment       assignment label
+    ## @param      action           action name?
+    ## @param      controllable     bool flag for controllable
+    ##
     @require_keyword_args(3)
     def __init__(self, source, target, select='', guard='', synchronisation='',
                     assignment='', action = None, controllable=True):
@@ -425,6 +520,9 @@ class Transition:
             if not removed:
                 break
         return count
+    ##
+    ## @brief      Generate XML from a Transition instance
+    ##
     def to_xml(self):
         if self.action is None:
             action_str = ''
@@ -456,13 +554,23 @@ class Transition:
 
 last_nail_id = 0
 class Nail:
+
+    ##
+    ## @brief      Nail constructor: nail changes the way transition looks
+    ##
+    ## @param      self  { parameter_description }
+    ## @param      xpos  x position
+    ## @param      ypos  y position
+    ##
     def __init__(self, xpos=0, ypos=0):
         global last_nail_id
         self.id = 'Nail' + str(last_nail_id)
         last_nail_id = last_nail_id + 1
         self.xpos = xpos
         self.ypos = ypos
-
+    ##
+    ## @brief      Generate XML from a Nail instance
+    ##
     def to_xml(self):
         return """
     <nail x="%s" y="%s" />""" % \
